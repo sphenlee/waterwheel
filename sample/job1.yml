@@ -1,0 +1,31 @@
+project_id: rd.data_platform
+job_id: sample
+
+triggers:
+  - id: daily
+    start: '2020-01-01'
+    period: '1d'
+
+tasks:
+  - id: step1
+    docker:
+      image: bash
+      args: ['echo', 'hello', '$DATE']
+    depends:
+      - triggers/daily
+
+  - id: step2
+    docker:
+      image: bash
+      args: ['echo', 'world', '$DATE']
+    depends:
+      - tasks/step1
+
+  - id: failure
+    depends_failure:
+      - step1
+      - step2
+
+  - id: success
+    depends:
+      step2

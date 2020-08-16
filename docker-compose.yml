@@ -1,0 +1,14 @@
+version: '2.0'
+services:
+  amqp:
+    image: rabbitmq:management-alpine
+    ports:
+      - "5672:5672"
+      - "8055:15672"
+
+  db:
+    image: postgres:alpine
+    environment:
+      - POSTGRES_PASSWORD
+    ports:
+      - "5432:5432"
