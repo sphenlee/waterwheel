@@ -6,7 +6,7 @@ Data Model
 
 * Projects
  	* Contain jobs
-  	* Access control unit?
+  	* Access control unit
 
 * Jobs
 	* Contain nodes
@@ -19,45 +19,10 @@ Data Model
 	* Tokens flow between nodes like a petri net
 	* Task nodes execute once they get a token from each incoming edge, and on success they generate a token for each outgoing edge
 	* Task failure generates tokens for each outgoing failure edge
-	* Node is triggered when it's threshold is reached
-		* Default threshold is number of success edges, or 1 is there are none
+	* Node triggers when its threshold is reached
+		* Default threshold is number of success edges, or 1 if there are none
 		* Threshold can be changed to create interesting workflows
 	* It's an error for a non-trigger to have zero incoming edges
-
-
-Database Info
--------------
-Jobs:
- * project_id
- * job_id
- * raw_definition
- 
-Trigger:
- * job_id
- * trigger_id
- * start_datetime
- * earliest_trigger_datetime
- * latest_trigger_datetime
- * end_datetime
- 
-Tasks:
- * job_id
- * task_id
- * threshold
- 
-Tokens
- * job_id
- * task_id
- * trigger_datetime
- * 
-
-Process
--------
-
-On boot:
- * check for triggers and add to the priority queue
- *
-
 
 
 UI Model
@@ -65,4 +30,3 @@ UI Model
 
 Project selector - only show nodes from one project
 Jobs - can show all nodes, or filter down to specific jobs
-

@@ -1,13 +1,17 @@
+use crate::db;
+use crate::tokens::{increment_token, Token};
 use crate::trigger_time::TriggerTime;
 use anyhow::Result;
 use async_std::sync::{Arc, Mutex, Sender};
+use async_std::task;
 use binary_heap_plus::{BinaryHeap, MinComparator};
 use chrono::{DateTime, Duration, Utc};
 use futures::TryStreamExt;
 use log::{debug, info, trace};
-use sqlx::postgres::PgQueryAs;
 use sqlx::types::Uuid;
-use sqlx::{Connection, PgPool};
+use sqlx::Connection;
+use std::collections::HashMap;
+use std::time::Duration as StdDuration;
 
 #[derive(sqlx::FromRow, Debug)]
 struct Trigger {
@@ -20,20 +24,21 @@ struct Trigger {
 }
 
 pub struct TriggerState {
-    triggers: Vec<Trigger>,
+    triggers: HashMap<Uuid, Trigger>,
     queue: BinaryHeap<TriggerTime, MinComparator>,
 }
 
 impl TriggerState {
     fn new() -> Arc<Mutex<Self>> {
         Arc::new(Mutex::new(Self {
-            triggers: Vec::new(),
+            triggers: HashMap::new(),
             queue: BinaryHeap::new_min(),
         }))
     }
 }
 
-pub async fn process_triggers(pool: PgPool, execute_tx: Sender<Uuid>) -> Result<()> {
+pub async fn process_triggers(token_tx: Sender<Token>) -> Result<!> {
+    let pool = db::get_pool();
     let state = TriggerState::new();
 
     info!("restoring triggers from database...");
@@ -65,12 +70,11 @@ pub async fn process_triggers(pool: PgPool, execute_tx: Sender<Uuid>) -> Result<
             let mut next = trigger.start_datetime;
             while next < trigger.earliest_trigger_datetime {
                 activate_trigger(
-                    pool.clone(),
                     TriggerTime {
                         trigger_id: trigger.id,
                         trigger_datetime: next,
                     },
-                    execute_tx.clone(),
+                    token_tx.clone(),
                 )
                 .await?;
                 next = next + period;
@@ -82,19 +86,18 @@ pub async fn process_triggers(pool: PgPool, execute_tx: Sender<Uuid>) -> Result<
         let mut next = trigger.latest_trigger_datetime + period;
         while next < now && next < trigger.end_datetime {
             activate_trigger(
-                pool.clone(),
                 TriggerTime {
                     trigger_id: trigger.id,
                     trigger_datetime: next,
                 },
-                execute_tx.clone(),
+                token_tx.clone(),
             )
             .await?;
             next = next + period;
         }
 
         if next < trigger.end_datetime {
-            // and push one trigger in the future
+            // push one trigger in the future
             trace!("{}: queueing trigger at {}", trigger.id, next);
             state.lock().await.queue.push(TriggerTime {
                 trigger_id: trigger.id,
@@ -102,38 +105,58 @@ pub async fn process_triggers(pool: PgPool, execute_tx: Sender<Uuid>) -> Result<
             });
         }
 
-        state.lock().await.triggers.push(trigger);
+        state.lock().await.triggers.insert(trigger.id, trigger);
     }
 
     info!("done restoring triggers from database");
 
     loop {
-        let next_trigger = state.lock().await.queue.pop();
-        let delay = match next_trigger {
-            Some(TriggerTime {
-                trigger_datetime, ..
-            }) => trigger_datetime - Utc::now(),
-            None => Duration::seconds(10),
+        let next_trigger = {
+            loop {
+                match state.lock().await.queue.pop() {
+                    Some(trigger) => break trigger,
+                    None => {
+                        trace!("no tasks queued - sleeping");
+                        task::sleep(StdDuration::from_secs(60)).await
+                    }
+                }
+            }
         };
 
-        debug!("sleeping {} until next trigger", delay);
-        async_std::task::sleep(delay.to_std()?).await;
+        {
+            let mut state = state.lock().await;
+
+            let trigger = state
+                .triggers
+                .get(&next_trigger.trigger_id)
+                .expect("trigger missing from hashmap");
+            let requeue = TriggerTime {
+                trigger_id: next_trigger.trigger_id,
+                trigger_datetime: next_trigger.trigger_datetime + Duration::seconds(trigger.period),
+            };
+            trace!(
+                "{}: queueing next time: {}",
+                requeue.trigger_id,
+                requeue.trigger_datetime
+            );
+            state.queue.push(requeue);
+        }
+
+        let delay = next_trigger.trigger_datetime - Utc::now();
+        debug!(
+            "{}: sleeping {} until next trigger",
+            next_trigger.trigger_id, delay
+        );
+        task::sleep(delay.to_std()?).await;
+
+        activate_trigger(next_trigger, token_tx.clone()).await?;
     }
-
-    //error!("trigger processor is exiting - should be restarted by main!");
-
-    //Ok(())
 }
 
-async fn activate_trigger(
-    pool: PgPool,
-    trigger_time: TriggerTime,
-    execute_tx: Sender<Uuid>,
-) -> Result<()> {
-    debug!(
-        "{}: activating trigger at {}",
-        trigger_time.trigger_id, trigger_time.trigger_datetime
-    );
+async fn activate_trigger(trigger_time: TriggerTime, token_tx: Sender<Token>) -> Result<()> {
+    let pool = db::get_pool();
+
+    debug!("activating trigger: {}", trigger_time);
 
     let mut cursor = sqlx::query_as::<_, (Uuid,)>(
         "SELECT
@@ -144,36 +167,22 @@ async fn activate_trigger(
     .bind(trigger_time.trigger_id)
     .fetch(&pool);
 
-    let conn = pool.acquire().await?;
+    let mut conn = pool.acquire().await?;
     let mut txn = conn.begin().await?;
 
+    let mut tokens_to_tx = Vec::new();
+
     while let Some((task_id,)) = cursor.try_next().await? {
-        trace!("adding token to task: {}", task_id);
+        let token = Token {
+            task_id,
+            trigger_datetime: trigger_time.trigger_datetime,
+        };
 
-        sqlx::query(
-            "INSERT INTO token(task_id, trigger_datetime, count, state)
-            VALUES ($1, $2, 0, 'waiting')
-            ON CONFLICT DO NOTHING",
-        )
-        .bind(task_id)
-        .bind(trigger_time.trigger_datetime)
-        .execute(&mut txn)
-        .await?;
-
-        sqlx::query(
-            "UPDATE token
-            SET count = count + 1
-            WHERE task_id = $1
-            AND trigger_datetime = $2",
-        )
-        .bind(task_id)
-        .bind(trigger_time.trigger_datetime)
-        .execute(&mut txn)
-        .await?;
-
-        execute_tx.send(task_id).await;
+        increment_token(&mut txn, &token).await?;
+        tokens_to_tx.push(token);
     }
 
+    trace!("updating trigger times for {}", trigger_time);
     sqlx::query(
         "
         UPDATE trigger
@@ -187,6 +196,12 @@ async fn activate_trigger(
     .await?;
 
     txn.commit().await?;
+    trace!("done activating trigger: {}", trigger_time);
+
+    // after committing the transaction we can tell the token processor to check thresholds
+    for token in tokens_to_tx {
+        token_tx.send(token).await;
+    }
 
     Ok(())
 }

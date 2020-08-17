@@ -1,20 +1,29 @@
-use sqlx::{Executor, PgPool};
-use log::{info, debug, trace};
+use log::{debug, info, trace};
+use sqlx::{Done, Executor, PgPool};
 
 const SCHEMA: &str = include_str!("schema.sql");
 
-pub async fn create_pool() -> anyhow::Result<PgPool> {
+static DB_POOL: once_cell::sync::OnceCell<PgPool> = once_cell::sync::OnceCell::new();
+
+pub async fn create_pool() -> anyhow::Result<()> {
     info!("connecting to database...");
 
     let url = std::env::var("WATERWHEEL_DB_URL").expect("database URL not set");
-    let pool = PgPool::new(&url).await?;
+    let pool = PgPool::connect(&url).await?;
 
     let mut conn = pool.acquire().await?;
     debug!("creating schema if needed");
-    let c = conn.execute(SCHEMA).await?;
-    trace!("schema created: {} rows modified", c);
+    let done = conn.execute(SCHEMA).await?;
+    trace!("schema created: {} rows modified", done.rows_affected());
 
     info!("connected to database");
 
-    Ok(pool)
+    DB_POOL.set(pool).expect("the DB pool is already created!");
+
+    Ok(())
+}
+
+pub fn get_pool() -> PgPool {
+    // pools internally use Arc so clone here is cheap
+    DB_POOL.get().expect("pool not created yet!").clone()
 }

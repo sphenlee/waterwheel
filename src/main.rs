@@ -1,13 +1,15 @@
+#![feature(never_type)]
+
 use anyhow::Result;
 use async_std::task;
-use futures::TryFutureExt;
-use log::info;
 
 //mod api;
 //mod model;
 mod amqp;
 mod db;
 mod execute;
+mod heartbeat;
+mod tokens;
 mod trigger_time;
 mod triggers;
 
@@ -19,12 +21,15 @@ fn main() -> Result<()> {
 }
 
 async fn main_inner() -> Result<()> {
-    let pool = db::create_pool().await?;
+    db::create_pool().await?;
 
     let (execute_tx, execute_rx) = async_std::sync::channel(5); // TODO - tweak this?
+    let (token_tx, token_rx) = async_std::sync::channel(5); // TODO - tweak this?
 
-    let trigger_future = task::spawn(triggers::process_triggers(pool.clone(), execute_tx));
-    let execute_future = task::spawn(execute::process_executions(pool.clone(), execute_rx));
+    task::spawn(triggers::process_triggers(token_tx));
+    task::spawn(tokens::process_tokens(token_rx, execute_tx.clone()));
+    task::spawn(execute::process_executions(execute_rx));
+    task::spawn(heartbeat::process_heartbeats(execute_tx));
 
     let mut app = tide::new();
     app.at("/")
@@ -32,9 +37,8 @@ async fn main_inner() -> Result<()> {
 
     let host =
         std::env::var("WATERWHEEL_SERVER_ADDR").unwrap_or_else(|_| "127.0.0.1:8080".to_owned());
-    let listener = app.listen(host).map_err(|ioe| ioe.into());
 
-    futures::future::try_join3(trigger_future, execute_future, listener).await?;
+    app.listen(host).await?;
 
     Ok(())
 }

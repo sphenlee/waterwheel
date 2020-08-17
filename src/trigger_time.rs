@@ -29,6 +29,11 @@ impl Ord for TriggerTime {
 
 impl fmt::Display for TriggerTime {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "<task {} @ {}>", self.trigger_id, self.trigger_datetime)
+        write!(
+            f,
+            "<trigger-time {} @ {}>",
+            self.trigger_id,
+            self.trigger_datetime.to_rfc3339()
+        )
     }
 }
