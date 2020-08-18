@@ -1,6 +1,7 @@
 use crate::amqp::get_amqp_channel;
 use crate::db;
-use crate::tokens::Token;
+use crate::messages::TaskDef;
+use crate::server::tokens::Token;
 use anyhow::Result;
 use async_std::sync::Receiver;
 use lapin::options::{
@@ -12,12 +13,6 @@ use log::{debug, info};
 
 const TASK_EXCHANGE: &str = "waterwheel.tasks";
 const TASK_QUEUE: &str = "waterwheel.tasks";
-
-#[derive(serde::Serialize)]
-struct TaskDef {
-    task_id: String,
-    trigger_datetime: String,
-}
 
 pub async fn process_executions(execute_rx: Receiver<Token>) -> Result<!> {
     let pool = db::get_pool();
@@ -60,14 +55,27 @@ pub async fn process_executions(execute_rx: Receiver<Token>) -> Result<!> {
         let token = execute_rx.recv().await?;
         info!("enqueueing {}", token);
 
+        let mut task_def = sqlx::query_as::<_, TaskDef>(
+            "SELECT
+                CAST(id AS VARCHAR) AS task_id,
+                '' AS trigger_datetime,
+                image,
+                args,
+                env
+            FROM task
+            WHERE id = $1",
+        )
+        .bind(&token.task_id)
+        .fetch_one(&pool)
+        .await?;
+
+        task_def.trigger_datetime = token.trigger_datetime.to_rfc3339();
+
         chan.basic_publish(
             TASK_EXCHANGE,
             "",
             BasicPublishOptions::default(),
-            serde_json::to_vec(&TaskDef {
-                task_id: token.task_id.to_string(),
-                trigger_datetime: token.trigger_datetime.to_rfc3339(),
-            })?,
+            serde_json::to_vec(&task_def)?,
             BasicProperties::default(),
         )
         .await?;

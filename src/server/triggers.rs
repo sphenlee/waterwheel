@@ -1,6 +1,6 @@
 use crate::db;
-use crate::tokens::{increment_token, Token};
-use crate::trigger_time::TriggerTime;
+use crate::server::tokens::{increment_token, Token};
+use crate::server::trigger_time::TriggerTime;
 use anyhow::Result;
 use async_std::sync::{Arc, Mutex, Sender};
 use async_std::task;
@@ -111,6 +111,8 @@ pub async fn process_triggers(token_tx: Sender<Token>) -> Result<!> {
     info!("done restoring triggers from database");
 
     loop {
+        trace!("{} triggers in the queue", state.lock().await.queue.len());
+
         let next_trigger = {
             loop {
                 match state.lock().await.queue.pop() {
@@ -143,11 +145,15 @@ pub async fn process_triggers(token_tx: Sender<Token>) -> Result<!> {
         }
 
         let delay = next_trigger.trigger_datetime - Utc::now();
-        debug!(
-            "{}: sleeping {} until next trigger",
-            next_trigger.trigger_id, delay
-        );
-        task::sleep(delay.to_std()?).await;
+        if delay > Duration::zero() {
+            debug!(
+                "{}: sleeping {} until next trigger",
+                next_trigger.trigger_id, delay
+            );
+            task::sleep(delay.to_std()?).await;
+        } else {
+            debug!("overslept trigger: {}", delay)
+        }
 
         activate_trigger(next_trigger, token_tx.clone()).await?;
     }

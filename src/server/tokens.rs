@@ -2,13 +2,14 @@ use crate::db;
 use anyhow::Result;
 use async_std::sync::{Receiver, Sender};
 use chrono::{DateTime, Utc};
-use futures::{TryStreamExt};
+use futures::TryStreamExt;
 use log::{info, trace};
 use sqlx::types::Uuid;
 use sqlx::{Postgres, Transaction};
 use std::collections::HashMap;
 use std::fmt;
 
+// TODO - move this out into general code
 #[derive(PartialEq, Hash, Eq, Clone, Debug)]
 pub struct Token {
     pub task_id: Uuid,

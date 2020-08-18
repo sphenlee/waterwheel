@@ -28,6 +28,9 @@ CREATE TABLE IF NOT EXISTS task (
     name VARCHAR,
     job_id VARCHAR,
     threshold INT,
+    image VARCHAR,
+    args VARCHAR[],
+    env VARCHAR[],
     UNIQUE(job_id, name) INCLUDE (id)
 );
 
