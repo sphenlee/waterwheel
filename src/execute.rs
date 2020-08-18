@@ -1,9 +1,8 @@
-use crate::amqp::amqp_connection;
+use crate::amqp::get_amqp_channel;
 use crate::db;
 use crate::tokens::Token;
 use anyhow::Result;
 use async_std::sync::Receiver;
-use futures::StreamExt;
 use lapin::options::{
     BasicPublishOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
 };
@@ -20,11 +19,10 @@ struct TaskDef {
     trigger_datetime: String,
 }
 
-pub async fn process_executions(mut execute_rx: Receiver<Token>) -> Result<!> {
+pub async fn process_executions(execute_rx: Receiver<Token>) -> Result<!> {
     let pool = db::get_pool();
 
-    let conn = amqp_connection().await?;
-    let chan = conn.create_channel().await?;
+    let chan = get_amqp_channel().await?;
 
     chan.exchange_declare(
         TASK_EXCHANGE,
@@ -58,7 +56,8 @@ pub async fn process_executions(mut execute_rx: Receiver<Token>) -> Result<!> {
 
     // TODO - recover any tasks
 
-    while let Some(token) = execute_rx.next().await {
+    loop {
+        let token = execute_rx.recv().await?;
         info!("enqueueing {}", token);
 
         chan.basic_publish(
@@ -87,6 +86,4 @@ pub async fn process_executions(mut execute_rx: Receiver<Token>) -> Result<!> {
 
         debug!("done enqueueing {}", token);
     }
-
-    unreachable!("execute_rx was closed")
 }

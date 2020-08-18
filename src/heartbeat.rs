@@ -1,11 +1,11 @@
-use crate::db;
+//use crate::db;
 use crate::tokens::Token;
 use async_std::sync::Sender;
-use chrono::Utc;
-use std::collections::HashMap;
+//use chrono::Utc;
+//use std::collections::HashMap;
 
-pub async fn process_heartbeats(execute_tx: Sender<Token>) -> anyhow::Result<!> {
-    let pool = db::get_pool();
+pub async fn process_heartbeats(_execute_tx: Sender<Token>) -> anyhow::Result<!> {
+    /*let pool = db::get_pool();
 
     let last_checkin = HashMap::new();
 
@@ -16,7 +16,7 @@ pub async fn process_heartbeats(execute_tx: Sender<Token>) -> anyhow::Result<!> 
             trigger_datetime,
         FROM token
         WHERE state = 'active'"
-    )
+    )*/
 
-    unreachable!("o-oh")
+    futures::future::pending().await
 }

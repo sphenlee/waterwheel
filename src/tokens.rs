@@ -2,7 +2,7 @@ use crate::db;
 use anyhow::Result;
 use async_std::sync::{Receiver, Sender};
 use chrono::{DateTime, Utc};
-use futures::{StreamExt, TryStreamExt};
+use futures::{TryStreamExt};
 use log::{info, trace};
 use sqlx::types::Uuid;
 use sqlx::{Postgres, Transaction};
@@ -26,7 +26,7 @@ impl fmt::Display for Token {
     }
 }
 
-pub async fn process_tokens(mut token_rx: Receiver<Token>, execute_tx: Sender<Token>) -> Result<!> {
+pub async fn process_tokens(token_rx: Receiver<Token>, execute_tx: Sender<Token>) -> Result<!> {
     let pool = db::get_pool();
 
     info!("restoring tokens from database...");
@@ -65,7 +65,9 @@ pub async fn process_tokens(mut token_rx: Receiver<Token>, execute_tx: Sender<To
 
     info!("done restoring tokens from database");
 
-    while let Some(token) = token_rx.next().await {
+    loop {
+        let token = token_rx.recv().await?;
+
         let count = tokens.entry(token.clone()).or_insert(0);
         *count += 1;
 
@@ -83,8 +85,6 @@ pub async fn process_tokens(mut token_rx: Receiver<Token>, execute_tx: Sender<To
             execute_tx.send(token).await;
         }
     }
-
-    unreachable!("token_rx was closed")
 }
 
 /// Adds a token to a task node

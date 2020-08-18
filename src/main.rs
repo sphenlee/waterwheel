@@ -1,6 +1,7 @@
 #![feature(never_type)]
 
 use anyhow::Result;
+use async_std::future::Future;
 use async_std::task;
 
 //mod api;
@@ -20,16 +21,29 @@ fn main() -> Result<()> {
     task::block_on(main_inner())
 }
 
+fn spawn_and_log(name: &str, future: impl Future<Output = Result<!>> + Send + 'static) {
+    task::Builder::new()
+        .name(name.to_owned())
+        .spawn(future)
+        .map_err(|err| {
+            panic!("process '{}' failed: {}", name, err)
+        }).unwrap();
+}
+
 async fn main_inner() -> Result<()> {
     db::create_pool().await?;
+    amqp::amqp_connect().await?;
 
-    let (execute_tx, execute_rx) = async_std::sync::channel(5); // TODO - tweak this?
-    let (token_tx, token_rx) = async_std::sync::channel(5); // TODO - tweak this?
+    let (execute_tx, execute_rx) = async_std::sync::channel(31); // TODO - tweak this?
+    let (token_tx, token_rx) = async_std::sync::channel(31); // TODO - tweak this?
 
-    task::spawn(triggers::process_triggers(token_tx));
-    task::spawn(tokens::process_tokens(token_rx, execute_tx.clone()));
-    task::spawn(execute::process_executions(execute_rx));
-    task::spawn(heartbeat::process_heartbeats(execute_tx));
+    spawn_and_log("triggers", triggers::process_triggers(token_tx));
+    spawn_and_log(
+        "tokens",
+        tokens::process_tokens(token_rx, execute_tx.clone()),
+    );
+    spawn_and_log("executions", execute::process_executions(execute_rx));
+    spawn_and_log("heartbeats", heartbeat::process_heartbeats(execute_tx));
 
     let mut app = tide::new();
     app.at("/")
