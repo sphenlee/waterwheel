@@ -21,8 +21,8 @@ pub fn spawn_and_log(name: &str, future: impl Future<Output = Result<!>> + Send 
 
 fn main() -> Result<()> {
     dotenv::dotenv().ok();
-    //env_logger::builder().format_timestamp_millis().init();
-    tide::log::start();
+    env_logger::builder().format_timestamp_millis().init();
+    //tide::log::start();
 
     let app = clap::App::new("waterwheel")
         .author("Steve Lee <sphen.lee@gmail.com>")

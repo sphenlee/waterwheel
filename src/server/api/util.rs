@@ -1,7 +1,7 @@
-use sqlx::PgPool;
-use tide::{Request, Response, StatusCode, Body};
 use super::State;
 use serde::Serialize;
+use sqlx::PgPool;
+use tide::{Body, Request, Response, StatusCode};
 
 // extension methods for State
 pub trait RequestExt {

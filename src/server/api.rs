@@ -41,7 +41,6 @@ pub async fn serve() -> Result<()> {
         .get(job::get_by_id)
         .delete(job::delete);
 
-
     let host =
         std::env::var("WATERWHEEL_SERVER_ADDR").unwrap_or_else(|_| "127.0.0.1:8080".to_owned());
 

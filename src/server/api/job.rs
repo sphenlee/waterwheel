@@ -1,21 +1,24 @@
 use super::types::Job;
-use super::{pg_error, PG_INTEGRITY_ERROR};
+use super::util::{OptionExt, RequestExt};
 use super::State;
+use super::{pg_error, PG_INTEGRITY_ERROR};
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use sqlx::Done;
 use tide::{Request, Response, StatusCode};
 use uuid::Uuid;
-use super::util::{OptionExt, RequestExt};
+use crate::server::api::types::period_from_string;
 
 pub async fn create(mut req: Request<State>) -> tide::Result<Response> {
-    let job: Job = req.body_json().await?;
+    let data = req.body_string().await?;
+    let job: Job = serde_json::from_str(&data)?;
 
-    let exists = sqlx::query(
-        "SELECT 1 FROM job WHERE id = $1"
-    )
+    let pool = req.get_pool();
+    let mut txn = pool.begin().await?;
+
+    let exists = sqlx::query("SELECT 1 FROM job WHERE id = $1")
         .bind(&job.uuid)
-        .fetch_optional(&req.get_pool())
+        .fetch_optional(&mut txn)
         .await?
         .is_some();
 
@@ -25,7 +28,7 @@ pub async fn create(mut req: Request<State>) -> tide::Result<Response> {
             SET name = $2,
                 project_id = (SELECT id FROM project WHERE name = $3),
                 raw_definition = $4
-            WHERE id = $1"
+            WHERE id = $1",
         )
     } else {
         sqlx::query(
@@ -49,23 +52,86 @@ pub async fn create(mut req: Request<State>) -> tide::Result<Response> {
         .bind(&job.name)
         .bind(&job.project)
         .bind(serde_json::to_string(&job)?)
-        .execute(&req.get_pool())
+        .execute(&mut txn)
         .await;
 
     match pg_error(res)? {
         Ok(_done) => {
             info!("created job {} -> {}", job.name, job.uuid);
-            Ok(Response::from(StatusCode::Created))
         }
         Err(err) => {
             warn!("error creating job: {}", err);
-            if &err.code()[..2] == PG_INTEGRITY_ERROR {
+            return if &err.code()[..2] == PG_INTEGRITY_ERROR {
                 Ok(Response::from(StatusCode::Conflict))
             } else {
-                Ok(Response::from(StatusCode::InternalServerError))
-            }
+                Err(err.into())
+            };
+        }
+    };
+
+    for trigger in &job.triggers {
+        let trigger_id: Option<(Uuid,)> = sqlx::query_as(
+            "SELECT id
+            FROM trigger
+            WHERE name = $1
+            AND job_id = $2",
+        )
+        .bind(&trigger.name)
+        .bind(&job.uuid)
+        .fetch_optional(&mut txn)
+        .await?;
+
+        if let Some((id,)) = trigger_id {
+            sqlx::query(
+                "UPDATE trigger
+                SET start_datetime = $1,
+                    end_datetime = $2,
+                    period = $3
+                WHERE id = $4",
+            )
+            .bind(&trigger.start)
+            .bind(&trigger.end)
+            .bind(period_from_string(&trigger.period)?)
+            .bind(&id)
+            .execute(&mut txn)
+            .await?;
+        } else {
+            sqlx::query(
+                "INSERT INTO trigger(
+                    id,
+                    name,
+                    job_id,
+                    start_datetime,
+                    end_datetime,
+                    earliest_trigger_datetime,
+                    latest_trigger_datetime,
+                    period
+                ) VALUES (
+                    $1,
+                    $2,
+                    $3,
+                    $4,
+                    $5,
+                    NULL,
+                    NULL,
+                    $6
+                )",
+            )
+            .bind(&Uuid::new_v4())
+            .bind(&trigger.name)
+            .bind(&job.uuid)
+            .bind(&trigger.start)
+            .bind(&trigger.end)
+            .bind(period_from_string(&trigger.period)?)
+            .execute(&mut txn)
+            .await?;
         }
     }
+    // TODO - delete removed triggers
+
+    txn.commit().await?;
+
+    Ok(Response::from(StatusCode::Created))
 }
 
 #[derive(Deserialize)]

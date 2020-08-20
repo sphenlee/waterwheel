@@ -17,9 +17,9 @@ use std::time::Duration as StdDuration;
 struct Trigger {
     id: Uuid,
     start_datetime: DateTime<Utc>,
-    end_datetime: DateTime<Utc>,
-    earliest_trigger_datetime: DateTime<Utc>,
-    latest_trigger_datetime: DateTime<Utc>,
+    end_datetime: Option<DateTime<Utc>>,
+    earliest_trigger_datetime: Option<DateTime<Utc>>,
+    latest_trigger_datetime: Option<DateTime<Utc>>,
     period: i64, // in seconds because sqlx doesn't support duration
 }
 
@@ -60,31 +60,44 @@ pub async fn process_triggers(token_tx: Sender<Token>) -> Result<!> {
     while let Some(trigger) = cursor.try_next().await? {
         let period = Duration::seconds(trigger.period);
 
-        if trigger.start_datetime < trigger.earliest_trigger_datetime {
-            // start date moved backwards
-            debug!(
-                "{}: start date has moved backwards - {} -> {}",
-                trigger.id, trigger.earliest_trigger_datetime, trigger.start_datetime
-            );
+        if let Some(earliest) = trigger.earliest_trigger_datetime {
+            if trigger.start_datetime < earliest {
+                // start date moved backwards
+                debug!(
+                    "{}: start date has moved backwards - {} -> {}",
+                    trigger.id, earliest, trigger.start_datetime
+                );
 
-            let mut next = trigger.start_datetime;
-            while next < trigger.earliest_trigger_datetime {
-                activate_trigger(
-                    TriggerTime {
-                        trigger_id: trigger.id,
-                        trigger_datetime: next,
-                    },
-                    token_tx.clone(),
-                )
-                .await?;
-                next = next + period;
+                let mut next = trigger.start_datetime;
+                while next < earliest {
+                    activate_trigger(
+                        TriggerTime {
+                            trigger_id: trigger.id,
+                            trigger_datetime: next,
+                        },
+                        token_tx.clone(),
+                    ).await?;
+                    next = next + period;
+                }
             }
         }
 
         // catchup any periods since the last trigger
         let now = Utc::now();
-        let mut next = trigger.latest_trigger_datetime + period;
-        while next < now && next < trigger.end_datetime {
+
+        let mut next = if let Some(latest) = trigger.latest_trigger_datetime {
+            latest + period
+        } else {
+            trigger.start_datetime
+        };
+
+        let last = if let Some(end) = trigger.end_datetime {
+            std::cmp::min(now, end)
+        } else {
+            now
+        };
+
+        while next < last {
             activate_trigger(
                 TriggerTime {
                     trigger_id: trigger.id,
@@ -96,7 +109,7 @@ pub async fn process_triggers(token_tx: Sender<Token>) -> Result<!> {
             next = next + period;
         }
 
-        if next < trigger.end_datetime {
+        if trigger.end_datetime.is_none() || next < trigger.end_datetime.unwrap() {
             // push one trigger in the future
             trace!("{}: queueing trigger at {}", trigger.id, next);
             state.lock().await.queue.push(TriggerTime {

@@ -2,6 +2,11 @@
 /// These get converted into internal types
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use chrono::{Utc, DateTime};
+
+pub fn period_from_string(s: &str) -> anyhow::Result<u32> {
+    Ok(humantime::parse_duration(&s)?.as_secs() as u32)
+}
 
 #[derive(Deserialize, Serialize)]
 pub struct Job {
@@ -14,9 +19,9 @@ pub struct Job {
 
 #[derive(Deserialize, Serialize)]
 pub struct Trigger {
-    pub id: String,
-    pub start: String,
-    pub end: Option<String>,
+    pub name: String,
+    pub start: DateTime<Utc>,
+    pub end: Option<DateTime<Utc>>,
     pub period: String,
     pub offset: Option<String>,
 }
@@ -30,7 +35,7 @@ pub struct Docker {
 
 #[derive(Deserialize, Serialize)]
 pub struct Task {
-    pub id: String,
+    pub name: String,
     pub docker: Option<Docker>,
     pub depends: Option<Vec<String>>,
     pub depends_failure: Option<Vec<String>>, // TODO - better name for this?
