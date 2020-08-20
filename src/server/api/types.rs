@@ -1,8 +1,8 @@
+use chrono::{DateTime, Utc};
 /// API Types - used to parse the YAML file.
 /// These get converted into internal types
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use chrono::{Utc, DateTime};
 
 pub fn period_from_string(s: &str) -> anyhow::Result<u32> {
     Ok(humantime::parse_duration(&s)?.as_secs() as u32)

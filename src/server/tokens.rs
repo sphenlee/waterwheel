@@ -1,6 +1,5 @@
-use crate::db;
+use crate::{db, postoffice};
 use anyhow::Result;
-use async_std::sync::{Receiver, Sender};
 use chrono::{DateTime, Utc};
 use futures::TryStreamExt;
 use log::{info, trace};
@@ -8,6 +7,9 @@ use sqlx::types::Uuid;
 use sqlx::{Postgres, Transaction};
 use std::collections::HashMap;
 use std::fmt;
+use crate::server::execute::ExecuteToken;
+
+pub struct ProcessToken(pub Token);
 
 // TODO - move this out into general code
 #[derive(PartialEq, Hash, Eq, Clone, Debug)]
@@ -27,8 +29,11 @@ impl fmt::Display for Token {
     }
 }
 
-pub async fn process_tokens(token_rx: Receiver<Token>, execute_tx: Sender<Token>) -> Result<!> {
+pub async fn process_tokens() -> Result<!> {
     let pool = db::get_pool();
+
+    let token_rx = postoffice::receive_mail::<ProcessToken>().await?;
+    let execute_tx = postoffice::post_mail::<ExecuteToken>().await?;
 
     info!("restoring tokens from database...");
 
@@ -58,7 +63,7 @@ pub async fn process_tokens(token_rx: Receiver<Token>, execute_tx: Sender<Token>
         trace!("restored token {}: {}", token, count);
 
         if count >= threshold {
-            execute_tx.send(token.clone()).await;
+            execute_tx.send(ExecuteToken(token.clone())).await;
         }
 
         tokens.insert(token, count);
@@ -67,7 +72,7 @@ pub async fn process_tokens(token_rx: Receiver<Token>, execute_tx: Sender<Token>
     info!("done restoring tokens from database");
 
     loop {
-        let token = token_rx.recv().await?;
+        let token = token_rx.recv().await?.0;
 
         let count = tokens.entry(token.clone()).or_insert(0);
         *count += 1;
@@ -83,7 +88,7 @@ pub async fn process_tokens(token_rx: Receiver<Token>, execute_tx: Sender<Token>
 
         trace!("{}: count is {} (threshold {})", token, *count, threshold);
         if *count >= threshold {
-            execute_tx.send(token).await;
+            execute_tx.send(ExecuteToken(token)).await;
         }
     }
 }

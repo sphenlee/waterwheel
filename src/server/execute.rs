@@ -1,9 +1,8 @@
 use crate::amqp::get_amqp_channel;
-use crate::db;
+use crate::{db, postoffice};
 use crate::messages::TaskDef;
 use crate::server::tokens::Token;
 use anyhow::Result;
-use async_std::sync::Receiver;
 use lapin::options::{
     BasicPublishOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
 };
@@ -14,8 +13,13 @@ use log::{debug, info};
 const TASK_EXCHANGE: &str = "waterwheel.tasks";
 const TASK_QUEUE: &str = "waterwheel.tasks";
 
-pub async fn process_executions(execute_rx: Receiver<Token>) -> Result<!> {
+#[derive(Debug)]
+pub struct ExecuteToken(pub Token);
+
+pub async fn process_executions() -> Result<!> {
     let pool = db::get_pool();
+
+    let execute_rx = postoffice::receive_mail::<ExecuteToken>().await?;
 
     let chan = get_amqp_channel().await?;
 
@@ -52,7 +56,7 @@ pub async fn process_executions(execute_rx: Receiver<Token>) -> Result<!> {
     // TODO - recover any tasks
 
     loop {
-        let token = execute_rx.recv().await?;
+        let token = execute_rx.recv().await?.0;
         info!("enqueueing {}", token);
 
         let mut task_def = sqlx::query_as::<_, TaskDef>(

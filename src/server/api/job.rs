@@ -2,12 +2,12 @@ use super::types::Job;
 use super::util::{OptionExt, RequestExt};
 use super::State;
 use super::{pg_error, PG_INTEGRITY_ERROR};
+use crate::server::api::types::period_from_string;
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use sqlx::Done;
 use tide::{Request, Response, StatusCode};
 use uuid::Uuid;
-use crate::server::api::types::period_from_string;
 
 pub async fn create(mut req: Request<State>) -> tide::Result<Response> {
     let data = req.body_string().await?;

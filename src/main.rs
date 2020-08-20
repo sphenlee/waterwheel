@@ -7,8 +7,8 @@ use futures::TryFutureExt;
 
 mod amqp;
 mod db;
-
 pub mod messages;
+pub mod postoffice;
 mod server;
 mod worker;
 

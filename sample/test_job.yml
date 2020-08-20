@@ -1,0 +1,55 @@
+uuid: 'dc298429-04f6-4ce3-abef-7a7c75c992e1'
+
+project: test_project
+name: test_job
+
+triggers:
+  - name: trigger_a
+    start: '2020-08-20T00:00:00Z'
+    period: '1m'
+
+  - name: trigger_b
+    start: '2020-08-20T00:00:30Z'
+    period: '1m'
+
+tasks:
+  - name: step_0
+    docker:
+      image: bash
+      args: ['echo', 'step 0']
+    depends:
+      - triggers/trigger_a
+
+  - name: step_1a
+    docker:
+      image: bash
+      args: ['echo', 'step 1a']
+    depends:
+      - tasks/step_0
+
+  - name: step_1b
+    docker:
+      image: bash
+      args: ['echo', 'step 1b']
+    depends:
+      - tasks/step_0
+
+  - name: step_2
+    docker:
+      image: bash
+      args: ['echo', 'step 2']
+    depends:
+      - tasks/step_1a
+      - tasks/step_1b
+
+  - name: failure
+    depends_failure:
+      - tasks/step_0
+      - tasks/step_1a
+      - tasks/step_1b
+      - tasks/step_2
+    threshold: 1
+
+  - name: success
+    depends:
+      - tasks/step2

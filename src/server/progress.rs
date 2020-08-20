@@ -1,8 +1,7 @@
 use crate::amqp;
-use crate::db;
+use crate::{db, postoffice};
 use crate::messages::TaskResult;
-use crate::server::tokens::{increment_token, Token};
-use async_std::sync::Sender;
+use crate::server::tokens::{increment_token, Token, ProcessToken};
 use futures::TryStreamExt;
 use lapin::options::{BasicAckOptions, BasicConsumeOptions, QueueDeclareOptions};
 use lapin::types::FieldTable;
@@ -11,9 +10,11 @@ use sqlx::{types::Uuid, Connection};
 
 const RESULT_QUEUE: &str = "waterwheel.results";
 
-pub async fn process_progress(token_tx: Sender<Token>) -> anyhow::Result<!> {
+pub async fn process_progress() -> anyhow::Result<!> {
     let pool = db::get_pool();
     let chan = amqp::get_amqp_channel().await?;
+
+    let token_tx = postoffice::post_mail::<ProcessToken>().await?;
 
     // declare queue for consuming incoming messages
     chan.queue_declare(
@@ -89,7 +90,7 @@ pub async fn process_progress(token_tx: Sender<Token>) -> anyhow::Result<!> {
 
         // after committing the transaction we can tell the token processor to check thresholds
         for token in tokens_to_tx {
-            token_tx.send(token).await;
+            token_tx.send(ProcessToken(token)).await;
         }
     }
 
