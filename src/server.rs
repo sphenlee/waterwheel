@@ -2,6 +2,7 @@ use crate::spawn_and_log;
 use crate::{amqp, db};
 use anyhow::Result;
 
+mod api;
 mod execute;
 mod progress;
 pub mod tokens;
@@ -20,14 +21,7 @@ pub async fn run_server() -> Result<()> {
     spawn_and_log("executions", execute::process_executions(execute_rx));
     spawn_and_log("progress", progress::process_progress(token_tx));
 
-    let mut app = tide::new();
-    app.at("/")
-        .get(|_req| async { Ok("Hello from Waterwheel!") });
-
-    let host =
-        std::env::var("WATERWHEEL_SERVER_ADDR").unwrap_or_else(|_| "127.0.0.1:8080".to_owned());
-
-    app.listen(host).await?;
+    api::serve().await?;
 
     Ok(())
 }

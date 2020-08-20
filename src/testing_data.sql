@@ -1,3 +1,26 @@
+INSERT INTO project (
+    id,
+    name
+)
+VALUES
+(
+    '2e053dfd-2773-476a-89bf-6b388649750f',
+    'test_project'
+);
+
+INSERT INTO job (
+    id,
+    name,
+    project_id,
+    raw_definition
+)
+VALUES
+(   '803b4cc2-f4d6-45d2-93bb-f92fbb2eb9b9',
+    'test_job',
+    '2e053dfd-2773-476a-89bf-6b388649750f',
+    '<blank>'
+);
+
 INSERT INTO trigger(
 	id,
 	name,
@@ -66,8 +89,8 @@ VALUES
     'step_0',
     '803b4cc2-f4d6-45d2-93bb-f92fbb2eb9b9',
     1,
-    'bash',
-    ARRAY['echo', 'step_0'],
+    'python:3-alpine',
+    ARRAY['python', '-c', 'import random, sys; print("step 0"); sys.exit(random.randint(0, 1))'],
     ARRAY[]::VARCHAR[]
 ),
  (   '1daf309d-9bd7-4d07-b564-1595d6ef436d',
@@ -77,17 +100,26 @@ VALUES
      'bash',
      ARRAY['echo', 'task_b'],
      ARRAY[]::VARCHAR[]
- );
+ ),
+   (   '4ae8bcb6-8034-489c-9782-d598ab367576',
+       'step_0_failed',
+       '803b4cc2-f4d6-45d2-93bb-f92fbb2eb9b9',
+       1,
+       'bash',
+       ARRAY['echo', 'step_0_failed'],
+       ARRAY[]::VARCHAR[]
+   );
 
 INSERT INTO trigger_edge(trigger_id, task_id)
 VALUES
 ('328b5b11-4cc3-4321-95d8-7b1d53064390', '1daf309d-9bd7-4d07-b564-1595d6ef436d'),
 ('09e9c36c-5f97-46bc-912b-dce8a3a7cb4d', 'cb6c0a85-7687-467b-b443-df2db30042d1');
 
-INSERT INTO task_edge(parent_task_id, child_task_id)
+INSERT INTO task_edge(parent_task_id, child_task_id, kind)
 VALUES
-('6fd8b847-9fe7-4944-b0f9-8db428d949b5', 'e30a8c0e-f891-47e8-9668-88c4a692b781'),
-('7daf6f96-c389-4c38-976e-34e8afc04765', 'e30a8c0e-f891-47e8-9668-88c4a692b781'),
-('cb6c0a85-7687-467b-b443-df2db30042d1', '7daf6f96-c389-4c38-976e-34e8afc04765'),
-('cb6c0a85-7687-467b-b443-df2db30042d1', '6fd8b847-9fe7-4944-b0f9-8db428d949b5');
+('6fd8b847-9fe7-4944-b0f9-8db428d949b5', 'e30a8c0e-f891-47e8-9668-88c4a692b781', 'success'),
+('7daf6f96-c389-4c38-976e-34e8afc04765', 'e30a8c0e-f891-47e8-9668-88c4a692b781', 'success'),
+('cb6c0a85-7687-467b-b443-df2db30042d1', '7daf6f96-c389-4c38-976e-34e8afc04765', 'success'),
+('cb6c0a85-7687-467b-b443-df2db30042d1', '6fd8b847-9fe7-4944-b0f9-8db428d949b5', 'success'),
+('cb6c0a85-7687-467b-b443-df2db30042d1', '4ae8bcb6-8034-489c-9782-d598ab367576', 'failure');
 

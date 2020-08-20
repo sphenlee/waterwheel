@@ -3,6 +3,7 @@ use crate::messages::{TaskDef, TaskResult};
 use crate::{amqp, spawn_and_log};
 use anyhow::Result;
 use async_std::net::TcpListener;
+
 use futures::TryStreamExt;
 use lapin::options::{
     BasicAckOptions, BasicConsumeOptions, BasicPublishOptions, BasicQosOptions,
@@ -11,7 +12,8 @@ use lapin::options::{
 use lapin::types::FieldTable;
 use lapin::{BasicProperties, ExchangeKind};
 use log::{debug, info};
-use rand::Rng;
+
+mod docker;
 
 // TODO - queues should be configurable for task routing
 const TASK_QUEUE: &str = "waterwheel.tasks";
@@ -96,18 +98,25 @@ pub async fn process_work() -> Result<!> {
 
     while let Some((chan, msg)) = consumer.try_next().await? {
         let task_def: TaskDef = serde_json::from_slice(&msg.data)?;
-        info!("received task: {:?}", task_def);
+        info!(
+            "received task: {} @ {}",
+            task_def.task_id, task_def.trigger_datetime
+        );
 
-        let sleep = rand::thread_rng().gen_range(1, 15);
-        info!("task will take {}s", sleep);
-        async_std::task::sleep(std::time::Duration::from_secs(sleep)).await;
+        let success = docker::run_docker(task_def.image, task_def.args, task_def.env).await?;
 
-        info!("task succeeded: {:?}", task_def);
+        info!(
+            "task succeeded: {} @ {}",
+            task_def.task_id, task_def.trigger_datetime
+        );
 
         let payload = serde_json::to_vec(&TaskResult {
             task_id: task_def.task_id,
             trigger_datetime: task_def.trigger_datetime,
-            result: "success".to_string(),
+            result: match success {
+                true => "success".to_string(),
+                false => "failure".to_string(),
+            },
         })?;
 
         chan.basic_publish(

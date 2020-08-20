@@ -1,5 +1,7 @@
-project_id: rd.data_platform
-job_id: sample
+uuid: '65a09aa1-f923-4bf6-99f3-2cee7888e159'
+
+project: rd.data_platform
+name: sample
 
 triggers:
   - id: daily

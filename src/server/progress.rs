@@ -37,16 +37,22 @@ pub async fn process_progress(token_tx: Sender<Token>) -> anyhow::Result<!> {
 
     while let Some((chan, msg)) = consumer.try_next().await? {
         let task_result: TaskResult = serde_json::from_slice(&msg.data)?;
-        info!("received task results: {:?}", task_result);
 
         let parent_token = task_result.get_token()?;
+
+        info!(
+            "received task results: {}: {}",
+            task_result.result, parent_token
+        );
 
         let mut cursor = sqlx::query_as::<_, (Uuid,)>(
             "SELECT child_task_id
             FROM task_edge
-            WHERE parent_task_id = $1",
+            WHERE parent_task_id = $1
+            AND kind = $2",
         )
         .bind(&parent_token.task_id)
+        .bind(&task_result.result)
         .fetch(&pool);
 
         let mut conn = pool.acquire().await?;
@@ -65,10 +71,11 @@ pub async fn process_progress(token_tx: Sender<Token>) -> anyhow::Result<!> {
 
         sqlx::query(
             "UPDATE token
-            SET state = 'success'
-            WHERE task_id = $1
-            AND trigger_datetime = $2",
+            SET state = $1
+            WHERE task_id = $2
+            AND trigger_datetime = $3",
         )
+        .bind(&task_result.result)
         .bind(&parent_token.task_id)
         .bind(&parent_token.trigger_datetime)
         .execute(&mut txn)
