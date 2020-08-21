@@ -22,13 +22,17 @@ impl<T: 'static> typemap::Key for Mailbox<T> {
 static POST_OFFICE: OnceCell<Mutex<SendMap>> = OnceCell::new();
 
 pub fn open() -> Result<()> {
-    POST_OFFICE.set(Mutex::new(SendMap::custom())).map_err(|_|()).expect("postoffice is already open");
+    POST_OFFICE
+        .set(Mutex::new(SendMap::custom()))
+        .map_err(|_| ())
+        .expect("postoffice is already open");
 
     Ok(())
 }
 
 async fn with_mailbox<T: Send + 'static, F, R>(f: F) -> Result<R>
-    where F: FnOnce(&mut Mailbox<T>) -> Result<R>
+where
+    F: FnOnce(&mut Mailbox<T>) -> Result<R>,
 {
     let mut postoffice = POST_OFFICE
         .get()
@@ -44,20 +48,17 @@ async fn with_mailbox<T: Send + 'static, F, R>(f: F) -> Result<R>
 }
 
 pub async fn receive_mail<T: Send + 'static>() -> Result<Receiver<T>> {
-    let rx = with_mailbox(|mailbox| {
-        match mailbox.rx.take() {
-            Some(rx) => Ok(rx),
-            None => panic!("someone has already claimed this mailbox"),
-        }
-    }).await?;
+    let rx = with_mailbox(|mailbox| match mailbox.rx.take() {
+        Some(rx) => Ok(rx),
+        None => panic!("someone has already claimed this mailbox"),
+    })
+    .await?;
 
     Ok(rx)
 }
 
 pub async fn post_mail<T: Send + 'static>() -> Result<Sender<T>> {
-    let tx = with_mailbox(|mailbox| {
-        Ok(mailbox.tx.clone())
-    }).await?;
+    let tx = with_mailbox(|mailbox| Ok(mailbox.tx.clone())).await?;
 
     Ok(tx)
 }

@@ -2,15 +2,15 @@ use crate::server::tokens::Token;
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::types::Uuid;
+use uuid::Uuid;
 
-#[derive(Serialize, Deserialize, Debug, sqlx::FromRow)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct TaskDef {
     pub task_id: String,
     pub trigger_datetime: String,
     pub image: String,
     pub args: Vec<String>,
-    pub env: Vec<String>,
+    pub env: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

@@ -28,9 +28,9 @@ pub struct Trigger {
 
 #[derive(Deserialize, Serialize)]
 pub struct Docker {
-    image: String,
-    args: Vec<String>,
-    env: Option<Vec<String>>,
+    pub image: String,
+    pub args: Vec<String>,
+    pub env: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Serialize)]

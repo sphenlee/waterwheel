@@ -2,16 +2,22 @@ use super::types::Job;
 use super::util::{OptionExt, RequestExt};
 use super::State;
 use super::{pg_error, PG_INTEGRITY_ERROR};
-use crate::server::api::types::period_from_string;
+use crate::postoffice;
+use crate::server::triggers::TriggerUpdate;
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use sqlx::Done;
 use tide::{Request, Response, StatusCode};
 use uuid::Uuid;
 
+mod tasks;
+mod triggers;
+
 pub async fn create(mut req: Request<State>) -> tide::Result<Response> {
     let data = req.body_string().await?;
     let job: Job = serde_json::from_str(&data)?;
+
+    let trigger_tx = postoffice::post_mail::<TriggerUpdate>().await?;
 
     let pool = req.get_pool();
     let mut txn = pool.begin().await?;
@@ -32,18 +38,10 @@ pub async fn create(mut req: Request<State>) -> tide::Result<Response> {
         )
     } else {
         sqlx::query(
-            "INSERT INTO job(
-                id,
-                name,
-                project_id,
-                raw_definition
-            )
-            VALUES(
-                $1,
-                $2,
+            "INSERT INTO job(id, name, project_id, raw_definition)
+            VALUES($1, $2,
                 (SELECT id FROM project WHERE name = $3),
-                $4
-            )",
+                $4)",
         )
     };
 
@@ -69,67 +67,23 @@ pub async fn create(mut req: Request<State>) -> tide::Result<Response> {
         }
     };
 
-    for trigger in &job.triggers {
-        let trigger_id: Option<(Uuid,)> = sqlx::query_as(
-            "SELECT id
-            FROM trigger
-            WHERE name = $1
-            AND job_id = $2",
-        )
-        .bind(&trigger.name)
-        .bind(&job.uuid)
-        .fetch_optional(&mut txn)
-        .await?;
+    let mut triggers_to_tx = Vec::new();
 
-        if let Some((id,)) = trigger_id {
-            sqlx::query(
-                "UPDATE trigger
-                SET start_datetime = $1,
-                    end_datetime = $2,
-                    period = $3
-                WHERE id = $4",
-            )
-            .bind(&trigger.start)
-            .bind(&trigger.end)
-            .bind(period_from_string(&trigger.period)?)
-            .bind(&id)
-            .execute(&mut txn)
-            .await?;
-        } else {
-            sqlx::query(
-                "INSERT INTO trigger(
-                    id,
-                    name,
-                    job_id,
-                    start_datetime,
-                    end_datetime,
-                    earliest_trigger_datetime,
-                    latest_trigger_datetime,
-                    period
-                ) VALUES (
-                    $1,
-                    $2,
-                    $3,
-                    $4,
-                    $5,
-                    NULL,
-                    NULL,
-                    $6
-                )",
-            )
-            .bind(&Uuid::new_v4())
-            .bind(&trigger.name)
-            .bind(&job.uuid)
-            .bind(&trigger.start)
-            .bind(&trigger.end)
-            .bind(period_from_string(&trigger.period)?)
-            .execute(&mut txn)
-            .await?;
-        }
+    // insert the triggers
+    for trigger in &job.triggers {
+        let id = triggers::create_trigger(&mut txn, &job, trigger).await?;
+        triggers_to_tx.push(id);
     }
-    // TODO - delete removed triggers
+
+    for task in &job.tasks {
+        tasks::create_task(&mut txn, task, &job).await?;
+    }
 
     txn.commit().await?;
+
+    for id in triggers_to_tx {
+        trigger_tx.send(TriggerUpdate(id)).await;
+    }
 
     Ok(Response::from(StatusCode::Created))
 }

@@ -1,7 +1,7 @@
+use crate::postoffice;
 use crate::spawn_and_log;
 use crate::{amqp, db};
 use anyhow::Result;
-use crate::postoffice;
 
 mod api;
 mod execute;

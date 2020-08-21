@@ -4,7 +4,7 @@ use bollard::container::{
     WaitContainerOptions,
 };
 use futures::TryStreamExt;
-use log::info;
+use kv_log_macro::{info, trace};
 
 pub async fn run_docker(image: String, args: Vec<String>, env: Vec<String>) -> Result<bool> {
     // TODO - return actual error messages from Docker
@@ -17,7 +17,11 @@ pub async fn run_docker(image: String, args: Vec<String>, env: Vec<String>) -> R
         rt.block_on(async move {
             let docker = bollard::Docker::connect_with_local_defaults()?;
 
-            info!("launching container: {}/{:?}/{:?}", image, args, env);
+            info!("launching container", {
+                image: image,
+                args: format!("{:?}", args),
+                env: format!("{:?}", env),
+            });
 
             let container = docker
                 .create_container(
@@ -31,13 +35,13 @@ pub async fn run_docker(image: String, args: Vec<String>, env: Vec<String>) -> R
                 )
                 .await?;
 
-            info!("created container: {}", container.id);
+            trace!("created container", { id: container.id });
 
             docker
                 .start_container(&container.id, None::<StartContainerOptions<String>>)
                 .await?;
 
-            info!("started container: {}", container.id);
+            trace!("started container", { id: container.id});
 
             let mut logs = docker.logs(
                 &container.id,
@@ -50,7 +54,7 @@ pub async fn run_docker(image: String, args: Vec<String>, env: Vec<String>) -> R
             );
 
             while let Some(line) = logs.try_next().await? {
-                info!("{}", line);
+                print!("docker| {}", line);
             }
 
             let mut waiter =
@@ -66,7 +70,7 @@ pub async fn run_docker(image: String, args: Vec<String>, env: Vec<String>) -> R
                 .remove_container(&container.id, None::<RemoveContainerOptions>)
                 .await?;
 
-            info!("container removed");
+            trace!("container removed", { id: container.id });
 
             Ok(exit == 0)
         })

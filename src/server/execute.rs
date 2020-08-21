@@ -1,20 +1,27 @@
 use crate::amqp::get_amqp_channel;
-use crate::{db, postoffice};
 use crate::messages::TaskDef;
 use crate::server::tokens::Token;
+use crate::{db, postoffice};
 use anyhow::Result;
 use lapin::options::{
     BasicPublishOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
 };
 use lapin::types::FieldTable;
 use lapin::{BasicProperties, ExchangeKind};
-use log::{debug, info};
+use log::{debug, info, warn};
 
 const TASK_EXCHANGE: &str = "waterwheel.tasks";
 const TASK_QUEUE: &str = "waterwheel.tasks";
 
 #[derive(Debug)]
 pub struct ExecuteToken(pub Token);
+
+#[derive(sqlx::FromRow)]
+struct DockerParams {
+    image: Option<String>,
+    args: Option<Vec<String>>,
+    env: Option<Vec<String>>,
+}
 
 pub async fn process_executions() -> Result<!> {
     let pool = db::get_pool();
@@ -59,10 +66,8 @@ pub async fn process_executions() -> Result<!> {
         let token = execute_rx.recv().await?.0;
         info!("enqueueing {}", token);
 
-        let mut task_def = sqlx::query_as::<_, TaskDef>(
+        let docker: DockerParams = sqlx::query_as(
             "SELECT
-                CAST(id AS VARCHAR) AS task_id,
-                '' AS trigger_datetime,
                 image,
                 args,
                 env
@@ -73,16 +78,28 @@ pub async fn process_executions() -> Result<!> {
         .fetch_one(&pool)
         .await?;
 
-        task_def.trigger_datetime = token.trigger_datetime.to_rfc3339();
+        if docker.image.is_none() {
+            // this task does not execute anything so we can call it success right now
+            // TODO
+            warn!("task executes nothing - this is broken right now!")
+        } else {
+            let task_def = TaskDef {
+                task_id: token.task_id.to_string(),
+                trigger_datetime: token.trigger_datetime.to_rfc3339(),
+                image: docker.image.unwrap(), // already checked none
+                args: docker.args.unwrap_or_default(),
+                env: docker.env,
+            };
 
-        chan.basic_publish(
-            TASK_EXCHANGE,
-            "",
-            BasicPublishOptions::default(),
-            serde_json::to_vec(&task_def)?,
-            BasicProperties::default(),
-        )
-        .await?;
+            chan.basic_publish(
+                TASK_EXCHANGE,
+                "",
+                BasicPublishOptions::default(),
+                serde_json::to_vec(&task_def)?,
+                BasicProperties::default(),
+            )
+            .await?;
+        }
 
         sqlx::query(
             "UPDATE token

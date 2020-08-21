@@ -1,13 +1,13 @@
+use crate::server::execute::ExecuteToken;
 use crate::{db, postoffice};
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use futures::TryStreamExt;
-use log::{info, trace};
+use kv_log_macro::{info, trace};
 use sqlx::types::Uuid;
 use sqlx::{Postgres, Transaction};
 use std::collections::HashMap;
 use std::fmt;
-use crate::server::execute::ExecuteToken;
 
 pub struct ProcessToken(pub Token);
 
@@ -60,7 +60,7 @@ pub async fn process_tokens() -> Result<!> {
             trigger_datetime,
         };
 
-        trace!("restored token {}: {}", token, count);
+        trace!("restored token", {task_id: token.task_id.to_string(), count: count});
 
         if count >= threshold {
             execute_tx.send(ExecuteToken(token.clone())).await;
@@ -86,7 +86,10 @@ pub async fn process_tokens() -> Result<!> {
         .fetch_one(&pool)
         .await?;
 
-        trace!("{}: count is {} (threshold {})", token, *count, threshold);
+        trace!("count is {} (threshold {})", *count, threshold, {
+            task_id: token.task_id.to_string(),
+            trigger_datetime: token.trigger_datetime.to_rfc3339(),
+        });
         if *count >= threshold {
             execute_tx.send(ExecuteToken(token)).await;
         }
@@ -100,7 +103,10 @@ pub async fn process_tokens() -> Result<!> {
 /// After adding the token you have to send the token over to the process_tokens future to actually
 /// check if the node has activated
 pub async fn increment_token(txn: &mut Transaction<'_, Postgres>, token: &Token) -> Result<()> {
-    trace!("incrementing token {}", token);
+    trace!("incrementing token", {
+        task_id: token.task_id.to_string(),
+        trigger_datetime: token.trigger_datetime.to_rfc3339(),
+    });
 
     sqlx::query(
         "INSERT INTO token(task_id, trigger_datetime, count, state)

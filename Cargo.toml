@@ -29,3 +29,7 @@ serde_yaml = "0.8.13"
 uuid = { version = "0.8.1", features = [ "v4", "serde" ] }
 humantime = "2.0.1"
 typemap = "0.3.3"
+kv-log-macro = "1.0.7"
+
+[patch.crates-io]
+sqlx = { path = "../sqlx" }

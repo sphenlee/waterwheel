@@ -1,7 +1,7 @@
 use crate::amqp;
-use crate::{db, postoffice};
 use crate::messages::TaskResult;
-use crate::server::tokens::{increment_token, Token, ProcessToken};
+use crate::server::tokens::{increment_token, ProcessToken, Token};
+use crate::{db, postoffice};
 use futures::TryStreamExt;
 use lapin::options::{BasicAckOptions, BasicConsumeOptions, QueueDeclareOptions};
 use lapin::types::FieldTable;

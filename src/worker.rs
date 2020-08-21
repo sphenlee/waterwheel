@@ -5,13 +5,13 @@ use anyhow::Result;
 use async_std::net::TcpListener;
 
 use futures::TryStreamExt;
+use kv_log_macro::{debug, info};
 use lapin::options::{
     BasicAckOptions, BasicConsumeOptions, BasicPublishOptions, BasicQosOptions,
     ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
 };
 use lapin::types::FieldTable;
 use lapin::{BasicProperties, ExchangeKind};
-use log::{debug, info};
 
 mod docker;
 
@@ -98,25 +98,33 @@ pub async fn process_work() -> Result<!> {
 
     while let Some((chan, msg)) = consumer.try_next().await? {
         let task_def: TaskDef = serde_json::from_slice(&msg.data)?;
-        info!(
-            "received task: {} @ {}",
-            task_def.task_id, task_def.trigger_datetime
-        );
+        info!("received task", {
+            task_id: task_def.task_id,
+            trigger_datetime: task_def.trigger_datetime,
+        });
 
-        let success = docker::run_docker(task_def.image, task_def.args, task_def.env).await?;
+        let success = docker::run_docker(
+            task_def.image,
+            task_def.args,
+            task_def.env.unwrap_or_default(),
+        )
+        .await?;
 
-        info!(
-            "task succeeded: {} @ {}",
-            task_def.task_id, task_def.trigger_datetime
-        );
+        let result = match success {
+            true => "success".to_string(),
+            false => "failure".to_string(),
+        };
+
+        info!("task completed", {
+            result: result,
+            task_id: task_def.task_id,
+            trigger_datetime: task_def.trigger_datetime,
+        });
 
         let payload = serde_json::to_vec(&TaskResult {
             task_id: task_def.task_id,
             trigger_datetime: task_def.trigger_datetime,
-            result: match success {
-                true => "success".to_string(),
-                false => "failure".to_string(),
-            },
+            result,
         })?;
 
         chan.basic_publish(
