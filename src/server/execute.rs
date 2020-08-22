@@ -3,12 +3,12 @@ use crate::messages::TaskDef;
 use crate::server::tokens::Token;
 use crate::{db, postoffice};
 use anyhow::Result;
+use kv_log_macro::{debug, info, warn};
 use lapin::options::{
     BasicPublishOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
 };
 use lapin::types::FieldTable;
 use lapin::{BasicProperties, ExchangeKind};
-use log::{debug, info, warn};
 
 const TASK_EXCHANGE: &str = "waterwheel.tasks";
 const TASK_QUEUE: &str = "waterwheel.tasks";
@@ -64,7 +64,10 @@ pub async fn process_executions() -> Result<!> {
 
     loop {
         let token = execute_rx.recv().await?.0;
-        info!("enqueueing {}", token);
+        info!("enqueueing", {
+            task_id: token.task_id.to_string(),
+            trigger_datetime: token.trigger_datetime.to_rfc3339(),
+        });
 
         let docker: DockerParams = sqlx::query_as(
             "SELECT
@@ -113,6 +116,9 @@ pub async fn process_executions() -> Result<!> {
         .execute(&pool)
         .await?;
 
-        debug!("done enqueueing {}", token);
+        debug!("done enqueueing", {
+            task_id: token.task_id.to_string(),
+            trigger_datetime: token.trigger_datetime.to_rfc3339(),
+        });
     }
 }

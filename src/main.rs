@@ -3,12 +3,11 @@
 use anyhow::Result;
 use async_std::future::Future;
 use async_std::task;
-use chrono::SecondsFormat;
 use futures::TryFutureExt;
-use std::io::Write;
 
 mod amqp;
 mod db;
+mod logging;
 pub mod messages;
 pub mod postoffice;
 mod server;
@@ -23,38 +22,8 @@ pub fn spawn_and_log(name: &str, future: impl Future<Output = Result<!>> + Send 
 
 fn main() -> Result<()> {
     dotenv::dotenv().ok();
-    env_logger::builder()
-        .format(|fmt, record| {
-            writeln!(
-                fmt,
-                "[{} {} {}] {}",
-                chrono::Local::now().to_rfc3339_opts(SecondsFormat::Millis, false),
-                record.level(),
-                record.target(),
-                record.args(),
-            )?;
+    logging::setup();
 
-            struct Visitor<'a> {
-                fmt: &'a mut env_logger::fmt::Formatter,
-            }
-
-            impl<'kvs, 'a> log::kv::Visitor<'kvs> for Visitor<'a> {
-                fn visit_pair(
-                    &mut self,
-                    key: log::kv::Key<'kvs>,
-                    val: log::kv::Value<'kvs>,
-                ) -> Result<(), log::kv::Error> {
-                    writeln!(self.fmt, "    {}: {}", key, val).unwrap();
-                    Ok(())
-                }
-            }
-
-            let mut visitor = Visitor { fmt };
-            record.key_values().visit(&mut visitor).unwrap();
-
-            Ok(())
-        })
-        .init();
     //tide::log::with_level(log::LevelFilter::Info);
 
     let app = clap::App::new("waterwheel")

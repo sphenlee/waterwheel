@@ -61,6 +61,18 @@ pub async fn process_triggers() -> Result<!> {
         }
         trace!("no trigger updates pending - going around the scheduler loop again");
 
+        if log::max_level() >= log::Level::Trace {
+            let queue_copy = queue.clone();
+            trace!("dumping the whole trigger queue:");
+            for trigger in queue_copy.into_iter_sorted() {
+                trace!(
+                    "    {}: {}",
+                    trigger.trigger_datetime.to_rfc3339(),
+                    trigger.trigger_id
+                );
+            }
+        }
+
         let next_triggertime = queue.pop().expect("queue shouldn't be empty now");
 
         let delay = next_triggertime.trigger_datetime - Utc::now();

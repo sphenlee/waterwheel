@@ -146,6 +146,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6b602bfe940d21c130f3895acd65221e8a61270debe89d628b9cb4e3ccb8569b"
 
 [[package]]
+name = "arc-swap"
+version = "0.4.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4d25d88fd6b8041580a654f9d0c581a047baee2b3efee13275f2fc392fc75034"
+
+[[package]]
 name = "arrayref"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -603,6 +609,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "colored"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3616f750b84d8f0de8a58bda93e08e2a81ad3f523089b05f1dffecab48c6cbd"
+dependencies = [
+ "atty",
+ "lazy_static 1.4.0",
+ "winapi 0.3.9",
+]
+
+[[package]]
 name = "compare"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -675,6 +692,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d663548de7f5cca343f1e0a48d14dcfb0e9eb4e079ec58883b7251539fa10aeb"
 dependencies = [
  "build_const",
+]
+
+[[package]]
+name = "crc32fast"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba125de2af0df55319f41944744ad91c71113bf74a4646efff39afe1f6842db1"
+dependencies = [
+ "cfg-if",
 ]
 
 [[package]]
@@ -835,6 +861,18 @@ dependencies = [
  "serde_json",
  "wasm-bindgen",
  "web-sys",
+]
+
+[[package]]
+name = "flate2"
+version = "1.0.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "766d0e77a2c1502169d4a93ff3b8c15a71fd946cd0126309752104e5f3c46d94"
+dependencies = [
+ "cfg-if",
+ "crc32fast",
+ "libc",
+ "miniz_oxide",
 ]
 
 [[package]]
@@ -1369,6 +1407,38 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4fabed175da42fed1fa0746b0ea71f412aa9d35e76e95e59b192c64b9dc2bf8b"
 dependencies = [
  "cfg-if",
+ "serde",
+]
+
+[[package]]
+name = "log-mdc"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a94d21414c1f4a51209ad204c1776a3d0765002c76c6abcb602a6f09f1e881c7"
+
+[[package]]
+name = "log4rs"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e1e1ad45e4584824d760c35d71868dd7e6e5acd8f5195a9573743b369fc86cd6"
+dependencies = [
+ "arc-swap",
+ "chrono",
+ "flate2",
+ "fnv",
+ "humantime 1.3.0",
+ "libc",
+ "log 0.4.11",
+ "log-mdc",
+ "parking_lot",
+ "serde",
+ "serde-value",
+ "serde_derive",
+ "serde_json",
+ "serde_yaml",
+ "thread-id",
+ "typemap",
+ "winapi 0.3.9",
 ]
 
 [[package]]
@@ -1646,6 +1716,15 @@ dependencies = [
  "libc",
  "pkg-config",
  "vcpkg",
+]
+
+[[package]]
+name = "ordered-float"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3741934be594d77de1c8461ebcbbe866f585ea616a9753aa78f2bdc69f0e4579"
+dependencies = [
+ "num-traits",
 ]
 
 [[package]]
@@ -1990,6 +2069,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e54c9a88f2da7238af84b5101443f0c0d0a3bbdc455e34a5c9497b1903ed55d5"
 dependencies = [
  "serde_derive",
+]
+
+[[package]]
+name = "serde-value"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a65a7291a8a568adcae4c10a677ebcedbc6c9cec91c054dee2ce40b0e3290eb"
+dependencies = [
+ "ordered-float",
+ "serde",
 ]
 
 [[package]]
@@ -2395,6 +2484,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "thread-id"
+version = "3.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c7fbf4c9d56b320106cd64fd024dadfa0be7cb4706725fc44a7d7ce952d820c1"
+dependencies = [
+ "libc",
+ "redox_syscall",
+ "winapi 0.3.9",
+]
+
+[[package]]
 name = "thread_local"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2766,6 +2866,7 @@ dependencies = [
  "bollard",
  "chrono",
  "clap",
+ "colored",
  "dotenv",
  "env_logger",
  "futures",
@@ -2773,6 +2874,7 @@ dependencies = [
  "kv-log-macro",
  "lapin",
  "log 0.4.11",
+ "log4rs",
  "once_cell",
  "serde",
  "serde_json",
