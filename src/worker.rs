@@ -1,17 +1,20 @@
 use crate::amqp::get_amqp_channel;
-use crate::messages::{TaskDef, TaskResult};
+use crate::messages::{TaskDef, TaskResult, WorkerHeartbeat};
+use crate::postoffice;
 use crate::{amqp, spawn_and_log};
 use anyhow::Result;
-use async_std::net::TcpListener;
+use async_std::net::{SocketAddr, TcpListener};
 
+use chrono::Utc;
 use futures::TryStreamExt;
-use kv_log_macro::{debug, info};
+use kv_log_macro::{debug, info, trace};
 use lapin::options::{
     BasicAckOptions, BasicConsumeOptions, BasicPublishOptions, BasicQosOptions,
     ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
 };
 use lapin::types::FieldTable;
 use lapin::{BasicProperties, ExchangeKind};
+use uuid::Uuid;
 
 mod docker;
 
@@ -21,8 +24,11 @@ const TASK_QUEUE: &str = "waterwheel.tasks";
 const RESULT_EXCHANGE: &str = "waterwheel.results";
 const RESULT_QUEUE: &str = "waterwheel.results";
 
+const HEARTBEAT_EXCHANGE: &str = "waterwheel.heartbeat";
+
 pub async fn run_worker() -> Result<()> {
     amqp::amqp_connect().await?;
+    postoffice::open()?;
 
     let max_tasks = std::env::var("WATERWHEEL_MAX_TASKS")?.parse::<u32>()?;
 
@@ -40,12 +46,51 @@ pub async fn run_worker() -> Result<()> {
     let tcp = TcpListener::bind(host).await?;
     let addr = tcp.local_addr()?;
     info!("worker listening on {}", addr);
+
+    spawn_and_log("heatbeat", heartbeat(addr.clone()));
+
     app.listen(tcp).await?;
 
     Ok(())
 }
 
-pub async fn process_work() -> Result<!> {
+async fn heartbeat(addr: SocketAddr) -> Result<!> {
+    let chan = get_amqp_channel().await?;
+
+    // declare outgoing exchange
+    chan.exchange_declare(
+        HEARTBEAT_EXCHANGE,
+        ExchangeKind::Direct,
+        ExchangeDeclareOptions {
+            durable: false,
+            ..ExchangeDeclareOptions::default()
+        },
+        FieldTable::default(),
+    )
+    .await?;
+
+    let uuid = Uuid::new_v4();
+
+    loop {
+        trace!("posting heartbeat");
+        chan.basic_publish(
+            HEARTBEAT_EXCHANGE,
+            "",
+            BasicPublishOptions::default(),
+            serde_json::to_vec(&WorkerHeartbeat {
+                uuid,
+                addr: addr.to_string(),
+                last_seen_datetime: Utc::now(),
+            })?,
+            BasicProperties::default(),
+        )
+        .await?;
+
+        async_std::task::sleep(std::time::Duration::from_secs(5)).await;
+    }
+}
+
+async fn process_work() -> Result<!> {
     let chan = get_amqp_channel().await?;
 
     // declare queue for consuming incoming messages

@@ -11,6 +11,7 @@ import Projects from './pages/Projects.jsx';
 import Project from './pages/Project.jsx';
 import Job from './pages/Job.jsx';
 import Tokens from './pages/Tokens.jsx';
+import Workers from './pages/Workers.jsx';
 
 class App extends Component {
   render() {
@@ -24,6 +25,7 @@ class App extends Component {
             <Route path="/projects" component={Projects} />
             <Route path="/jobs/:id/tokens/:trigger_datetime" component={Tokens} />
             <Route path="/jobs/:id" component={Job} />
+            <Route path="/workers" component={Workers} />
             <Route path="/" component={Home} />
           </Switch>
 

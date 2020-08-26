@@ -6,6 +6,7 @@ mod job;
 mod project;
 pub mod types;
 pub mod util;
+mod workers;
 
 const PG_INTEGRITY_ERROR: &str = "23";
 
@@ -52,11 +53,16 @@ pub async fn serve() -> Result<()> {
         .get(job::get_by_id)
         .delete(job::delete);
 
+    // job tokens
     app.at("/api/jobs/:id/tokens").get(job::get_tokens);
     app.at("/api/jobs/:id/tokens/:trigger_datetime")
         .get(job::get_token_trigger_datetime);
 
+    // job triggers
     app.at("/api/jobs/:id/triggers").get(job::get_triggers);
+
+    // workers
+    app.at("/api/workers").get(workers::list);
 
     // web UI
 

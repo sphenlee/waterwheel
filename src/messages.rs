@@ -29,3 +29,10 @@ impl TaskResult {
         })
     }
 }
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct WorkerHeartbeat {
+    pub uuid: Uuid,
+    pub addr: String,
+    pub last_seen_datetime: DateTime<Utc>,
+}
