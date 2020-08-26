@@ -111,6 +111,7 @@ class TokenTable extends Component {
                     <Option value="active">Active</Option>
                     <Option value="success">Success</Option>
                     <Option value="failure">Failure</Option>
+                    <Option value="waiting">Waiting</Option>
                 </Select>
 
                 <Table columns={this.columns} dataSource={tokens} loading={loading}/>

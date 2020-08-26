@@ -67,10 +67,10 @@ pub async fn get_token_trigger_datetime(req: Request<State>) -> tide::Result {
         AND t.job_id = $1
         AND k.trigger_datetime = $2",
     )
-        .bind(&job_id)
-        .bind(&trigger_datetime)
-        .fetch_all(&req.get_pool())
-        .await?;
+    .bind(&job_id)
+    .bind(&trigger_datetime)
+    .fetch_all(&req.get_pool())
+    .await?;
 
     Ok(Response::builder(StatusCode::Ok)
         .body(Body::from_json(&tokens)?)

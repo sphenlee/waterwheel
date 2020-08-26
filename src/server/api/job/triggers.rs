@@ -3,7 +3,7 @@ use crate::server::api::util::RequestExt;
 use crate::server::api::State;
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use serde::{Serialize};
+use serde::Serialize;
 use sqlx::{Postgres, Transaction};
 use tide::{Body, Request, Response, StatusCode};
 use uuid::Uuid;

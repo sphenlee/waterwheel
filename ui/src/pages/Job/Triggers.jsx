@@ -10,7 +10,7 @@ function makeColumns(job) {
         {
             title: 'Name',
             dataIndex: 'trigger_name',
-            key: 'name',
+            key: 'trigger_name',
             render: (text, record) => (
                 <Link to={`/triggers/${record.trigger_id}`}>
                     {text}
@@ -19,22 +19,22 @@ function makeColumns(job) {
         },{
             title: 'Start',
             dataIndex: 'start_datetime',
-            key: 'start',
+            key: 'start_datetime',
             //render: text => <a>{text}</a>,
         },{
             title: 'Earliest',
             dataIndex: 'earliest_trigger_datetime',
-            key: 'earliest',
+            key: 'earliest_trigger_datetime',
             //render: text => <a>{text}</a>,
         },{
             title: 'Latest',
             dataIndex: 'latest_trigger_datetime',
-            key: 'latest',
+            key: 'latest_trigger_datetime',
             //render: text => <a>{text}</a>,
         },{
             title: 'End',
             dataIndex: 'end_datetime',
-            key: 'end',
+            key: 'end_datetime',
             render: text => (text || <Text type="secondary">never</Text>),
         },{
             title: 'Period',

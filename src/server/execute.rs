@@ -96,7 +96,7 @@ pub async fn process_executions() -> Result<!> {
             serde_json::to_vec(&task_def)?,
             BasicProperties::default(),
         )
-            .await?;
+        .await?;
 
         sqlx::query(
             "UPDATE token
@@ -105,10 +105,10 @@ pub async fn process_executions() -> Result<!> {
             WHERE task_id = $1
             AND trigger_datetime = $2",
         )
-            .bind(token.task_id)
-            .bind(token.trigger_datetime)
-            .execute(&pool)
-            .await?;
+        .bind(token.task_id)
+        .bind(token.trigger_datetime)
+        .execute(&pool)
+        .await?;
 
         debug!("done enqueueing", {
             task_id: token.task_id.to_string(),

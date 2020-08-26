@@ -24,7 +24,11 @@ const RESULT_QUEUE: &str = "waterwheel.results";
 pub async fn run_worker() -> Result<()> {
     amqp::amqp_connect().await?;
 
-    spawn_and_log("worker", process_work());
+    let max_tasks = std::env::var("WATERWHEEL_MAX_TASKS")?.parse::<u32>()?;
+
+    for i in 0..max_tasks {
+        spawn_and_log(&format!("worker-{}", i), process_work());
+    }
 
     let mut app = tide::new();
     app.with(tide::log::LogMiddleware::new());
@@ -105,12 +109,7 @@ pub async fn process_work() -> Result<!> {
         });
 
         let success = if let Some(image) = task_def.image {
-            docker::run_docker(
-                image,
-                task_def.args,
-                task_def.env.unwrap_or_default(),
-            )
-            .await?
+            docker::run_docker(image, task_def.args, task_def.env.unwrap_or_default()).await?
         } else {
             // task has no image, mark success immediately
             true

@@ -17,8 +17,12 @@ class TopMenu extends Component {
               Projects
             </Link>
           </Menu.Item>
-          <Menu.Item key="settings">Settings</Menu.Item>
-          <Menu.Item key="admin">Admin</Menu.Item>
+          <Menu.Item key="workers">
+            <Link to="/workers">
+              Workers
+            </Link>
+          </Menu.Item>
+          {/*<Menu.Item key="admin">Admin</Menu.Item>*/}
         </Menu>
       </Layout.Header>
     );

@@ -9,6 +9,7 @@ mod progress;
 pub mod tokens;
 mod trigger_time;
 mod triggers;
+mod monitor;
 
 pub async fn run_server() -> Result<()> {
     postoffice::open()?;

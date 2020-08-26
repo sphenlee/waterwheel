@@ -14,7 +14,7 @@ mod tasks;
 mod tokens;
 mod triggers;
 
-pub use tokens::{get_tokens, get_token_trigger_datetime};
+pub use tokens::{get_token_trigger_datetime, get_tokens};
 pub use triggers::get_triggers;
 
 pub async fn create(mut req: Request<State>) -> tide::Result<Response> {
@@ -182,10 +182,4 @@ pub async fn delete(req: Request<State>) -> tide::Result<StatusCode> {
             Ok(StatusCode::InternalServerError)
         }
     }
-}
-
-async fn job_status(req: Request<State>) -> tide::Result {
-    let _id = req.param::<Uuid>("id")?;
-
-    Ok(Response::new(StatusCode::BadRequest))
 }

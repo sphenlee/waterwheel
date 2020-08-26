@@ -1,7 +1,6 @@
 use anyhow::Result;
 use sqlx::postgres::PgDatabaseError;
 use sqlx::PgPool;
-use tide::{Response, StatusCode};
 
 mod job;
 mod project;
@@ -13,6 +12,17 @@ const PG_INTEGRITY_ERROR: &str = "23";
 #[derive(Clone)]
 pub struct State {
     pool: PgPool,
+}
+
+#[allow(unused)]
+macro_rules! get_file {
+    ($file:expr => $mime:expr) => {
+        |_req| async {
+            let mut body = tide::Body::from(include_str!($file));
+            body.set_mime($mime);
+            Ok(body)
+        }
+    };
 }
 
 pub async fn serve() -> Result<()> {
@@ -43,18 +53,29 @@ pub async fn serve() -> Result<()> {
         .delete(job::delete);
 
     app.at("/api/jobs/:id/tokens").get(job::get_tokens);
-    app.at("/api/jobs/:id/tokens/:trigger_datetime").get(job::get_token_trigger_datetime);
+    app.at("/api/jobs/:id/tokens/:trigger_datetime")
+        .get(job::get_token_trigger_datetime);
 
     app.at("/api/jobs/:id/triggers").get(job::get_triggers);
 
     // web UI
 
-    app.at("/static").serve_dir("ui/dist/")?;
+    #[cfg(debug_assertions)]
+    {
+        app.at("/static").serve_dir("ui/dist/")?;
+        app.at("/").get(|_req| async {
+            let body = tide::Body::from_file("ui/dist/index.html").await?;
+            Ok(body)
+        });
+    }
 
-    app.at("/").get(|_req| async {
-        let body = tide::Body::from_file("ui/dist/index.html").await?;
-        Ok(Response::builder(StatusCode::Ok).body(body).build())
-    });
+    #[cfg(not(debug_assertions))]
+    {
+        app.at("/static/main.js")
+            .get(get_file!("../../ui/dist/main.js" => "text/javascript"));
+        app.at("/")
+            .get(get_file!("../../ui/dist/index.html" => "text/html;charset=utf-8"));
+    }
 
     let host =
         std::env::var("WATERWHEEL_SERVER_ADDR").unwrap_or_else(|_| "127.0.0.1:8080".to_owned());
