@@ -13,6 +13,7 @@ pub struct Job {
     pub uuid: Uuid,
     pub project: String,
     pub name: String,
+    pub description: String,
     pub triggers: Vec<Trigger>,
     pub tasks: Vec<Task>,
 }

@@ -3,7 +3,7 @@ use crate::messages::TaskDef;
 use crate::server::tokens::Token;
 use crate::{db, postoffice};
 use anyhow::Result;
-use kv_log_macro::{debug, info, warn};
+use kv_log_macro::{debug, info};
 use lapin::options::{
     BasicPublishOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
 };
@@ -81,28 +81,22 @@ pub async fn process_executions() -> Result<!> {
         .fetch_one(&pool)
         .await?;
 
-        if docker.image.is_none() {
-            // this task does not execute anything so we can call it success right now
-            // TODO
-            warn!("task executes nothing - this is broken right now!")
-        } else {
-            let task_def = TaskDef {
-                task_id: token.task_id.to_string(),
-                trigger_datetime: token.trigger_datetime.to_rfc3339(),
-                image: docker.image.unwrap(), // already checked none
-                args: docker.args.unwrap_or_default(),
-                env: docker.env,
-            };
+        let task_def = TaskDef {
+            task_id: token.task_id.to_string(),
+            trigger_datetime: token.trigger_datetime.to_rfc3339(),
+            image: docker.image,
+            args: docker.args.unwrap_or_default(),
+            env: docker.env,
+        };
 
-            chan.basic_publish(
-                TASK_EXCHANGE,
-                "",
-                BasicPublishOptions::default(),
-                serde_json::to_vec(&task_def)?,
-                BasicProperties::default(),
-            )
+        chan.basic_publish(
+            TASK_EXCHANGE,
+            "",
+            BasicPublishOptions::default(),
+            serde_json::to_vec(&task_def)?,
+            BasicProperties::default(),
+        )
             .await?;
-        }
 
         sqlx::query(
             "UPDATE token
@@ -111,10 +105,10 @@ pub async fn process_executions() -> Result<!> {
             WHERE task_id = $1
             AND trigger_datetime = $2",
         )
-        .bind(token.task_id)
-        .bind(token.trigger_datetime)
-        .execute(&pool)
-        .await?;
+            .bind(token.task_id)
+            .bind(token.trigger_datetime)
+            .execute(&pool)
+            .await?;
 
         debug!("done enqueueing", {
             task_id: token.task_id.to_string(),
@@ -122,3 +116,43 @@ pub async fn process_executions() -> Result<!> {
         });
     }
 }
+/*
+async fn mark_success(token: &Token) -> Result<()> {
+    let pool = db::get_pool();
+    let token_tx = postoffice::post_mail::<ProcessToken>().await?;
+
+    let mut conn = pool.acquire().await?;
+    let mut txn = conn.begin().await?;
+
+    let task_result = TaskResult {
+        task_id: token.task_id.to_string(),
+        trigger_datetime: token.trigger_datetime.to_rfc3339(),
+        result: "success".to_owned()
+    };
+
+    sqlx::query(
+        "UPDATE token
+                SET state = 'success',
+                    count = count - (SELECT threshold FROM task WHERE id = task_id)
+                WHERE task_id = $1
+                AND trigger_datetime = $2",
+    )
+        .bind(token.task_id)
+        .bind(token.trigger_datetime)
+        .execute(&pool)
+        .await?;
+
+    let tokens_to_tx = advance_tokens(&mut txn, task_result).await?;
+
+    txn.commit().await?;
+
+    debug!("task ");
+
+    // after committing the transaction we can tell the token processor to check thresholds
+    for token in tokens_to_tx {
+        token_tx.send(ProcessToken(token)).await;
+    }
+
+    Ok(())
+}
+*/

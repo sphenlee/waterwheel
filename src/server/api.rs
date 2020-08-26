@@ -1,6 +1,7 @@
 use anyhow::Result;
 use sqlx::postgres::PgDatabaseError;
 use sqlx::PgPool;
+use tide::{Response, StatusCode};
 
 mod job;
 mod project;
@@ -20,26 +21,40 @@ pub async fn serve() -> Result<()> {
     };
 
     let mut app = tide::with_state(state);
-
-    app.at("/")
-        .get(|_req| async { Ok("Hello from Waterwheel!") });
+    app.with(tide::log::LogMiddleware::new());
 
     // project
-    app.at("/api/project")
+    app.at("/api/projects")
         .get(project::get_by_name)
-        .put(project::create);
-    app.at("/api/project/:id")
+        .post(project::create)
+        .put(project::update);
+    app.at("/api/projects/:id")
         .get(project::get_by_id)
         .delete(project::delete);
+    app.at("/api/projects/:id/jobs").get(project::list_jobs);
 
     // job
-    app.at("/api/job")
+    app.at("/api/jobs")
         .get(job::get_by_name)
         .post(job::create)
         .put(job::create);
-    app.at("/api/job/:id")
+    app.at("/api/jobs/:id")
         .get(job::get_by_id)
         .delete(job::delete);
+
+    app.at("/api/jobs/:id/tokens").get(job::get_tokens);
+    app.at("/api/jobs/:id/tokens/:trigger_datetime").get(job::get_token_trigger_datetime);
+
+    app.at("/api/jobs/:id/triggers").get(job::get_triggers);
+
+    // web UI
+
+    app.at("/static").serve_dir("ui/dist/")?;
+
+    app.at("/").get(|_req| async {
+        let body = tide::Body::from_file("ui/dist/index.html").await?;
+        Ok(Response::builder(StatusCode::Ok).body(body).build())
+    });
 
     let host =
         std::env::var("WATERWHEEL_SERVER_ADDR").unwrap_or_else(|_| "127.0.0.1:8080".to_owned());

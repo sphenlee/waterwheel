@@ -14,7 +14,7 @@ log = "0.4.11"
 env_logger = "0.7.1"
 lapin = "1.2.1"
 async-std = "1.6.3"
-tide = "0.13.0"
+tide = { version = "0.13.0", default-features = false, features = ["async-h1"] }
 async-amqp = "0.1.5"
 sqlx = { version = "0.4.0-beta.1", features = ["postgres", "chrono", "uuid"] }
 dotenv = "0.15.0"

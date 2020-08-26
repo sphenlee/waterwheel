@@ -153,6 +153,23 @@ pub async fn create_task(
         }
     }
 
+    // TODO refactor this duplicate code
+    if let Some(depends) = &task.depends_failure {
+        for d in depends {
+            let reference = parse_reference(d)?;
+            let reference = resolve_reference(reference, &job)?;
+
+            match reference.kind {
+                ReferenceKind::Trigger => {
+                    create_trigger_edge(&mut *txn, &task_id, reference).await?
+                }
+                ReferenceKind::Task => {
+                    create_task_edge(&mut *txn, &task_id, reference, "failure").await?
+                }
+            }
+        }
+    }
+
     Ok(())
 }
 

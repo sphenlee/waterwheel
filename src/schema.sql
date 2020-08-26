@@ -1,12 +1,14 @@
 CREATE TABLE IF NOT EXISTS project (
     id UUID PRIMARY KEY,
-    name VARCHAR NOT NULL UNIQUE
+    name VARCHAR NOT NULL UNIQUE,
+    description VARCHAR
 );
 
 CREATE TABLE IF NOT EXISTS job (
     id UUID PRIMARY KEY,
     name VARCHAR NOT NULL,
     project_id UUID NOT NULL REFERENCES project(id),
+    description VARCHAR,
     raw_definition VARCHAR,
     UNIQUE(project_id, name) INCLUDE (id)
 );

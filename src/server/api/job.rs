@@ -11,7 +11,11 @@ use tide::{Request, Response, StatusCode};
 use uuid::Uuid;
 
 mod tasks;
+mod tokens;
 mod triggers;
+
+pub use tokens::{get_tokens, get_token_trigger_datetime};
+pub use triggers::get_triggers;
 
 pub async fn create(mut req: Request<State>) -> tide::Result<Response> {
     let data = req.body_string().await?;
@@ -33,15 +37,16 @@ pub async fn create(mut req: Request<State>) -> tide::Result<Response> {
             "UPDATE job
             SET name = $2,
                 project_id = (SELECT id FROM project WHERE name = $3),
-                raw_definition = $4
+                description = $4,
+                raw_definition = $5
             WHERE id = $1",
         )
     } else {
         sqlx::query(
-            "INSERT INTO job(id, name, project_id, raw_definition)
+            "INSERT INTO job(id, name, project_id, description, raw_definition)
             VALUES($1, $2,
                 (SELECT id FROM project WHERE name = $3),
-                $4)",
+                $4, $5)",
         )
     };
 
@@ -49,6 +54,7 @@ pub async fn create(mut req: Request<State>) -> tide::Result<Response> {
         .bind(&job.uuid)
         .bind(&job.name)
         .bind(&job.project)
+        .bind(&job.description)
         .bind(serde_json::to_string(&job)?)
         .execute(&mut txn)
         .await;
@@ -96,9 +102,11 @@ struct QueryJob {
 
 #[derive(Serialize, sqlx::FromRow)]
 struct GetJob {
-    pub uuid: Uuid,
+    pub id: Uuid,
     pub project: String,
+    pub project_id: Uuid,
     pub name: String,
+    pub description: String,
     pub raw_definition: String,
 }
 
@@ -107,9 +115,11 @@ pub async fn get_by_name(req: Request<State>) -> tide::Result<Response> {
 
     let job = sqlx::query_as::<_, GetJob>(
         "SELECT
-            j.id AS uuid,
+            j.id AS id,
             j.name AS name,
             p.name AS project,
+            p.id AS project_id,
+            j.description AS description,
             j.raw_definition AS raw_definition
         FROM job j
         JOIN project p ON j.project_id = p.id
@@ -129,9 +139,11 @@ pub async fn get_by_id(req: Request<State>) -> tide::Result<Response> {
 
     let job = sqlx::query_as::<_, GetJob>(
         "SELECT
-            j.id AS uuid,
+            j.id AS id,
             j.name AS name,
             p.name AS project,
+            p.id AS project_id,
+            j.description AS description,
             j.raw_definition AS raw_definition
         FROM job j
         JOIN project p ON j.project_id = p.id
@@ -145,11 +157,10 @@ pub async fn get_by_id(req: Request<State>) -> tide::Result<Response> {
 }
 
 pub async fn delete(req: Request<State>) -> tide::Result<StatusCode> {
-    let id_str = req.param::<String>("id")?;
-    let id = Uuid::parse_str(&id_str)?;
+    let id = req.param::<Uuid>("id")?;
 
     let res = sqlx::query(
-        "DELETE CASCADE FROM job
+        "DELETE FROM job
         WHERE id = $1",
     )
     .bind(&id)
@@ -171,4 +182,10 @@ pub async fn delete(req: Request<State>) -> tide::Result<StatusCode> {
             Ok(StatusCode::InternalServerError)
         }
     }
+}
+
+async fn job_status(req: Request<State>) -> tide::Result {
+    let _id = req.param::<Uuid>("id")?;
+
+    Ok(Response::new(StatusCode::BadRequest))
 }

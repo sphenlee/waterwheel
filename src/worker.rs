@@ -27,6 +27,7 @@ pub async fn run_worker() -> Result<()> {
     spawn_and_log("worker", process_work());
 
     let mut app = tide::new();
+    app.with(tide::log::LogMiddleware::new());
     app.at("/")
         .get(|_req| async { Ok("Hello from Waterwheel Worker!") });
 
@@ -103,12 +104,17 @@ pub async fn process_work() -> Result<!> {
             trigger_datetime: task_def.trigger_datetime,
         });
 
-        let success = docker::run_docker(
-            task_def.image,
-            task_def.args,
-            task_def.env.unwrap_or_default(),
-        )
-        .await?;
+        let success = if let Some(image) = task_def.image {
+            docker::run_docker(
+                image,
+                task_def.args,
+                task_def.env.unwrap_or_default(),
+            )
+            .await?
+        } else {
+            // task has no image, mark success immediately
+            true
+        };
 
         let result = match success {
             true => "success".to_string(),

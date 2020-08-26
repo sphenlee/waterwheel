@@ -24,8 +24,6 @@ fn main() -> Result<()> {
     dotenv::dotenv().ok();
     logging::setup();
 
-    //tide::log::with_level(log::LevelFilter::Info);
-
     let app = clap::App::new("waterwheel")
         .author("Steve Lee <sphen.lee@gmail.com>")
         .setting(clap::AppSettings::SubcommandRequiredElseHelp)

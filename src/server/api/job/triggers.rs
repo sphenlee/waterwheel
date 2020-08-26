@@ -1,6 +1,11 @@
 use crate::server::api::types::{period_from_string, Job, Trigger};
+use crate::server::api::util::RequestExt;
+use crate::server::api::State;
 use anyhow::Result;
+use chrono::{DateTime, Utc};
+use serde::{Serialize};
 use sqlx::{Postgres, Transaction};
+use tide::{Body, Request, Response, StatusCode};
 use uuid::Uuid;
 
 pub async fn create_trigger(
@@ -59,4 +64,42 @@ pub async fn create_trigger(
     // TODO - delete removed triggers
 
     Ok(id)
+}
+
+#[derive(Serialize, sqlx::FromRow)]
+pub struct GetTrigger {
+    pub trigger_id: Uuid,
+    pub trigger_name: String,
+    pub start_datetime: DateTime<Utc>,
+    pub end_datetime: Option<DateTime<Utc>>,
+    pub earliest_trigger_datetime: Option<DateTime<Utc>>,
+    pub latest_trigger_datetime: Option<DateTime<Utc>>,
+    pub period: i64, // seconds
+    pub offset: Option<String>,
+}
+
+pub async fn get_triggers(req: Request<State>) -> tide::Result {
+    let job_id = req.param::<Uuid>("id")?;
+
+    let triggers = sqlx::query_as::<_, GetTrigger>(
+        "SELECT
+            id AS trigger_id,
+            name AS trigger_name,
+            start_datetime,
+            end_datetime,
+            earliest_trigger_datetime,
+            latest_trigger_datetime,
+            period,
+            NULL AS \"offset\"
+        FROM trigger
+        WHERE job_id = $1
+        ORDER BY latest_trigger_datetime DESC",
+    )
+    .bind(&job_id)
+    .fetch_all(&req.get_pool())
+    .await?;
+
+    Ok(Response::builder(StatusCode::Ok)
+        .body(Body::from_json(&triggers)?)
+        .build())
 }

@@ -8,7 +8,7 @@ use uuid::Uuid;
 pub struct TaskDef {
     pub task_id: String,
     pub trigger_datetime: String,
-    pub image: String,
+    pub image: Option<String>,
     pub args: Vec<String>,
     pub env: Option<Vec<String>>,
 }

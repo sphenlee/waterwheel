@@ -3,3 +3,5 @@ target/
 .env
 log4rs.yaml
 waterwheel.log
+ui/node_modules/
+ui/dist/

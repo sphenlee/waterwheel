@@ -1,23 +1,27 @@
 INSERT INTO project (
     id,
-    name
+    name,
+    description
 )
 VALUES
 (
     '2e053dfd-2773-476a-89bf-6b388649750f',
-    'test_project'
+    'test_project',
+    'A project for testing stuff'
 );
 
 INSERT INTO job (
     id,
     name,
     project_id,
+    description,
     raw_definition
 )
 VALUES
 (   '803b4cc2-f4d6-45d2-93bb-f92fbb2eb9b9',
     'test_job',
     '2e053dfd-2773-476a-89bf-6b388649750f',
+    'A job for testing stuff',
     '<blank>'
 );
 
