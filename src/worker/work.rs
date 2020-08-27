@@ -4,7 +4,7 @@ use crate::worker::docker;
 use anyhow::Result;
 
 use futures::TryStreamExt;
-use kv_log_macro::{debug, info};
+use kv_log_macro::{debug, info, error};
 use lapin::options::{
     BasicAckOptions, BasicConsumeOptions, BasicPublishOptions, BasicQosOptions,
     ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
@@ -83,8 +83,17 @@ pub async fn process_work() -> Result<!> {
             trigger_datetime: task_def.trigger_datetime,
         });
 
-        let success = if let Some(image) = task_def.image {
-            docker::run_docker(image, task_def.args, task_def.env.unwrap_or_default()).await?
+        let success = if task_def.image.is_some() {
+            match docker::run_docker(task_def.clone()).await {
+                Ok(_) => true,
+                Err(err) => {
+                    error!("failed to run task: {}", err, {
+                        task_id: task_def.task_id,
+                        trigger_datetime: task_def.trigger_datetime,
+                    });
+                    false
+                }
+            }
         } else {
             // task has no image, mark success immediately
             true

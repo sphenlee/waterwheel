@@ -1,3 +1,4 @@
+use crate::messages::TaskDef;
 use anyhow::Result;
 use bollard::container::{
     Config, CreateContainerOptions, LogsOptions, RemoveContainerOptions, StartContainerOptions,
@@ -6,7 +7,7 @@ use bollard::container::{
 use futures::TryStreamExt;
 use kv_log_macro::{info, trace};
 
-pub async fn run_docker(image: String, args: Vec<String>, env: Vec<String>) -> Result<bool> {
+pub async fn run_docker(task_def: TaskDef) -> Result<bool> {
     // TODO - return actual error messages from Docker
     let exit = async_std::task::spawn_blocking(move || -> Result<bool> {
         let mut rt = tokio::runtime::Builder::new()
@@ -15,6 +16,10 @@ pub async fn run_docker(image: String, args: Vec<String>, env: Vec<String>) -> R
             .build()?;
 
         rt.block_on(async move {
+            let image = task_def.image.unwrap();
+            let args = task_def.args;
+            let env = task_def.env.unwrap_or_default();
+
             let docker = bollard::Docker::connect_with_local_defaults()?;
 
             info!("launching container", {
@@ -54,7 +59,10 @@ pub async fn run_docker(image: String, args: Vec<String>, env: Vec<String>) -> R
             );
 
             while let Some(line) = logs.try_next().await? {
-                print!("docker| {}", line);
+                info!(target: "task", "{}", line, {
+                    task_id: task_def.task_id,
+                    trigger_datetime: task_def.trigger_datetime,
+                });
             }
 
             let mut waiter =
