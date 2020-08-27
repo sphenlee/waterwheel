@@ -14,7 +14,7 @@ const Body = styled.div`
 
 function makeColumns(job_id) {
     return [
-      {
+      /*{
         title: 'Trigger Time',
         dataIndex: 'trigger_datetime',
         key: 'trigger_datetime',
@@ -23,7 +23,7 @@ function makeColumns(job_id) {
                     {text}
                 </Link>
             )
-      },{
+      },*/{
         title: 'Task',
         dataIndex: 'task_name',
         key: 'task_name',

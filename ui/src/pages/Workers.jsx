@@ -71,6 +71,11 @@ class Workers extends Component {
 
     componentDidMount() {
         this.fetchWorkers()
+        this.interval = setInterval(() => this.fetchWorkers(), 5000);
+    }
+
+    componentWillUnmount() {
+        clearInterval(this.interval);
     }
 
     render() {

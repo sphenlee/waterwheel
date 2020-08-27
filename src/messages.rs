@@ -18,6 +18,7 @@ pub struct TaskResult {
     pub task_id: String,
     pub trigger_datetime: String,
     pub result: String,
+    pub worker_id: Uuid,
 }
 
 impl TaskResult {
