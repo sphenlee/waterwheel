@@ -1,16 +1,12 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
 import { Layout, Breadcrumb } from 'antd';
-import styled from 'styled-components';
 
+import Body from '../components/Body.jsx';
 import Navigation from '../components/Navigation.jsx'
 
 const { Content } = Layout;
 
-const Body = styled.div`
-    padding: 24px;
-    background: #fff;
-`;
 
 class Home extends Component {
   render() {

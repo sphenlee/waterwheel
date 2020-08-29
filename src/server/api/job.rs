@@ -15,7 +15,7 @@ mod tokens;
 mod triggers;
 
 pub use tokens::{get_token_trigger_datetime, get_tokens};
-pub use triggers::get_triggers;
+pub use triggers::{get_triggers_by_job, get_trigger, get_trigger_times};
 
 pub async fn create(mut req: Request<State>) -> tide::Result<Response> {
     let data = req.body_string().await?;

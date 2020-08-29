@@ -43,7 +43,7 @@ fn env_log_format_with_kv(fmt: &mut Formatter, record: &log::Record) -> std::io:
         "[{} {} {}]",
         chrono::Local::now().to_rfc3339_opts(SecondsFormat::Millis, false),
         record.level(),
-        record.target()
+        record.target(),
     );
 
     writeln!(

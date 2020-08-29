@@ -2,19 +2,14 @@ import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
 import { List, Avatar, Layout, Breadcrumb, PageHeader, Collapse, Tabs } from 'antd';
 import JSONPretty from 'react-json-pretty';
-import styled from 'styled-components';
 import axios from 'axios';
 
+import Body from '../components/Body.jsx';
 import TokenTable from './Job/TokenTable.jsx';
 import Triggers from './Job/Triggers.jsx';
 
 const { Content } = Layout;
 
-
-const Body = styled.div`
-    padding: 24px;
-    background: #fff;
-`;
 
 class Job extends Component {
     constructor(props) {

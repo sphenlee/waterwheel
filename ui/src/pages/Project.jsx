@@ -1,16 +1,12 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
 import { List, Avatar, Layout, Breadcrumb, PageHeader } from 'antd';
-import styled from 'styled-components'
 import axios from 'axios';
+
+import Body from '../components/Body.jsx';
 
 const { Content } = Layout;
 
-
-const Body = styled.div`
-    padding: 24px;
-    background: #fff;
-`;
 
 class Project extends Component {
     constructor(props) {

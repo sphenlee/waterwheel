@@ -12,7 +12,7 @@ function makeColumns(job) {
             dataIndex: 'trigger_name',
             key: 'trigger_name',
             render: (text, record) => (
-                <Link to={`/triggers/${record.trigger_id}`}>
+                <Link to={`/jobs/${job.id}/triggers/${record.trigger_id}`}>
                     {text}
                 </Link>
             ),

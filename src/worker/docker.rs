@@ -6,6 +6,16 @@ use bollard::container::{
 };
 use futures::TryStreamExt;
 use kv_log_macro::{info, trace};
+use tokio::io::AsyncWriteExt;
+use serde::Serialize;
+
+#[derive(Serialize)]
+struct LogMessage<'a> {
+    job_id: &'a str,
+    task_id: &'a str,
+    trigger_datetime: &'a str,
+    msg: &'a str,
+}
 
 pub async fn run_docker(task_def: TaskDef) -> Result<bool> {
     // TODO - return actual error messages from Docker
@@ -58,12 +68,25 @@ pub async fn run_docker(task_def: TaskDef) -> Result<bool> {
                 }),
             );
 
+            let vector_addr = std::env::var("WATERWHEEL_VECTOR_ADDR")?;
+            let mut vector = tokio::net::TcpStream::connect(&vector_addr).await?;
+
             while let Some(line) = logs.try_next().await? {
-                info!(target: "task", "{}", line, {
-                    task_id: task_def.task_id,
-                    trigger_datetime: task_def.trigger_datetime,
-                });
+                // // TODO - kv_log_macro ignores the target directive
+                // log::info!(target: "task", "{}", line, /*{
+                //     task_id: task_def.task_id,
+                //     trigger_datetime: task_def.trigger_datetime,
+                // }*/);
+                vector.write(&serde_json::to_vec(&LogMessage {
+                    job_id: "unknown",
+                    task_id: &task_def.task_id,
+                    trigger_datetime: &task_def.trigger_datetime,
+                    msg: &format!("{}", line)
+                })?).await?;
+                vector.write(b"\n").await?;
             }
+
+            vector.shutdown(std::net::Shutdown::Both)?;
 
             let mut waiter =
                 docker.wait_container(&container.id, None::<WaitContainerOptions<String>>);

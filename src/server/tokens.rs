@@ -91,6 +91,7 @@ pub async fn process_tokens() -> Result<!> {
             trigger_datetime: token.trigger_datetime.to_rfc3339(),
         });
         if *count >= threshold {
+            *count -= threshold; // TODO - cleanup old tokens with counts of 0
             execute_tx.send(ExecuteToken(token)).await;
         }
     }

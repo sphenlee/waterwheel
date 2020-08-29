@@ -1,0 +1,18 @@
+[sources.docker]
+  type = "socket"
+  address = "0.0.0.0:9000"
+  max_length = 102400
+  mode = "tcp"
+
+[transforms.parse]
+  type = "json_parser"
+  inputs = ["docker"]
+  drop_field = true
+  drop_invalid = true
+  field = "message"
+
+[sinks.output]
+  type = "file"
+  inputs = ["parse"]
+  path = "/var/log/waterwheel/{{task_id}}/{{trigger_datetime}}.log"
+  encoding.codec = "ndjson"

@@ -1,8 +1,9 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
 import { Table, Layout, Breadcrumb } from 'antd';
-import styled from 'styled-components'
 import axios from 'axios';
+
+import Body from '../components/Body.jsx';
 
 const { Content } = Layout;
 
@@ -30,12 +31,6 @@ function makeColumns() {
         }
     ];
 }
-
-
-const Body = styled.div`
-    padding: 24px;
-    background: #fff;
-`;
 
 
 class Workers extends Component {

@@ -7,6 +7,7 @@ mod project;
 pub mod types;
 pub mod util;
 mod workers;
+mod task;
 
 const PG_INTEGRITY_ERROR: &str = "23";
 
@@ -59,7 +60,17 @@ pub async fn serve() -> Result<()> {
         .get(job::get_token_trigger_datetime);
 
     // job triggers
-    app.at("/api/jobs/:id/triggers").get(job::get_triggers);
+    app.at("/api/jobs/:id/triggers").get(job::get_triggers_by_job);
+    app.at("/api/jobs/:job_id/triggers/:id")
+        .get(job::get_trigger);
+
+    // task tokens
+    app.at("/api/tasks/:id/tokens/:trigger_datetime")
+        .put(task::create_token);
+
+    // trigger times
+    app.at("/api/triggers/:id")
+        .get(job::get_trigger_times);
 
     // workers
     app.at("/api/workers").get(workers::list);

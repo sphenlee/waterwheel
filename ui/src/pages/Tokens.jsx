@@ -1,16 +1,44 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
-import { Table, Layout, Breadcrumb, PageHeader } from 'antd';
-import styled from 'styled-components';
+import { Table, Layout, Breadcrumb, PageHeader, Button, notification } from 'antd';
 import axios from 'axios';
+
+import Body from '../components/Body.jsx';
+import State from '../components/State.jsx';
 
 const { Content } = Layout;
 
-const Body = styled.div`
-    padding: 24px;
-    background: #fff;
-`;
+class CreateToken extends Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            loading: false
+        };
+    }
 
+    async createToken() {
+        const { task_id, trigger_datetime } = this.props;
+        this.setState({ loading: true });
+        await axios.put(`/api/tasks/${task_id}/tokens/${trigger_datetime}`);
+        this.setState({ loading: false });
+        notification.success({
+            message: 'Task Activated',
+            description: 'The task has been activated and will run shortly.',
+            placement: 'bottomLeft',
+        })
+    }
+
+    render() {
+        const { loading } = this.state;
+        return (
+            <Button
+                size="small"
+                loading={loading}
+                onClick={() => this.createToken()}
+            >activate</Button>
+        );
+    }
+}
 
 function makeColumns(job_id) {
     return [
@@ -42,7 +70,12 @@ function makeColumns(job_id) {
         title: 'State',
         dataIndex: 'state',
         key: 'state',
-        render: text => text,
+        render: text => <State state={text} />,
+      },{
+        title: '',
+        dataIndex: 'task_id',
+        key: 'task_id',
+        render: (text, record) => <CreateToken task_id={record.task_id} trigger_datetime={record.trigger_datetime} />,
       }
     ];
 }
@@ -113,7 +146,7 @@ class Tokens extends Component {
                     <Body>
                         <PageHeader
                             onBack={() => history.replace(`/jobs/${id}`)}
-                            title={job.name}
+                            title={`${job.name} @ ${trigger_datetime}`}
                             subTitle={job.description}
                         />
                         <Table columns={this.columns} dataSource={tokens} />

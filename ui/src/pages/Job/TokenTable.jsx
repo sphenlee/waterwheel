@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { Table, Select, notification } from 'antd';
 import axios from 'axios';
 
+import State from '../../components/State.jsx';
+
 const { Option } = Select;
 
 function makeColumns(job_id) {
@@ -35,7 +37,7 @@ function makeColumns(job_id) {
         title: 'State',
         dataIndex: 'state',
         key: 'state',
-        render: text => text,
+        render: text => <State state={text} />,
       }
     ];
 }
