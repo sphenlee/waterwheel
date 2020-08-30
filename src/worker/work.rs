@@ -4,7 +4,7 @@ use crate::worker::docker;
 use anyhow::Result;
 
 use futures::TryStreamExt;
-use kv_log_macro::{debug, info, error};
+use kv_log_macro::{debug, error, info};
 use lapin::options::{
     BasicAckOptions, BasicConsumeOptions, BasicPublishOptions, BasicQosOptions,
     ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,

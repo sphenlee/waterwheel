@@ -6,8 +6,8 @@ use bollard::container::{
 };
 use futures::TryStreamExt;
 use kv_log_macro::{info, trace};
-use tokio::io::AsyncWriteExt;
 use serde::Serialize;
+use tokio::io::AsyncWriteExt;
 
 #[derive(Serialize)]
 struct LogMessage<'a> {
@@ -77,12 +77,14 @@ pub async fn run_docker(task_def: TaskDef) -> Result<bool> {
                 //     task_id: task_def.task_id,
                 //     trigger_datetime: task_def.trigger_datetime,
                 // }*/);
-                vector.write(&serde_json::to_vec(&LogMessage {
-                    job_id: "unknown",
-                    task_id: &task_def.task_id,
-                    trigger_datetime: &task_def.trigger_datetime,
-                    msg: &format!("{}", line)
-                })?).await?;
+                vector
+                    .write(&serde_json::to_vec(&LogMessage {
+                        job_id: "unknown",
+                        task_id: &task_def.task_id,
+                        trigger_datetime: &task_def.trigger_datetime,
+                        msg: &format!("{}", line),
+                    })?)
+                    .await?;
                 vector.write(b"\n").await?;
             }
 

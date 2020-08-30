@@ -1,5 +1,5 @@
 use crate::server::api::types::{period_from_string, Job, Trigger};
-use crate::server::api::util::{RequestExt, OptionExt};
+use crate::server::api::util::{OptionExt, RequestExt};
 use crate::server::api::State;
 use anyhow::Result;
 use chrono::{DateTime, Utc};
@@ -130,9 +130,9 @@ pub async fn get_trigger(req: Request<State>) -> tide::Result {
         JOIN project p ON p.id = j.project_id
         WHERE g.id = $1",
     )
-        .bind(&trigger_id)
-        .fetch_optional(&req.get_pool())
-        .await?;
+    .bind(&trigger_id)
+    .fetch_optional(&req.get_pool())
+    .await?;
 
     triggers.into_json_response()
 }

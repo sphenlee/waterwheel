@@ -1,10 +1,15 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
-import { Table, Layout, Breadcrumb, PageHeader, Button, notification } from 'antd';
+import { Table, Layout, Breadcrumb, PageHeader, Button, notification, Popconfirm,
+        Row, Col } from 'antd';
+
+import { ExclamationCircleOutlined } from '@ant-design/icons';
+
 import axios from 'axios';
 
 import Body from '../components/Body.jsx';
 import State from '../components/State.jsx';
+import Graph from '../components/Graph.jsx';
 
 const { Content } = Layout;
 
@@ -55,21 +60,15 @@ function makeColumns(job_id) {
         title: 'Task',
         dataIndex: 'task_name',
         key: 'task_name',
-        render: text => text,
       },{
         title: 'Count',
         dataIndex: 'count',
-        key: 'count',
-        render: text => text,
       },{
         title: 'Threshold',
         dataIndex: 'threshold',
-        key: 'threshold',
-        render: text => text,
       },{
         title: 'State',
         dataIndex: 'state',
-        key: 'state',
         render: text => <State state={text} />,
       },{
         title: '',
@@ -115,6 +114,27 @@ class Tokens extends Component {
         }
     }
 
+    async clearAllTokens() {
+        const {id, trigger_datetime} = this.props.match.params;
+        const { name } = this.state.job;
+
+        try {
+            let resp = await axios.delete(`/api/jobs/${id}/tokens/${trigger_datetime}`)
+            notification.success({
+                message: 'Tokens cleared',
+                description: `Tokens for ${name} @ ${trigger_datetime} have been cleared`,
+                placement: 'bottomLeft',
+            })
+        } catch(e) {
+            console.log(e)
+            notification.error({
+                message: 'Error',
+                description: 'Failed to clear tokens, see error console for details',
+                placement: 'bottomLeft',
+            })
+        }
+    }
+
     componentDidMount() {
         const {id, trigger_datetime} = this.props.match.params;
 
@@ -148,8 +168,29 @@ class Tokens extends Component {
                             onBack={() => history.replace(`/jobs/${id}`)}
                             title={`${job.name} @ ${trigger_datetime}`}
                             subTitle={job.description}
+                            extra={[
+                                <Popconfirm
+                                    key="1"
+                                    title={'Clear all tokens for this trigger time?'}
+                                    okText={'Confirm'}
+                                    cancelText={'Cancel'}
+                                    okButtonProps={{size: 'normal', danger: true}}
+                                    cancelButtonProps={{size: 'normal'}}
+                                    onConfirm={() => this.clearAllTokens()}
+                                    icon={<ExclamationCircleOutlined />}
+                                >
+                                    <Button danger>Clear</Button>
+                                </Popconfirm>
+                            ]}
                         />
-                        <Table columns={this.columns} dataSource={tokens} />
+                        <Row>
+                            <Col span={16}>
+                                <Table key="1" columns={this.columns} dataSource={tokens} />
+                            </Col>
+                            <Col span={8}>
+                                <Graph key="2" id={id} trigger_datetime={trigger_datetime} />
+                            </Col>
+                        </Row>
                     </Body>
                 </Content>
             </Layout>

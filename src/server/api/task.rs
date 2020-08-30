@@ -1,10 +1,10 @@
-use tide::{Request, Response, StatusCode};
-use crate::server::api::State;
 use crate::postoffice;
-use uuid::Uuid;
-use chrono::{DateTime, Utc};
-use crate::server::tokens::{Token, increment_token, ProcessToken};
 use crate::server::api::util::RequestExt;
+use crate::server::api::State;
+use crate::server::tokens::{increment_token, ProcessToken, Token};
+use chrono::{DateTime, Utc};
+use tide::{Request, Response, StatusCode};
+use uuid::Uuid;
 
 pub async fn create_token(req: Request<State>) -> tide::Result {
     let token_tx = postoffice::post_mail::<ProcessToken>().await?;

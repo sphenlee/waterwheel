@@ -2,11 +2,13 @@ import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
 import { List, Avatar, Layout, Breadcrumb, PageHeader, Collapse, Tabs } from 'antd';
 import JSONPretty from 'react-json-pretty';
+import styled from 'styled-components';
 import axios from 'axios';
 
 import Body from '../components/Body.jsx';
 import TokenTable from './Job/TokenTable.jsx';
 import Triggers from './Job/Triggers.jsx';
+import Graph from '../components/Graph.jsx';
 
 const { Content } = Layout;
 
@@ -59,7 +61,7 @@ class Job extends Component {
                         />
                         <Tabs>
                             <Tabs.TabPane tab="Overview" key="1">
-                              TODO
+                                <Graph id={job.id} />
                             </Tabs.TabPane>
                             <Tabs.TabPane tab="Triggers" key="2">
                                 <Triggers id={job.id} job={job}/>

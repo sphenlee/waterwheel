@@ -4,10 +4,10 @@ use sqlx::PgPool;
 
 mod job;
 mod project;
+mod task;
 pub mod types;
 pub mod util;
 mod workers;
-mod task;
 
 const PG_INTEGRITY_ERROR: &str = "23";
 
@@ -57,10 +57,13 @@ pub async fn serve() -> Result<()> {
     // job tokens
     app.at("/api/jobs/:id/tokens").get(job::get_tokens);
     app.at("/api/jobs/:id/tokens/:trigger_datetime")
-        .get(job::get_token_trigger_datetime);
+        .get(job::get_tokens_trigger_datetime)
+        .delete(job::clear_tokens_trigger_datetime);
 
     // job triggers
-    app.at("/api/jobs/:id/triggers").get(job::get_triggers_by_job);
+    app.at("/api/jobs/:id/triggers")
+        .get(job::get_triggers_by_job);
+    app.at("/api/jobs/:id/graph").get(job::get_graph);
     app.at("/api/jobs/:job_id/triggers/:id")
         .get(job::get_trigger);
 
@@ -69,8 +72,7 @@ pub async fn serve() -> Result<()> {
         .put(task::create_token);
 
     // trigger times
-    app.at("/api/triggers/:id")
-        .get(job::get_trigger_times);
+    app.at("/api/triggers/:id").get(job::get_trigger_times);
 
     // workers
     app.at("/api/workers").get(workers::list);

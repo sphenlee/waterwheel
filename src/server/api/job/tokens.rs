@@ -2,6 +2,7 @@ use crate::server::api::util::RequestExt;
 use crate::server::api::State;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use sqlx::Done;
 use tide::{Body, Request, Response, StatusCode};
 use uuid::Uuid;
 
@@ -50,7 +51,7 @@ pub async fn get_tokens(req: Request<State>) -> tide::Result {
         .build())
 }
 
-pub async fn get_token_trigger_datetime(req: Request<State>) -> tide::Result {
+pub async fn get_tokens_trigger_datetime(req: Request<State>) -> tide::Result {
     let job_id = req.param::<Uuid>("id")?;
     let trigger_datetime = req.param::<DateTime<Utc>>("trigger_datetime")?;
 
@@ -64,7 +65,7 @@ pub async fn get_token_trigger_datetime(req: Request<State>) -> tide::Result {
             k.state AS state
         FROM task t
         JOIN token k ON k.task_id = t.id
-        AND t.job_id = $1
+        WHERE t.job_id = $1
         AND k.trigger_datetime = $2",
     )
     .bind(&job_id)
@@ -74,5 +75,37 @@ pub async fn get_token_trigger_datetime(req: Request<State>) -> tide::Result {
 
     Ok(Response::builder(StatusCode::Ok)
         .body(Body::from_json(&tokens)?)
+        .build())
+}
+
+#[derive(Serialize)]
+struct ClearTokens {
+    tokens_cleared: u64,
+}
+
+pub async fn clear_tokens_trigger_datetime(req: Request<State>) -> tide::Result {
+    let job_id = req.param::<Uuid>("id")?;
+    let trigger_datetime = req.param::<DateTime<Utc>>("trigger_datetime")?;
+
+    let done = sqlx::query(
+        "UPDATE token k
+         SET count = 0,
+             state = 'waiting'
+        FROM task t
+        WHERE k.task_id = t.id
+        AND t.job_id = $1
+        AND k.trigger_datetime = $2",
+    )
+    .bind(&job_id)
+    .bind(&trigger_datetime)
+    .execute(&req.get_pool())
+    .await?;
+
+    let body = ClearTokens {
+        tokens_cleared: done.rows_affected(),
+    };
+
+    Ok(Response::builder(StatusCode::Ok)
+        .body(Body::from_json(&body)?)
         .build())
 }
