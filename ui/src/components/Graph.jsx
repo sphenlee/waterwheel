@@ -22,7 +22,7 @@ const options = {
 
 function stateColor(state) {
     return {
-        null: grey[1],
+        null: grey[0],
         waiting: grey[3],
         active: geekblue[3],
         success: lime[3],
@@ -51,7 +51,19 @@ class JobGraph extends Component {
                     borderDashes: (n.kind.startsWith('x'))
                 }
             })),
-            edges: data.edges,
+            edges: data.edges.map(e => ({
+                to: e.to,
+                "from": e.from,
+                //color: (e.kind == 'failure' ? red[6] : (e.kind == 'trigger' ? yellow[6] : null)),
+                //width: 2,
+                arrows: {
+                    middle: {
+                        enabled: (e.kind == 'failure'),
+                        scaleFactor: 0.5,
+                        type: 'bar',
+                    }
+                }
+            })),
           };
     }
 

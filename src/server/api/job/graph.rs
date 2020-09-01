@@ -17,6 +17,7 @@ struct Node {
 struct Edge {
     from: Uuid,
     to: Uuid,
+    kind: String,
 }
 
 #[derive(Serialize, sqlx::FromRow)]
@@ -65,14 +66,16 @@ pub async fn get_graph(req: Request<State>) -> tide::Result<Response> {
     let edges = sqlx::query_as::<_, Edge>(
         "SELECT DISTINCT
             te.parent_task_id AS \"from\",
-            te.child_task_id AS to
+            te.child_task_id AS to,
+            te.kind AS kind
         FROM task_edge te
         JOIN task t ON (t.id = te.parent_task_id OR t.id = te.child_task_id)
         WHERE t.job_id = $1
         UNION ALL
         SELECT
             ge.trigger_id AS \"from\",
-            ge.task_id AS to
+            ge.task_id AS to,
+            'trigger' AS kind
         FROM trigger_edge ge
         JOIN task t ON t.id = ge.task_id
         WHERE t.job_id = $1",
