@@ -1,10 +1,10 @@
 use crate::server::api::util::RequestExt;
 use crate::server::api::State;
 use chrono::{DateTime, Utc};
+use hightide::{Json, Responder};
 use serde::{Deserialize, Serialize};
 use tide::Request;
 use uuid::Uuid;
-use hightide::{Json, Responder};
 
 #[derive(Serialize, sqlx::FromRow)]
 struct Node {

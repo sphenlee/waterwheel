@@ -1,5 +1,5 @@
 use super::types::Job;
-use super::util::{OptionExt, RequestExt};
+use super::util::RequestExt;
 use super::State;
 use super::{pg_error, PG_INTEGRITY_ERROR};
 use crate::postoffice;
@@ -7,7 +7,7 @@ use crate::server::triggers::TriggerUpdate;
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use sqlx::Done;
-use tide::{Request, Response, StatusCode};
+use tide::{Request, StatusCode};
 use uuid::Uuid;
 
 mod graph;
@@ -16,10 +16,11 @@ mod tokens;
 mod triggers;
 
 pub use graph::get_graph;
+use hightide::{Json, Responder};
 pub use tokens::{clear_tokens_trigger_datetime, get_tokens, get_tokens_trigger_datetime};
 pub use triggers::{get_trigger, get_trigger_times, get_triggers_by_job};
 
-pub async fn create(mut req: Request<State>) -> tide::Result<Response> {
+pub async fn create(mut req: Request<State>) -> tide::Result<impl Responder> {
     let data = req.body_string().await?;
     let job: Job = serde_json::from_str(&data)?;
 
@@ -68,7 +69,7 @@ pub async fn create(mut req: Request<State>) -> tide::Result<Response> {
         Err(err) => {
             warn!("error creating job: {}", err);
             return if &err.code()[..2] == PG_INTEGRITY_ERROR {
-                Ok(Response::from(StatusCode::Conflict))
+                Ok(StatusCode::Conflict)
             } else {
                 Err(err.into())
             };
@@ -93,7 +94,7 @@ pub async fn create(mut req: Request<State>) -> tide::Result<Response> {
         trigger_tx.send(TriggerUpdate(id)).await;
     }
 
-    Ok(Response::from(StatusCode::Created))
+    Ok(StatusCode::Created)
 }
 
 #[derive(Deserialize)]
@@ -112,7 +113,7 @@ struct GetJob {
     pub raw_definition: String,
 }
 
-pub async fn get_by_name(req: Request<State>) -> tide::Result<Response> {
+pub async fn get_by_name(req: Request<State>) -> tide::Result<impl Responder> {
     let q = req.query::<QueryJob>()?;
 
     let job = sqlx::query_as::<_, GetJob>(
@@ -133,10 +134,10 @@ pub async fn get_by_name(req: Request<State>) -> tide::Result<Response> {
     .fetch_optional(&req.get_pool())
     .await?;
 
-    job.into_json_response()
+    Ok(Json(job))
 }
 
-pub async fn get_by_id(req: Request<State>) -> tide::Result<Response> {
+pub async fn get_by_id(req: Request<State>) -> tide::Result<impl Responder> {
     let id = req.param::<Uuid>("id")?;
 
     let job = sqlx::query_as::<_, GetJob>(
@@ -155,7 +156,7 @@ pub async fn get_by_id(req: Request<State>) -> tide::Result<Response> {
     .fetch_optional(&req.get_pool())
     .await?;
 
-    job.into_json_response()
+    Ok(Json(job))
 }
 
 pub async fn delete(req: Request<State>) -> tide::Result<StatusCode> {

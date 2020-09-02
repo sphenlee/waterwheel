@@ -1,13 +1,12 @@
 use crate::server::api::State;
 use crate::server::heartbeat::WORKER_STATUS;
-use tide::{Body, Request, Response, StatusCode};
+use hightide::{Json, Responder};
+use tide::Request;
 
-pub async fn list(_req: Request<State>) -> tide::Result {
+pub async fn list(_req: Request<State>) -> impl Responder {
     let status = WORKER_STATUS.lock().await;
 
     let workers: Vec<_> = status.values().cloned().collect();
 
-    Ok(Response::builder(StatusCode::Ok)
-        .body(Body::from_json(&workers)?)
-        .build())
+    Json(workers)
 }

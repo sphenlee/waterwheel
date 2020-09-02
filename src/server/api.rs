@@ -49,35 +49,36 @@ pub async fn serve() -> Result<()> {
 
     // job
     app.at("/api/jobs")
-        .get(job::get_by_name)
-        .post(job::create)
-        .put(job::create);
+        .get(wrap(job::get_by_name))
+        .post(wrap(job::create))
+        .put(wrap(job::create));
     app.at("/api/jobs/:id")
-        .get(job::get_by_id)
-        .delete(job::delete);
+        .get(wrap(job::get_by_id))
+        .delete(wrap(job::delete));
 
     // job tokens
-    app.at("/api/jobs/:id/tokens").get(job::get_tokens);
+    app.at("/api/jobs/:id/tokens").get(wrap(job::get_tokens));
     app.at("/api/jobs/:id/tokens/:trigger_datetime")
-        .get(job::get_tokens_trigger_datetime)
-        .delete(job::clear_tokens_trigger_datetime);
+        .get(wrap(job::get_tokens_trigger_datetime))
+        .delete(wrap(job::clear_tokens_trigger_datetime));
 
     // job triggers
     app.at("/api/jobs/:id/triggers")
-        .get(job::get_triggers_by_job);
+        .get(wrap(job::get_triggers_by_job));
     app.at("/api/jobs/:id/graph").get(wrap(job::get_graph));
     app.at("/api/jobs/:job_id/triggers/:id")
-        .get(job::get_trigger);
+        .get(wrap(job::get_trigger));
 
     // task tokens
     app.at("/api/tasks/:id/tokens/:trigger_datetime")
-        .put(task::create_token);
+        .put(wrap(task::create_token));
 
     // trigger times
-    app.at("/api/triggers/:id").get(job::get_trigger_times);
+    app.at("/api/triggers/:id")
+        .get(wrap(job::get_trigger_times));
 
     // workers
-    app.at("/api/workers").get(workers::list);
+    app.at("/api/workers").get(wrap(workers::list));
 
     // web UI
 

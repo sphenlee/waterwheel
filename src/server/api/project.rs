@@ -1,6 +1,6 @@
 use super::util::RequestExt;
 use super::{pg_error, State, PG_INTEGRITY_ERROR};
-use hightide::{Responder, Response, Json};
+use hightide::{Json, Responder, Response};
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use sqlx::Done;

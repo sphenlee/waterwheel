@@ -1,11 +1,12 @@
 use crate::server::api::types::{period_from_string, Job, Trigger};
-use crate::server::api::util::{OptionExt, RequestExt};
+use crate::server::api::util::RequestExt;
 use crate::server::api::State;
 use anyhow::Result;
 use chrono::{DateTime, Utc};
+use hightide::{Json, Responder};
 use serde::Serialize;
 use sqlx::{Postgres, Transaction};
-use tide::{Body, Request, Response, StatusCode};
+use tide::Request;
 use uuid::Uuid;
 
 pub async fn create_trigger(
@@ -78,7 +79,7 @@ pub struct GetTriggerByJob {
     pub offset: Option<String>,
 }
 
-pub async fn get_triggers_by_job(req: Request<State>) -> tide::Result {
+pub async fn get_triggers_by_job(req: Request<State>) -> tide::Result<impl Responder> {
     let job_id = req.param::<Uuid>("id")?;
 
     let triggers = sqlx::query_as::<_, GetTriggerByJob>(
@@ -99,9 +100,7 @@ pub async fn get_triggers_by_job(req: Request<State>) -> tide::Result {
     .fetch_all(&req.get_pool())
     .await?;
 
-    Ok(Response::builder(StatusCode::Ok)
-        .body(Body::from_json(&triggers)?)
-        .build())
+    Ok(Json(triggers))
 }
 
 #[derive(Serialize, sqlx::FromRow)]
@@ -114,7 +113,7 @@ pub struct GetTrigger {
     pub project_name: String,
 }
 
-pub async fn get_trigger(req: Request<State>) -> tide::Result {
+pub async fn get_trigger(req: Request<State>) -> tide::Result<impl Responder> {
     let trigger_id = req.param::<Uuid>("id")?;
 
     let triggers = sqlx::query_as::<_, GetTrigger>(
@@ -134,7 +133,7 @@ pub async fn get_trigger(req: Request<State>) -> tide::Result {
     .fetch_optional(&req.get_pool())
     .await?;
 
-    triggers.into_json_response()
+    Ok(Json(triggers))
 }
 
 #[derive(Serialize, sqlx::FromRow)]
@@ -143,7 +142,7 @@ pub struct GetTriggerTimes {
     name: String,
 }
 
-pub async fn get_trigger_times(req: Request<State>) -> tide::Result {
+pub async fn get_trigger_times(req: Request<State>) -> tide::Result<impl Responder> {
     let trigger_id = req.param::<Uuid>("id")?;
 
     let triggers = sqlx::query_as::<_, GetTriggerTimes>(
@@ -162,7 +161,5 @@ pub async fn get_trigger_times(req: Request<State>) -> tide::Result {
     .fetch_all(&req.get_pool())
     .await?;
 
-    Ok(Response::builder(StatusCode::Ok)
-        .body(Body::from_json(&triggers)?)
-        .build())
+    Ok(Json(triggers))
 }

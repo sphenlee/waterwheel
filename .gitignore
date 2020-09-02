@@ -1,6 +1,7 @@
 target/
 .idea/
 .env
+.cargo/
 log4rs.yaml
 waterwheel.log
 ui/node_modules/

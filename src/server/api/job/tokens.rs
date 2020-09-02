@@ -1,9 +1,10 @@
 use crate::server::api::util::RequestExt;
 use crate::server::api::State;
 use chrono::{DateTime, Utc};
+use hightide::{Json, Responder};
 use serde::{Deserialize, Serialize};
 use sqlx::Done;
-use tide::{Body, Request, Response, StatusCode};
+use tide::Request;
 use uuid::Uuid;
 
 #[derive(Deserialize)]
@@ -21,7 +22,7 @@ struct GetToken {
     state: String,
 }
 
-pub async fn get_tokens(req: Request<State>) -> tide::Result {
+pub async fn get_tokens(req: Request<State>) -> tide::Result<impl Responder> {
     let job_id = req.param::<Uuid>("id")?;
     let q = req.query::<QueryToken>()?;
 
@@ -46,12 +47,10 @@ pub async fn get_tokens(req: Request<State>) -> tide::Result {
     .fetch_all(&req.get_pool())
     .await?;
 
-    Ok(Response::builder(StatusCode::Ok)
-        .body(Body::from_json(&tokens)?)
-        .build())
+    Ok(Json(tokens))
 }
 
-pub async fn get_tokens_trigger_datetime(req: Request<State>) -> tide::Result {
+pub async fn get_tokens_trigger_datetime(req: Request<State>) -> tide::Result<impl Responder> {
     let job_id = req.param::<Uuid>("id")?;
     let trigger_datetime = req.param::<DateTime<Utc>>("trigger_datetime")?;
 
@@ -73,9 +72,7 @@ pub async fn get_tokens_trigger_datetime(req: Request<State>) -> tide::Result {
     .fetch_all(&req.get_pool())
     .await?;
 
-    Ok(Response::builder(StatusCode::Ok)
-        .body(Body::from_json(&tokens)?)
-        .build())
+    Ok(Json(tokens))
 }
 
 #[derive(Serialize)]
@@ -83,7 +80,7 @@ struct ClearTokens {
     tokens_cleared: u64,
 }
 
-pub async fn clear_tokens_trigger_datetime(req: Request<State>) -> tide::Result {
+pub async fn clear_tokens_trigger_datetime(req: Request<State>) -> tide::Result<impl Responder> {
     let job_id = req.param::<Uuid>("id")?;
     let trigger_datetime = req.param::<DateTime<Utc>>("trigger_datetime")?;
 
@@ -105,7 +102,5 @@ pub async fn clear_tokens_trigger_datetime(req: Request<State>) -> tide::Result 
         tokens_cleared: done.rows_affected(),
     };
 
-    Ok(Response::builder(StatusCode::Ok)
-        .body(Body::from_json(&body)?)
-        .build())
+    Ok(Json(body))
 }
