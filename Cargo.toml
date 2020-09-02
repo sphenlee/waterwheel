@@ -32,6 +32,7 @@ typemap = "0.3.3"
 kv-log-macro = "1.0.7"
 colored = "2.0.0"
 log4rs = "0.13.0"
+hightide = "0.1.2"
 
 #[patch.crates-io]
 #sqlx = { path = "../sqlx" }

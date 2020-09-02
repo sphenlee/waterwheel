@@ -1,9 +1,10 @@
 use crate::server::api::util::RequestExt;
 use crate::server::api::State;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use tide::{Body, Request, Response, StatusCode};
+use tide::Request;
 use uuid::Uuid;
-use chrono::{Utc, DateTime};
+use hightide::{Json, Responder};
 
 #[derive(Serialize, sqlx::FromRow)]
 struct Node {
@@ -28,10 +29,10 @@ struct Graph {
 
 #[derive(Deserialize)]
 struct QueryGraph {
-    trigger_datetime: Option<DateTime<Utc>>
+    trigger_datetime: Option<DateTime<Utc>>,
 }
 
-pub async fn get_graph(req: Request<State>) -> tide::Result<Response> {
+pub async fn get_graph(req: Request<State>) -> tide::Result<impl Responder> {
     let job_id = req.param::<Uuid>("id")?;
 
     let q: QueryGraph = req.query()?;
@@ -58,10 +59,10 @@ pub async fn get_graph(req: Request<State>) -> tide::Result<Response> {
         FROM trigger g
         WHERE g.job_id = $1",
     )
-        .bind(&job_id)
-        .bind(&q.trigger_datetime)
-        .fetch_all(&req.get_pool())
-        .await?;
+    .bind(&job_id)
+    .bind(&q.trigger_datetime)
+    .fetch_all(&req.get_pool())
+    .await?;
 
     let edges = sqlx::query_as::<_, Edge>(
         "SELECT DISTINCT
@@ -80,9 +81,9 @@ pub async fn get_graph(req: Request<State>) -> tide::Result<Response> {
         JOIN task t ON t.id = ge.task_id
         WHERE t.job_id = $1",
     )
-        .bind(&job_id)
-        .fetch_all(&req.get_pool())
-        .await?;
+    .bind(&job_id)
+    .fetch_all(&req.get_pool())
+    .await?;
 
     let extra_nodes = sqlx::query_as::<_, Node>(
         "SELECT
@@ -119,7 +120,5 @@ pub async fn get_graph(req: Request<State>) -> tide::Result<Response> {
 
     nodes.extend(extra_nodes);
 
-    Ok(Response::builder(StatusCode::Ok)
-        .body(Body::from_json(&Graph { nodes, edges })?)
-        .build())
+    Ok(Json(Graph { nodes, edges }))
 }

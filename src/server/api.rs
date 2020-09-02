@@ -1,4 +1,5 @@
 use anyhow::Result;
+use hightide::wrap;
 use sqlx::postgres::PgDatabaseError;
 use sqlx::PgPool;
 
@@ -37,13 +38,14 @@ pub async fn serve() -> Result<()> {
 
     // project
     app.at("/api/projects")
-        .get(project::get_by_name)
-        .post(project::create)
-        .put(project::update);
+        .get(wrap(project::get_by_name))
+        .post(wrap(project::create))
+        .put(wrap(project::update));
     app.at("/api/projects/:id")
-        .get(project::get_by_id)
-        .delete(project::delete);
-    app.at("/api/projects/:id/jobs").get(project::list_jobs);
+        .get(wrap(project::get_by_id))
+        .delete(wrap(project::delete));
+    app.at("/api/projects/:id/jobs")
+        .get(wrap(project::list_jobs));
 
     // job
     app.at("/api/jobs")
@@ -63,7 +65,7 @@ pub async fn serve() -> Result<()> {
     // job triggers
     app.at("/api/jobs/:id/triggers")
         .get(job::get_triggers_by_job);
-    app.at("/api/jobs/:id/graph").get(job::get_graph);
+    app.at("/api/jobs/:id/graph").get(wrap(job::get_graph));
     app.at("/api/jobs/:job_id/triggers/:id")
         .get(job::get_trigger);
 

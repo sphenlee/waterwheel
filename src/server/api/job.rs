@@ -10,14 +10,14 @@ use sqlx::Done;
 use tide::{Request, Response, StatusCode};
 use uuid::Uuid;
 
+mod graph;
 mod tasks;
 mod tokens;
 mod triggers;
-mod graph;
 
+pub use graph::get_graph;
 pub use tokens::{clear_tokens_trigger_datetime, get_tokens, get_tokens_trigger_datetime};
 pub use triggers::{get_trigger, get_trigger_times, get_triggers_by_job};
-pub use graph::get_graph;
 
 pub async fn create(mut req: Request<State>) -> tide::Result<Response> {
     let data = req.body_string().await?;

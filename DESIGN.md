@@ -1,15 +1,17 @@
 Waterwheel
 ==========
 
+(Very rough thoughts)
+
 Data Model
 ----------
 
 * Projects
- 	* Contain jobs
-  	* Access control unit
+    * Contain jobs
+    * Access control unit
 
 * Jobs
-	* Contain nodes
+    * Contain nodes
 	* Unit of "update" in the API - submit jobs as a whole
 	* Need a YAML/TOML/some other format representation
 
@@ -21,12 +23,7 @@ Data Model
 	* Task failure generates tokens for each outgoing failure edge
 	* Node triggers when its threshold is reached
 		* Default threshold is number of success edges, or 1 if there are none
+		* Failure edges don't count for thresholds - so any number of failure edges
+		  will give a threshold of 1
 		* Threshold can be changed to create interesting workflows
-	* It's an error for a non-trigger to have zero incoming edges
-
-
-UI Model
---------
-
-Project selector - only show nodes from one project
-Jobs - can show all nodes, or filter down to specific jobs
+	* It's an error for a task to have zero incoming edges - the task can never run
