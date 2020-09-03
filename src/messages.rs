@@ -7,6 +7,11 @@ use uuid::Uuid;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TaskDef {
     pub task_id: String,
+    pub task_name: String,
+    pub job_id: String,
+    pub job_name: String,
+    pub project_id: String,
+    pub project_name: String,
     pub trigger_datetime: String,
     pub image: Option<String>,
     pub args: Vec<String>,

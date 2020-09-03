@@ -3,12 +3,14 @@ use crate::messages::TaskDef;
 use crate::server::tokens::Token;
 use crate::{db, postoffice};
 use anyhow::Result;
+use chrono::SecondsFormat;
 use kv_log_macro::{debug, info};
 use lapin::options::{
     BasicPublishOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
 };
 use lapin::types::FieldTable;
 use lapin::{BasicProperties, ExchangeKind};
+use uuid::Uuid;
 
 const TASK_EXCHANGE: &str = "waterwheel.tasks";
 const TASK_QUEUE: &str = "waterwheel.tasks";
@@ -17,7 +19,12 @@ const TASK_QUEUE: &str = "waterwheel.tasks";
 pub struct ExecuteToken(pub Token);
 
 #[derive(sqlx::FromRow)]
-struct DockerParams {
+struct TaskParams {
+    task_name: String,
+    job_id: Uuid,
+    job_name: String,
+    project_id: Uuid,
+    project_name: String,
     image: Option<String>,
     args: Option<Vec<String>>,
     env: Option<Vec<String>>,
@@ -69,13 +76,20 @@ pub async fn process_executions() -> Result<!> {
             trigger_datetime: token.trigger_datetime.to_rfc3339(),
         });
 
-        let docker: DockerParams = sqlx::query_as(
+        let params: TaskParams = sqlx::query_as(
             "SELECT
+                t.name AS task_name,
+                j.id AS job_id,
+                j.name AS job_name,
+                p.id AS project_id,
+                p.name AS project_name,
                 image,
                 args,
                 env
-            FROM task
-            WHERE id = $1",
+            FROM task t
+            JOIN job j on t.job_id = j.id
+            JOIN project p ON j.project_id = p.id
+            WHERE t.id = $1",
         )
         .bind(&token.task_id)
         .fetch_one(&pool)
@@ -83,10 +97,17 @@ pub async fn process_executions() -> Result<!> {
 
         let task_def = TaskDef {
             task_id: token.task_id.to_string(),
-            trigger_datetime: token.trigger_datetime.to_rfc3339(),
-            image: docker.image,
-            args: docker.args.unwrap_or_default(),
-            env: docker.env,
+            task_name: params.task_name,
+            job_id: params.job_id.to_string(),
+            job_name: params.job_name,
+            project_id: params.project_id.to_string(),
+            project_name: params.project_name,
+            trigger_datetime: token
+                .trigger_datetime
+                .to_rfc3339_opts(SecondsFormat::Secs, true),
+            image: params.image,
+            args: params.args.unwrap_or_default(),
+            env: params.env,
         };
 
         chan.basic_publish(
