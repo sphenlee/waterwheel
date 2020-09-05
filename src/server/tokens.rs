@@ -1,22 +1,15 @@
-use crate::server::execute::ExecuteToken;
+use crate::server::execute::{ExecuteToken};
 use crate::{db, postoffice};
 use anyhow::Result;
-use chrono::{DateTime, Utc};
 use futures::TryStreamExt;
 use kv_log_macro::{info, trace};
-use sqlx::types::Uuid;
 use sqlx::{Postgres, Transaction};
 use std::collections::HashMap;
 use std::fmt;
+use crate::messages::{TaskPriority, Token};
 
-pub struct ProcessToken(pub Token);
+pub struct ProcessToken(pub Token, pub TaskPriority);
 
-// TODO - move this out into general code
-#[derive(PartialEq, Hash, Eq, Clone, Debug)]
-pub struct Token {
-    pub task_id: Uuid,
-    pub trigger_datetime: DateTime<Utc>,
-}
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -63,7 +56,7 @@ pub async fn process_tokens() -> Result<!> {
         trace!("restored token", {task_id: token.task_id.to_string(), count: count});
 
         if count >= threshold {
-            execute_tx.send(ExecuteToken(token.clone())).await;
+            execute_tx.send(ExecuteToken(token.clone(), TaskPriority::Normal)).await;
         }
 
         tokens.insert(token, count);
@@ -72,7 +65,7 @@ pub async fn process_tokens() -> Result<!> {
     info!("done restoring tokens from database");
 
     loop {
-        let token = token_rx.recv().await?.0;
+        let ProcessToken(token, priority) = token_rx.recv().await?;
 
         let count = tokens.entry(token.clone()).or_insert(0);
         *count += 1;
@@ -91,9 +84,12 @@ pub async fn process_tokens() -> Result<!> {
             trigger_datetime: token.trigger_datetime.to_rfc3339(),
         });
         if *count >= threshold {
-            *count -= threshold; // TODO - cleanup old tokens with counts of 0
-            execute_tx.send(ExecuteToken(token)).await;
+            *count -= threshold;
+            execute_tx.send(ExecuteToken(token, priority)).await;
         }
+
+        // cleanup old tokens
+        tokens.retain(|_, v| *v > 0);
     }
 }
 

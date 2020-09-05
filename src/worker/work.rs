@@ -24,13 +24,16 @@ pub async fn process_work() -> Result<!> {
     let chan = get_amqp_channel().await?;
 
     // declare queue for consuming incoming messages
+    let mut args = FieldTable::default();
+    args.insert("x-max-priority".into(), 3.into());
+
     chan.queue_declare(
         TASK_QUEUE,
         QueueDeclareOptions {
             durable: true,
             ..QueueDeclareOptions::default()
         },
-        FieldTable::default(),
+        args,
     )
     .await?;
 

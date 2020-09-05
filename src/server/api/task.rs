@@ -1,11 +1,12 @@
 use crate::postoffice;
 use crate::server::api::util::RequestExt;
 use crate::server::api::State;
-use crate::server::tokens::{increment_token, ProcessToken, Token};
+use crate::server::tokens::{increment_token, ProcessToken};
 use chrono::{DateTime, Utc};
 use hightide::Responder;
 use tide::{Request, StatusCode};
 use uuid::Uuid;
+use crate::messages::{Token, TaskPriority};
 
 pub async fn create_token(req: Request<State>) -> tide::Result<impl Responder> {
     let token_tx = postoffice::post_mail::<ProcessToken>().await?;
@@ -23,7 +24,7 @@ pub async fn create_token(req: Request<State>) -> tide::Result<impl Responder> {
     increment_token(&mut txn, &token).await?;
     txn.commit().await?;
 
-    token_tx.send(ProcessToken(token)).await;
+    token_tx.send(ProcessToken(token, TaskPriority::High)).await;
 
     Ok(StatusCode::Created)
 }

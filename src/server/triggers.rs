@@ -1,4 +1,4 @@
-use crate::server::tokens::{increment_token, ProcessToken, Token};
+use crate::server::tokens::{increment_token, ProcessToken};
 use crate::server::trigger_time::TriggerTime;
 use crate::{db, postoffice};
 use anyhow::Result;
@@ -11,6 +11,7 @@ use futures::TryStreamExt;
 use kv_log_macro::{debug, info, trace, warn};
 use sqlx::types::Uuid;
 use sqlx::Connection;
+use crate::messages::{TaskPriority, Token};
 
 const SMALL_SLEEP: std::time::Duration = std::time::Duration::from_millis(50);
 
@@ -98,18 +99,18 @@ pub async fn process_triggers() -> Result<!> {
                 Either::Right((_, _)) => {
                     trace!("sleep completed, no updates");
                     requeue_next_triggertime(&next_triggertime, &mut queue).await?;
-                    activate_trigger(next_triggertime).await?;
+                    activate_trigger(next_triggertime, TaskPriority::Normal).await?;
                 }
             };
         } else {
             warn!("overslept trigger: {}", delay);
             requeue_next_triggertime(&next_triggertime, &mut queue).await?;
-            activate_trigger(next_triggertime).await?;
+            activate_trigger(next_triggertime, TaskPriority::Normal).await?;
         }
     }
 }
 
-async fn activate_trigger(trigger_time: TriggerTime) -> Result<()> {
+async fn activate_trigger(trigger_time: TriggerTime, priority: TaskPriority) -> Result<()> {
     let pool = db::get_pool();
 
     let token_tx = postoffice::post_mail::<ProcessToken>().await?;
@@ -161,7 +162,7 @@ async fn activate_trigger(trigger_time: TriggerTime) -> Result<()> {
 
     // after committing the transaction we can tell the token processor to check thresholds
     for token in tokens_to_tx {
-        token_tx.send(ProcessToken(token)).await;
+        token_tx.send(ProcessToken(token, priority)).await;
     }
 
     Ok(())
@@ -180,7 +181,7 @@ async fn catchup_trigger(trigger: &Trigger) -> anyhow::Result<DateTime<Utc>> {
 
             let mut next = trigger.start_datetime;
             while next < earliest {
-                activate_trigger(trigger.at(next)).await?;
+                activate_trigger(trigger.at(next), TaskPriority::BackFill).await?;
                 next = next + trigger.period();
             }
         }
@@ -202,7 +203,7 @@ async fn catchup_trigger(trigger: &Trigger) -> anyhow::Result<DateTime<Utc>> {
     };
 
     while next < last {
-        activate_trigger(trigger.at(next)).await?;
+        activate_trigger(trigger.at(next), TaskPriority::BackFill).await?;
         next = next + trigger.period();
     }
 

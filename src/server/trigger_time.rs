@@ -9,24 +9,6 @@ pub struct TriggerTime {
     pub trigger_id: Uuid,
 }
 
-/*impl PartialOrd for TriggerTime {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl PartialEq for TriggerTime {
-    fn eq(&self, other: &Self) -> bool {
-        self.cmp(other) == Ordering::Equal
-    }
-}
-
-impl Ord for TriggerTime {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.trigger_datetime.cmp(&other.trigger_datetime)
-    }
-}*/
-
 impl fmt::Display for TriggerTime {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(

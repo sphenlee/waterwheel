@@ -1,8 +1,14 @@
-use crate::server::tokens::Token;
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+// TODO - move this out into general code
+#[derive(PartialEq, Hash, Eq, Clone, Debug)]
+pub struct Token {
+    pub task_id: Uuid,
+    pub trigger_datetime: DateTime<Utc>,
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TaskDef {
@@ -34,6 +40,15 @@ impl TaskResult {
                 .with_timezone(&Utc),
         })
     }
+}
+
+#[repr(u8)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+pub enum TaskPriority {
+    BackFill = 0,
+    Low = 1,
+    Normal = 2,
+    High = 3,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

@@ -1,6 +1,5 @@
 use crate::amqp::get_amqp_channel;
-use crate::messages::TaskDef;
-use crate::server::tokens::Token;
+use crate::messages::{TaskDef, TaskPriority, Token};
 use crate::{db, postoffice};
 use anyhow::Result;
 use chrono::SecondsFormat;
@@ -15,8 +14,10 @@ use uuid::Uuid;
 const TASK_EXCHANGE: &str = "waterwheel.tasks";
 const TASK_QUEUE: &str = "waterwheel.tasks";
 
+const PERSISTENT: u8 = 2;
+
 #[derive(Debug)]
-pub struct ExecuteToken(pub Token);
+pub struct ExecuteToken(pub Token, pub TaskPriority);
 
 #[derive(sqlx::FromRow)]
 struct TaskParams {
@@ -48,13 +49,16 @@ pub async fn process_executions() -> Result<!> {
     )
     .await?;
 
+    let mut args = FieldTable::default();
+    args.insert("x-max-priority".into(), 3.into());
+
     chan.queue_declare(
         TASK_QUEUE,
         QueueDeclareOptions {
             durable: true,
             ..QueueDeclareOptions::default()
         },
-        FieldTable::default(),
+        args,
     )
     .await?;
 
@@ -70,10 +74,11 @@ pub async fn process_executions() -> Result<!> {
     // TODO - recover any tasks
 
     loop {
-        let token = execute_rx.recv().await?.0;
+        let ExecuteToken(token, priority) = execute_rx.recv().await?;
         info!("enqueueing", {
             task_id: token.task_id.to_string(),
             trigger_datetime: token.trigger_datetime.to_rfc3339(),
+            priority: log::kv::Value::from_debug(&priority),
         });
 
         let params: TaskParams = sqlx::query_as(
@@ -110,12 +115,16 @@ pub async fn process_executions() -> Result<!> {
             env: params.env,
         };
 
+        let props = BasicProperties::default()
+            .with_delivery_mode(PERSISTENT)
+            .with_priority(priority as u8);
+
         chan.basic_publish(
             TASK_EXCHANGE,
             "",
             BasicPublishOptions::default(),
             serde_json::to_vec(&task_def)?,
-            BasicProperties::default(),
+            props,
         )
         .await?;
 
