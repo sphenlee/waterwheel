@@ -6,14 +6,43 @@ use chrono::{DateTime, Utc};
 use hightide::{Json, Responder};
 use serde::Serialize;
 use sqlx::{Postgres, Transaction};
+use std::str::FromStr;
+use thiserror::Error;
 use tide::Request;
 use uuid::Uuid;
+
+#[derive(Error, Debug)]
+pub enum TriggerError {
+    #[error("No schedule - either period or cron must be provided")]
+    NoSchedule,
+    #[error("Multiple schedule - cannot specify both cron and period")]
+    MultipleSchedule,
+    #[error("{0}")]
+    InvalidCron(cron::error::Error),
+    #[error("Period is not valid: {0}")]
+    InvalidPeriod(humantime::DurationError),
+}
 
 pub async fn create_trigger(
     txn: &mut Transaction<'_, Postgres>,
     job: &Job,
     trigger: &Trigger,
-) -> Result<Uuid> {
+) -> Result<Result<Uuid, TriggerError>> {
+    match (&trigger.period, &trigger.cron) {
+        (Some(_), Some(_)) => return Ok(Err(TriggerError::MultipleSchedule)),
+        (Some(p), None) => {
+            if let Err(e) = humantime::parse_duration(p) {
+                return Ok(Err(TriggerError::InvalidPeriod(e)));
+            }
+        }
+        (None, Some(c)) => {
+            if let Err(e) = cron::Schedule::from_str(c) {
+                return Ok(Err(TriggerError::InvalidCron(e)));
+            }
+        }
+        (None, None) => return Ok(Err(TriggerError::NoSchedule)),
+    }
+
     let trigger_id: Option<(Uuid,)> = sqlx::query_as(
         "SELECT id
         FROM trigger
@@ -30,12 +59,16 @@ pub async fn create_trigger(
             "UPDATE trigger
             SET start_datetime = $1,
                 end_datetime = $2,
-                period = $3
-            WHERE id = $4",
+                period = $3,
+                cron = $4,
+                trigger_offset = $5
+            WHERE id = $6",
         )
         .bind(&trigger.start)
         .bind(&trigger.end)
         .bind(period_from_string(&trigger.period)?)
+        .bind(&trigger.cron)
+        .bind(period_from_string(&trigger.offset)?)
         .bind(&id)
         .execute(&mut *txn)
         .await?;
@@ -45,10 +78,14 @@ pub async fn create_trigger(
         let new_id = Uuid::new_v4();
 
         sqlx::query(
-            "INSERT INTO trigger(id, name, job_id, start_datetime, end_datetime,
-                earliest_trigger_datetime, latest_trigger_datetime, period)
-            VALUES ($1, $2, $3, $4, $5,
-                NULL, NULL, $6)",
+            "INSERT INTO trigger(id, name, job_id,
+                start_datetime, end_datetime,
+                earliest_trigger_datetime, latest_trigger_datetime,
+                period, cron, trigger_offset)
+            VALUES ($1, $2, $3,
+                $4, $5,
+                NULL, NULL,
+                $6, $7, $8)",
         )
         .bind(&new_id)
         .bind(&trigger.name)
@@ -56,6 +93,8 @@ pub async fn create_trigger(
         .bind(&trigger.start)
         .bind(&trigger.end)
         .bind(period_from_string(&trigger.period)?)
+        .bind(&trigger.cron)
+        .bind(period_from_string(&trigger.offset)?)
         .execute(&mut *txn)
         .await?;
 
@@ -64,7 +103,7 @@ pub async fn create_trigger(
 
     // TODO - delete removed triggers
 
-    Ok(id)
+    Ok(Ok(id))
 }
 
 #[derive(Serialize, sqlx::FromRow)]
@@ -75,8 +114,9 @@ pub struct GetTriggerByJob {
     pub end_datetime: Option<DateTime<Utc>>,
     pub earliest_trigger_datetime: Option<DateTime<Utc>>,
     pub latest_trigger_datetime: Option<DateTime<Utc>>,
-    pub period: i64, // seconds
-    pub offset: Option<String>,
+    pub period: Option<i64>, // seconds
+    pub cron: Option<String>,
+    pub trigger_offset: Option<String>,
 }
 
 pub async fn get_triggers_by_job(req: Request<State>) -> tide::Result<impl Responder> {
@@ -91,7 +131,8 @@ pub async fn get_triggers_by_job(req: Request<State>) -> tide::Result<impl Respo
             earliest_trigger_datetime,
             latest_trigger_datetime,
             period,
-            NULL AS \"offset\"
+            cron,
+            trigger_offset
         FROM trigger
         WHERE job_id = $1
         ORDER BY latest_trigger_datetime DESC",

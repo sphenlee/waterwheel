@@ -1,5 +1,5 @@
 use crate::postoffice;
-use crate::{amqp, spawn_and_log};
+use crate::{amqp, spawn_retry};
 use anyhow::Result;
 use async_std::net::TcpListener;
 
@@ -20,7 +20,7 @@ pub async fn run_worker() -> Result<()> {
     let max_tasks = std::env::var("WATERWHEEL_MAX_TASKS")?.parse::<u32>()?;
 
     for i in 0..max_tasks {
-        spawn_and_log(&format!("worker-{}", i), work::process_work());
+        spawn_retry(&format!("worker-{}", i), work::process_work);
     }
 
     let mut app = tide::new();
@@ -36,7 +36,7 @@ pub async fn run_worker() -> Result<()> {
     let addr = tcp.local_addr()?;
     info!("worker listening on {}", addr);
 
-    spawn_and_log("heartbeat", heartbeat::heartbeat(addr.clone()));
+    spawn_retry("heartbeat", move || heartbeat::heartbeat(addr));
 
     app.listen(tcp).await?;
 

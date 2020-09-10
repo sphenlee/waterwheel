@@ -1,3 +1,4 @@
+use crate::messages::{TaskPriority, Token};
 use crate::server::tokens::{increment_token, ProcessToken};
 use crate::server::trigger_time::TriggerTime;
 use crate::{db, postoffice};
@@ -6,12 +7,13 @@ use async_std::future::timeout;
 use async_std::task;
 use binary_heap_plus::{BinaryHeap, MinComparator};
 use chrono::{DateTime, Duration, Utc};
+use cron::Schedule;
 use futures::future::{self, Either};
 use futures::TryStreamExt;
 use kv_log_macro::{debug, info, trace, warn};
 use sqlx::types::Uuid;
 use sqlx::Connection;
-use crate::messages::{TaskPriority, Token};
+use std::str::FromStr;
 
 const SMALL_SLEEP: std::time::Duration = std::time::Duration::from_millis(50);
 
@@ -26,12 +28,36 @@ struct Trigger {
     end_datetime: Option<DateTime<Utc>>,
     earliest_trigger_datetime: Option<DateTime<Utc>>,
     latest_trigger_datetime: Option<DateTime<Utc>>,
-    period: i64, // in seconds because sqlx doesn't support duration
+    period: Option<i64>, // in seconds because sqlx doesn't support duration
+    cron: Option<String>,
+    trigger_offset: Option<i64>,
+}
+
+enum Period {
+    Duration(Duration),
+    Cron(Schedule),
+}
+
+impl std::ops::Add<&Period> for DateTime<Utc> {
+    type Output = Self;
+
+    fn add(self, rhs: &Period) -> Self::Output {
+        match rhs {
+            Period::Duration(duration) => self + *duration,
+            Period::Cron(schedule) => schedule.after(&self).next().unwrap(),
+        }
+    }
 }
 
 impl Trigger {
-    fn period(&self) -> Duration {
-        Duration::seconds(self.period)
+    fn period(&self) -> Result<Period> {
+        Ok(if let Some(ref cron) = self.cron {
+            Period::Cron(
+                Schedule::from_str(&cron).map_err(|err| anyhow::Error::msg(err.to_string()))?,
+            )
+        } else {
+            Period::Duration(Duration::seconds(self.period.unwrap()))
+        })
     }
 
     fn at(&self, datetime: DateTime<Utc>) -> TriggerTime {
@@ -170,6 +196,8 @@ async fn activate_trigger(trigger_time: TriggerTime, priority: TaskPriority) -> 
 
 // returns the next trigger time in the future
 async fn catchup_trigger(trigger: &Trigger) -> anyhow::Result<DateTime<Utc>> {
+    let period = trigger.period()?;
+
     if let Some(earliest) = trigger.earliest_trigger_datetime {
         if trigger.start_datetime < earliest {
             // start date moved backwards
@@ -182,7 +210,7 @@ async fn catchup_trigger(trigger: &Trigger) -> anyhow::Result<DateTime<Utc>> {
             let mut next = trigger.start_datetime;
             while next < earliest {
                 activate_trigger(trigger.at(next), TaskPriority::BackFill).await?;
-                next = next + trigger.period();
+                next = next + &period;
             }
         }
     }
@@ -191,7 +219,7 @@ async fn catchup_trigger(trigger: &Trigger) -> anyhow::Result<DateTime<Utc>> {
     let now = Utc::now();
 
     let mut next = if let Some(latest) = trigger.latest_trigger_datetime {
-        latest + trigger.period()
+        latest + &period
     } else {
         trigger.start_datetime
     };
@@ -204,7 +232,7 @@ async fn catchup_trigger(trigger: &Trigger) -> anyhow::Result<DateTime<Utc>> {
 
     while next < last {
         activate_trigger(trigger.at(next), TaskPriority::BackFill).await?;
-        next = next + trigger.period();
+        next = next + &period;
     }
 
     Ok(next)
@@ -232,7 +260,9 @@ async fn update_trigger(uuid: &Uuid, queue: &mut Queue) -> Result<()> {
             end_datetime,
             earliest_trigger_datetime,
             latest_trigger_datetime,
-            period
+            period,
+            cron,
+            trigger_offset
         FROM trigger
         WHERE id = $1
     ",
@@ -266,7 +296,9 @@ async fn restore_triggers(queue: &mut Queue) -> Result<()> {
             end_datetime,
             earliest_trigger_datetime,
             latest_trigger_datetime,
-            period
+            period,
+            cron,
+            trigger_offset
         FROM trigger
     ",
     )
@@ -290,22 +322,29 @@ async fn restore_triggers(queue: &mut Queue) -> Result<()> {
 async fn requeue_next_triggertime(next_triggertime: &TriggerTime, queue: &mut Queue) -> Result<()> {
     let pool = db::get_pool();
 
-    let (period, end_datetime): (i64, Option<DateTime<Utc>>) = sqlx::query_as(
-        "SELECT period, end_datetime
-            FROM trigger
-            WHERE id = $1",
+    // get the trigger's info from the DB
+    let trigger: Trigger = sqlx::query_as(
+        "SELECT
+            id,
+            start_datetime,
+            end_datetime,
+            earliest_trigger_datetime,
+            latest_trigger_datetime,
+            period,
+            cron,
+            trigger_offset
+        FROM trigger
+        WHERE id = $1
+    ",
     )
     .bind(&next_triggertime.trigger_id)
     .fetch_one(&pool)
     .await?;
 
-    let next_datetime = next_triggertime.trigger_datetime + Duration::seconds(period);
+    let next_datetime = next_triggertime.trigger_datetime + &trigger.period()?;
 
-    if end_datetime.is_none() || next_datetime < end_datetime.unwrap() {
-        let requeue = TriggerTime {
-            trigger_datetime: next_datetime,
-            trigger_id: next_triggertime.trigger_id,
-        };
+    if trigger.end_datetime.is_none() || next_datetime < trigger.end_datetime.unwrap() {
+        let requeue = trigger.at(next_datetime);
 
         trace!("queueing next time: {}", requeue.trigger_datetime, {
             trigger_id: requeue.trigger_id.to_string()

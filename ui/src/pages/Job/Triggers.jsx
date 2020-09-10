@@ -10,7 +10,6 @@ function makeColumns(job) {
         {
             title: 'Name',
             dataIndex: 'trigger_name',
-            key: 'trigger_name',
             render: (text, record) => (
                 <Link to={`/jobs/${job.id}/triggers/${record.trigger_id}`}>
                     {text}
@@ -19,28 +18,20 @@ function makeColumns(job) {
         },{
             title: 'Start',
             dataIndex: 'start_datetime',
-            key: 'start_datetime',
-            //render: text => <a>{text}</a>,
         },{
             title: 'Earliest',
             dataIndex: 'earliest_trigger_datetime',
-            key: 'earliest_trigger_datetime',
-            //render: text => <a>{text}</a>,
         },{
             title: 'Latest',
             dataIndex: 'latest_trigger_datetime',
-            key: 'latest_trigger_datetime',
-            //render: text => <a>{text}</a>,
         },{
             title: 'End',
             dataIndex: 'end_datetime',
-            key: 'end_datetime',
             render: text => (text || <Text type="secondary">never</Text>),
         },{
-            title: 'Period',
-            dataIndex: 'period',
+            title: 'Schedule',
             key: 'period',
-            //render: text => <a>{text}</a>,
+            render: (text, record) => (record.period || record.cron),
         }
     ];
 }
@@ -70,7 +61,7 @@ class Triggers extends Component {
 
     render() {
         return (
-            <Table columns={this.columns} dataSource={this.state.triggers} />
+            <Table rowKey={"trigger_id"} columns={this.columns} dataSource={this.state.triggers} />
         );
     }
 }

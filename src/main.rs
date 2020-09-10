@@ -3,20 +3,39 @@
 use anyhow::Result;
 use async_std::future::Future;
 use async_std::task;
-use futures::TryFutureExt;
+use log::error;
+use chrono::Duration;
+use circuit_breaker::CircuitBreaker;
 
 mod amqp;
 mod db;
 mod logging;
 pub mod messages;
 pub mod postoffice;
+pub mod circuit_breaker;
 mod server;
 mod worker;
 
-pub fn spawn_and_log(name: &str, future: impl Future<Output = Result<!>> + Send + 'static) {
+pub fn spawn_retry<F, Fut>(name: impl Into<String>, func: F)
+where
+    F: Fn() -> Fut + Send + Sync + 'static,
+    Fut: Future<Output = Result<!>> + Send + 'static,
+{
+    let name = name.into();
+
     let _ = async_std::task::Builder::new()
-        .name(name.to_owned())
-        .spawn(async { future.map_err(|err| panic!("task failed: {}", err)).await })
+        .name(name.clone())
+        .spawn(async move {
+            let mut cb = CircuitBreaker::new(5, Duration::minutes(1));
+            while cb.retry() {
+                match func().await {
+                    Ok(_) => unreachable!("func never returns"),
+                    Err(err) => error!("task {} failed: {}", name, err),
+                }
+            }
+            error!("task {} failed too many times, aborting!", name);
+            async_std::process::exit(1);
+        })
         .expect("spawn failed");
 }
 

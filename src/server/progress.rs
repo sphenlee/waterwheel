@@ -1,4 +1,5 @@
 use crate::amqp;
+use crate::messages::TaskPriority;
 use crate::messages::{TaskResult, Token};
 use crate::server::tokens::{increment_token, ProcessToken};
 use crate::{db, postoffice};
@@ -8,7 +9,6 @@ use kv_log_macro::{debug, info};
 use lapin::options::{BasicAckOptions, BasicConsumeOptions, QueueDeclareOptions};
 use lapin::types::FieldTable;
 use sqlx::{types::Uuid, Connection, Postgres, Transaction};
-use crate::messages::TaskPriority;
 
 const RESULT_QUEUE: &str = "waterwheel.results";
 
@@ -55,7 +55,9 @@ pub async fn process_progress() -> Result<!> {
 
         // after committing the transaction we can tell the token processor to check thresholds
         for token in tokens_to_tx {
-            token_tx.send(ProcessToken(token, TaskPriority::Normal)).await;
+            token_tx
+                .send(ProcessToken(token, TaskPriority::Normal))
+                .await;
         }
     }
 

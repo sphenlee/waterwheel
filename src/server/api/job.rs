@@ -16,11 +16,11 @@ mod tokens;
 mod triggers;
 
 pub use graph::get_graph;
-use hightide::{Json, Responder};
+use hightide::{Json, Responder, Response};
 pub use tokens::{clear_tokens_trigger_datetime, get_tokens, get_tokens_trigger_datetime};
 pub use triggers::{get_trigger, get_trigger_times, get_triggers_by_job};
 
-pub async fn create(mut req: Request<State>) -> tide::Result<impl Responder> {
+pub async fn create(mut req: Request<State>) -> tide::Result<tide::Response> {
     let data = req.body_string().await?;
     let job: Job = serde_json::from_str(&data)?;
 
@@ -69,7 +69,7 @@ pub async fn create(mut req: Request<State>) -> tide::Result<impl Responder> {
         Err(err) => {
             warn!("error creating job: {}", err);
             return if &err.code()[..2] == PG_INTEGRITY_ERROR {
-                Ok(StatusCode::Conflict)
+                StatusCode::Conflict.into_response()
             } else {
                 Err(err.into())
             };
@@ -80,8 +80,14 @@ pub async fn create(mut req: Request<State>) -> tide::Result<impl Responder> {
 
     // insert the triggers
     for trigger in &job.triggers {
-        let id = triggers::create_trigger(&mut txn, &job, trigger).await?;
-        triggers_to_tx.push(id);
+        match triggers::create_trigger(&mut txn, &job, trigger).await? {
+            Ok(id) => triggers_to_tx.push(id),
+            Err(err) => {
+                return Response::status(StatusCode::BadRequest)
+                    .body(err.to_string())
+                    .into_response()
+            }
+        }
     }
 
     for task in &job.tasks {
@@ -94,7 +100,7 @@ pub async fn create(mut req: Request<State>) -> tide::Result<impl Responder> {
         trigger_tx.send(TriggerUpdate(id)).await;
     }
 
-    Ok(StatusCode::Created)
+    StatusCode::Created.into_response()
 }
 
 #[derive(Deserialize)]

@@ -1,5 +1,5 @@
 use crate::postoffice;
-use crate::spawn_and_log;
+use crate::spawn_retry;
 use crate::{amqp, db};
 use anyhow::Result;
 
@@ -17,11 +17,11 @@ pub async fn run_server() -> Result<()> {
     db::create_pool().await?;
     amqp::amqp_connect().await?;
 
-    spawn_and_log("triggers", triggers::process_triggers());
-    spawn_and_log("tokens", tokens::process_tokens());
-    spawn_and_log("executions", execute::process_executions());
-    spawn_and_log("progress", progress::process_progress());
-    spawn_and_log("heartbeat", heartbeat::process_heartbeats());
+    spawn_retry("triggers", triggers::process_triggers);
+    spawn_retry("tokens", tokens::process_tokens);
+    spawn_retry("executions", execute::process_executions);
+    spawn_retry("progress", progress::process_progress);
+    spawn_retry("heartbeat", heartbeat::process_heartbeats);
 
     api::serve().await?;
 

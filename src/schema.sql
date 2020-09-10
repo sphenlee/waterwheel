@@ -22,6 +22,8 @@ CREATE TABLE IF NOT EXISTS trigger (
     earliest_trigger_datetime TIMESTAMP WITH TIME ZONE,
     latest_trigger_datetime TIMESTAMP WITH TIME ZONE,
     period BIGINT,
+    cron VARCHAR,
+    trigger_offset BIGINT,
     UNIQUE(job_id, name) INCLUDE (id)
 );
 

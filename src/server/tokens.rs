@@ -1,4 +1,5 @@
-use crate::server::execute::{ExecuteToken};
+use crate::messages::{TaskPriority, Token};
+use crate::server::execute::ExecuteToken;
 use crate::{db, postoffice};
 use anyhow::Result;
 use futures::TryStreamExt;
@@ -6,10 +7,8 @@ use kv_log_macro::{info, trace};
 use sqlx::{Postgres, Transaction};
 use std::collections::HashMap;
 use std::fmt;
-use crate::messages::{TaskPriority, Token};
 
 pub struct ProcessToken(pub Token, pub TaskPriority);
-
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -56,7 +55,9 @@ pub async fn process_tokens() -> Result<!> {
         trace!("restored token", {task_id: token.task_id.to_string(), count: count});
 
         if count >= threshold {
-            execute_tx.send(ExecuteToken(token.clone(), TaskPriority::Normal)).await;
+            execute_tx
+                .send(ExecuteToken(token.clone(), TaskPriority::Normal))
+                .await;
         }
 
         tokens.insert(token, count);

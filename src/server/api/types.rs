@@ -4,8 +4,14 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-pub fn period_from_string(s: &str) -> anyhow::Result<u32> {
-    Ok(humantime::parse_duration(&s)?.as_secs() as u32)
+pub fn period_from_string(period: &Option<String>) -> anyhow::Result<Option<u32>> {
+    match period {
+        Some(ref s) => {
+            let secs = humantime::parse_duration(&s)?.as_secs() as u32;
+            Ok(Some(secs))
+        }
+        None => Ok(None),
+    }
 }
 
 #[derive(Deserialize, Serialize)]
@@ -23,7 +29,8 @@ pub struct Trigger {
     pub name: String,
     pub start: DateTime<Utc>,
     pub end: Option<DateTime<Utc>>,
-    pub period: String,
+    pub period: Option<String>,
+    pub cron: Option<String>,
     pub offset: Option<String>,
 }
 

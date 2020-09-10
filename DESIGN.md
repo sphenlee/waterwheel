@@ -22,7 +22,7 @@ Data Model
 	* Task nodes execute once they get a token from each incoming edge, and on success they generate a token for each outgoing edge
 	* Task failure generates tokens for each outgoing failure edge
 	* Node triggers when its threshold is reached
-		* Default threshold is number of success edges, or 1 if there are none
+		* Default threshold is number of incoming success edges, or 1 if there are none
 		* Failure edges don't count for thresholds - so any number of failure edges
 		  will give a threshold of 1
 		* Threshold can be changed to create interesting workflows
