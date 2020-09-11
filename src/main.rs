@@ -3,16 +3,16 @@
 use anyhow::Result;
 use async_std::future::Future;
 use async_std::task;
-use log::error;
 use chrono::Duration;
 use circuit_breaker::CircuitBreaker;
+use log::error;
 
 mod amqp;
+pub mod circuit_breaker;
 mod db;
 mod logging;
 pub mod messages;
 pub mod postoffice;
-pub mod circuit_breaker;
 mod server;
 mod worker;
 

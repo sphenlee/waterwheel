@@ -1,12 +1,11 @@
 /// a simple circuit breaker that can retry a task until it fails a certain number of times within
 /// a given time period
-
-use chrono::{Duration, DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 
 pub struct CircuitBreaker {
     count: usize,
     duration: Duration,
-    trips: Vec<DateTime<Utc>>
+    trips: Vec<DateTime<Utc>>,
 }
 
 impl CircuitBreaker {
