@@ -113,8 +113,8 @@ pub async fn run_docker(task_def: TaskDef) -> Result<bool> {
                 vector
                     .write(&serde_json::to_vec(&LogMessage {
                         job_id: "unknown",
-                        task_id: &task_def.task_id,
-                        trigger_datetime: &task_def.trigger_datetime,
+                        task_id: &task_def.task_id.to_string(),
+                        trigger_datetime: &task_def.trigger_datetime.to_rfc3339(),
                         msg: &format!("{}", line),
                     })?)
                     .await?;

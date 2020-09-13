@@ -104,12 +104,26 @@ pub async fn advance_tokens(
     sqlx::query(
         "UPDATE token
             SET state = $1
-            WHERE task_id = $2
-            AND trigger_datetime = $3",
+        WHERE task_id = $2
+        AND trigger_datetime = $3",
     )
     .bind(&task_result.result)
     .bind(&parent_token.task_id)
     .bind(&parent_token.trigger_datetime)
+    .execute(&mut *txn)
+    .await?;
+
+    sqlx::query(
+        "UPDATE task_run
+            SET state = $1,
+                started_datetime = $2,
+                finish_datetime = $3
+        WHERE id = $4",
+    )
+    .bind(&task_result.result)
+    .bind(&task_result.started_datetime)
+    .bind(&task_result.finished_datetime)
+    .bind(&task_result.task_run_id)
     .execute(&mut *txn)
     .await?;
 

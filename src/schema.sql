@@ -46,6 +46,16 @@ CREATE TABLE IF NOT EXISTS token (
     UNIQUE(task_id, trigger_datetime)
 );
 
+CREATE TABLE IF NOT EXISTS task_run (
+    id UUID PRIMARY KEY,
+    task_id UUID NOT NULL REFERENCES task(id),
+    trigger_datetime TIMESTAMP WITH TIME ZONE NOT NULL,
+    queued_datetime TIMESTAMP WITH TIME ZONE NOT NULL,
+    started_datetime TIMESTAMP WITH TIME ZONE,
+    finish_datetime TIMESTAMP WITH TIME ZONE,
+    state VARCHAR
+);
+
 CREATE TABLE IF NOT EXISTS trigger_edge (
     trigger_id UUID NOT NULL REFERENCES trigger(id),
     task_id UUID NOT NULL REFERENCES task(id),

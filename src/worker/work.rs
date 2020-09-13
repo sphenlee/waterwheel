@@ -13,6 +13,7 @@ use lapin::types::FieldTable;
 use lapin::{BasicProperties, ExchangeKind};
 
 use super::WORKER_ID;
+use chrono::Utc;
 
 // TODO - queues should be configurable for task routing
 const TASK_QUEUE: &str = "waterwheel.tasks";
@@ -81,9 +82,13 @@ pub async fn process_work() -> Result<!> {
 
     while let Some((chan, msg)) = consumer.try_next().await? {
         let task_def: TaskDef = serde_json::from_slice(&msg.data)?;
+
+        let started_datetime = Utc::now();
+
         info!("received task", {
-            task_id: task_def.task_id,
-            trigger_datetime: task_def.trigger_datetime,
+            task_id: task_def.task_id.to_string(),
+            trigger_datetime: task_def.trigger_datetime.to_rfc3339(),
+            started_datetime: started_datetime.to_rfc3339(),
         });
 
         let success = if task_def.image.is_some() {
@@ -91,8 +96,8 @@ pub async fn process_work() -> Result<!> {
                 Ok(_) => true,
                 Err(err) => {
                     error!("failed to run task: {}", err, {
-                        task_id: task_def.task_id,
-                        trigger_datetime: task_def.trigger_datetime,
+                        task_id: task_def.task_id.to_string(),
+                        trigger_datetime: task_def.trigger_datetime.to_rfc3339(),
                     });
                     false
                 }
@@ -102,6 +107,8 @@ pub async fn process_work() -> Result<!> {
             true
         };
 
+        let finished_datetime = Utc::now();
+
         let result = match success {
             true => "success".to_string(),
             false => "failure".to_string(),
@@ -109,13 +116,17 @@ pub async fn process_work() -> Result<!> {
 
         info!("task completed", {
             result: result,
-            task_id: task_def.task_id,
-            trigger_datetime: task_def.trigger_datetime,
+            task_id: task_def.task_id.to_string(),
+            trigger_datetime: task_def.trigger_datetime.to_rfc3339(),
+            started_datetime: started_datetime.to_rfc3339(),
         });
 
         let payload = serde_json::to_vec(&TaskResult {
+            task_run_id: task_def.task_run_id,
             task_id: task_def.task_id,
             trigger_datetime: task_def.trigger_datetime,
+            started_datetime,
+            finished_datetime,
             worker_id: *WORKER_ID,
             result,
         })?;
