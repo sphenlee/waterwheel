@@ -117,12 +117,14 @@ pub async fn advance_tokens(
         "UPDATE task_run
             SET state = $1,
                 started_datetime = $2,
-                finish_datetime = $3
-        WHERE id = $4",
+                finish_datetime = $3,
+                worker_id = $4
+        WHERE id = $5",
     )
     .bind(&task_result.result)
     .bind(&task_result.started_datetime)
     .bind(&task_result.finished_datetime)
+    .bind(&task_result.worker_id)
     .bind(&task_result.task_run_id)
     .execute(&mut *txn)
     .await?;

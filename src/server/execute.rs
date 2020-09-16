@@ -145,9 +145,11 @@ pub async fn process_executions() -> Result<!> {
 
         sqlx::query(
             "INSERT INTO task_run(id, task_id, trigger_datetime,
-                queued_datetime, started_datetime, finish_datetime, state)
+                queued_datetime, started_datetime, finish_datetime,
+                worker_id, state)
             VALUES ($1, $2, $3,
-                $4, NULL, NULL, 'active')",
+                $4, NULL, NULL,
+                NULL, 'active')",
         )
         .bind(&task_def.task_run_id)
         .bind(token.task_id)

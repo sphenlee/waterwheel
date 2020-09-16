@@ -11,6 +11,7 @@ import Projects from './pages/Projects.jsx';
 import Project from './pages/Project.jsx';
 import Job from './pages/Job.jsx';
 import Tokens from './pages/Tokens.jsx';
+import Worker from './pages/Worker.jsx';
 import Workers from './pages/Workers.jsx';
 import Triggers from './pages/Triggers.jsx';
 
@@ -27,6 +28,7 @@ class App extends Component {
             <Route path="/jobs/:id/tokens/:trigger_datetime" component={Tokens} />
             <Route path="/jobs/:job_id/triggers/:trigger_id" component={Triggers} />
             <Route path="/jobs/:id" component={Job} />
+            <Route path="/workers/:id" component={Worker} />
             <Route path="/workers" component={Workers} />
             <Route path="/" component={Home} />
           </Switch>

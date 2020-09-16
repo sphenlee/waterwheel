@@ -79,6 +79,7 @@ pub async fn serve() -> Result<()> {
 
     // workers
     app.at("/api/workers").get(wrap(workers::list));
+    app.at("/api/workers/:id").get(wrap(workers::tasks));
 
     // web UI
 
