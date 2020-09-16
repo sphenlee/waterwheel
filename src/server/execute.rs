@@ -9,8 +9,8 @@ use lapin::options::{
 };
 use lapin::types::FieldTable;
 use lapin::{BasicProperties, ExchangeKind};
-use uuid::Uuid;
 use sqlx::Connection;
+use uuid::Uuid;
 
 const TASK_EXCHANGE: &str = "waterwheel.tasks";
 const TASK_QUEUE: &str = "waterwheel.tasks";

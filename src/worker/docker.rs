@@ -11,10 +11,16 @@ use serde::Serialize;
 use tokio::io::AsyncWriteExt;
 
 #[derive(Serialize)]
-struct LogMessage<'a> {
+struct LogMeta<'a> {
+    project_id: &'a str,
     job_id: &'a str,
     task_id: &'a str,
     trigger_datetime: &'a str,
+}
+
+#[derive(Serialize)]
+struct LogMessage<'a> {
+    meta: &'a LogMeta<'a>,
     msg: &'a str,
 }
 
@@ -33,7 +39,9 @@ pub async fn run_docker(task_def: TaskDef) -> Result<bool> {
 
             env.push(format!(
                 "WATERWHEEL_TRIGGER_DATETIME={}",
-                task_def.trigger_datetime
+                task_def
+                    .trigger_datetime
+                    .to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
             ));
             env.push(format!("WATERWHEEL_TASK_NAME={}", task_def.task_name));
             env.push(format!("WATERWHEEL_TASK_ID={}", task_def.task_id));
@@ -104,17 +112,17 @@ pub async fn run_docker(task_def: TaskDef) -> Result<bool> {
             let vector_addr = std::env::var("WATERWHEEL_VECTOR_ADDR")?;
             let mut vector = tokio::net::TcpStream::connect(&vector_addr).await?;
 
+            let log_meta = LogMeta {
+                project_id: &task_def.project_id.to_string(),
+                job_id: &task_def.job_id.to_string(),
+                task_id: &task_def.task_id.to_string(),
+                trigger_datetime: &task_def.trigger_datetime.to_rfc3339(),
+            };
+
             while let Some(line) = logs.try_next().await? {
-                // // TODO - kv_log_macro ignores the target directive
-                // log::info!(target: "task", "{}", line, /*{
-                //     task_id: task_def.task_id,
-                //     trigger_datetime: task_def.trigger_datetime,
-                // }*/);
                 vector
                     .write(&serde_json::to_vec(&LogMessage {
-                        job_id: "unknown",
-                        task_id: &task_def.task_id.to_string(),
-                        trigger_datetime: &task_def.trigger_datetime.to_rfc3339(),
+                        meta: &log_meta,
                         msg: &format!("{}", line),
                     })?)
                     .await?;

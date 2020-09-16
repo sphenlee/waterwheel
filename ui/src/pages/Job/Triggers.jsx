@@ -1,7 +1,10 @@
-import React, { Component, Fragment } from "react";
+import React, { Component } from "react";
 import { Link } from "react-router-dom";
-import { Table, Typography } from 'antd';
+import { Table, Typography, Space, Tooltip, Tag } from 'antd';
 import axios from 'axios';
+import Moment from 'react-moment';
+import cronstrue from 'cronstrue';
+import prettyMilliseconds from 'pretty-ms';
 
 const { Text } = Typography;
 
@@ -16,6 +19,10 @@ function makeColumns(job) {
                 </Link>
             ),
         },{
+            title: 'Schedule',
+            key: 'period',
+            render: (text, record) => record.period ? <Period>{record.period}</Period> : <Cron>{record.cron}</Cron>,
+        },{
             title: 'Start',
             dataIndex: 'start_datetime',
         },{
@@ -24,16 +31,41 @@ function makeColumns(job) {
         },{
             title: 'Latest',
             dataIndex: 'latest_trigger_datetime',
+            render: text => (
+                <Space>
+                    <Text>{text}</Text>
+                    <Text type="secondary">
+                        <Moment fromNow>{text}</Moment>
+                    </Text>
+                </Space>)
         },{
             title: 'End',
             dataIndex: 'end_datetime',
             render: text => (text || <Text type="secondary">never</Text>),
-        },{
-            title: 'Schedule',
-            key: 'period',
-            render: (text, record) => (record.period || record.cron),
         }
     ];
+}
+
+
+function Period(props) {
+    let string = prettyMilliseconds(props.children * 1000);
+    return <Tag>{string}</Tag>;
+}
+
+
+function Cron(props) {
+    let desc;
+    try {
+        desc = cronstrue.toString(props.children);
+    } catch(e) {
+        desc = e; 
+    }
+
+    return (
+        <Tooltip title={desc}>
+            <Tag>{props.children}</Tag>
+        </Tooltip>
+    );
 }
 
 

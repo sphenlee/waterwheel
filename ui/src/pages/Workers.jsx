@@ -2,6 +2,7 @@ import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
 import { Table, Layout, Breadcrumb } from 'antd';
 import axios from 'axios';
+import Moment from 'react-moment';
 
 import Body from '../components/Body.jsx';
 
@@ -13,21 +14,25 @@ function makeColumns() {
         {
             title: 'Id',
             dataIndex: 'uuid',
-            key: 'uuid',
             render: (text, record) => (
                 <Link to={`/workers/${record.uuid}`}>
                     {text}
                 </Link>
             ),
         },{
+            title: 'Running Tasks',
+            dataIndex: 'running_tasks',
+        },{
+            title: 'Total Tasks',
+            dataIndex: 'total_tasks',
+        },{
             title: 'UI Address',
             dataIndex: 'addr',
-            key: 'addr',
             render: text => <a href={`http://${text}`}>{text}</a>,
         },{
             title: 'Last Seen',
             dataIndex: 'last_seen_datetime',
-            key: 'last_seen_datetime',
+            render: text => <Moment fromNow withTitle>{text}</Moment>
         }
     ];
 }

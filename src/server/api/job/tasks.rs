@@ -137,6 +137,24 @@ pub async fn create_task(
         new_id
     };
 
+    // remove existing edges
+    sqlx::query(
+        "DELETE FROM trigger_edge
+        WHERE task_id = $1"
+    )
+    .bind(&task_id)
+    .execute(&mut *txn)
+    .await?;
+
+    sqlx::query(
+        "DELETE FROM task_edge
+        WHERE child_task_id = $1"
+    )
+    .bind(&task_id)
+    .execute(&mut *txn)
+    .await?;
+
+
     if let Some(depends) = &task.depends {
         for d in depends {
             let reference = parse_reference(d)?;

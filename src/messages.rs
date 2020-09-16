@@ -1,5 +1,5 @@
 use anyhow::Result;
-use chrono::{DateTime, Utc, serde::ts_seconds};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -74,4 +74,6 @@ pub struct WorkerHeartbeat {
     pub uuid: Uuid,
     pub addr: String,
     pub last_seen_datetime: DateTime<Utc>,
+    pub running_tasks: u64,
+    pub total_tasks: u64,
 }

@@ -5,6 +5,7 @@ use async_std::net::TcpListener;
 
 use kv_log_macro::info;
 use once_cell::sync::Lazy;
+use std::sync::atomic::AtomicU64;
 use uuid::Uuid;
 
 mod docker;
@@ -12,6 +13,9 @@ mod heartbeat;
 mod work;
 
 static WORKER_ID: Lazy<Uuid> = Lazy::new(|| Uuid::new_v4());
+
+pub static RUNNING_TASKS: AtomicU64 = AtomicU64::new(0);
+pub static TOTAL_TASKS: AtomicU64 = AtomicU64::new(0);
 
 pub async fn run_worker() -> Result<()> {
     amqp::amqp_connect().await?;

@@ -9,7 +9,8 @@ use lapin::options::{BasicPublishOptions, ExchangeDeclareOptions};
 use lapin::types::FieldTable;
 use lapin::{BasicProperties, ExchangeKind};
 
-use super::WORKER_ID;
+use super::{RUNNING_TASKS, TOTAL_TASKS, WORKER_ID};
+use std::sync::atomic::Ordering;
 
 const HEARTBEAT_EXCHANGE: &str = "waterwheel.heartbeat";
 
@@ -38,6 +39,8 @@ pub async fn heartbeat(addr: SocketAddr) -> Result<!> {
                 uuid: *WORKER_ID,
                 addr: addr.to_string(),
                 last_seen_datetime: Utc::now(),
+                running_tasks: RUNNING_TASKS.load(Ordering::Relaxed),
+                total_tasks: TOTAL_TASKS.load(Ordering::Relaxed),
             })?,
             BasicProperties::default(),
         )

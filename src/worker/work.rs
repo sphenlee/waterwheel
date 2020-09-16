@@ -12,8 +12,9 @@ use lapin::options::{
 use lapin::types::FieldTable;
 use lapin::{BasicProperties, ExchangeKind};
 
-use super::WORKER_ID;
+use super::{RUNNING_TASKS, TOTAL_TASKS, WORKER_ID};
 use chrono::Utc;
+use std::sync::atomic::Ordering;
 
 // TODO - queues should be configurable for task routing
 const TASK_QUEUE: &str = "waterwheel.tasks";
@@ -85,6 +86,8 @@ pub async fn process_work() -> Result<!> {
 
         let started_datetime = Utc::now();
 
+        RUNNING_TASKS.fetch_add(1, Ordering::Relaxed);
+
         info!("received task", {
             task_id: task_def.task_id.to_string(),
             trigger_datetime: task_def.trigger_datetime.to_rfc3339(),
@@ -108,6 +111,9 @@ pub async fn process_work() -> Result<!> {
         };
 
         let finished_datetime = Utc::now();
+
+        RUNNING_TASKS.fetch_sub(1, Ordering::Relaxed);
+        TOTAL_TASKS.fetch_add(1, Ordering::Relaxed);
 
         let result = match success {
             true => "success".to_string(),
