@@ -4,11 +4,14 @@ use crate::{db, postoffice};
 use anyhow::Result;
 use futures::TryStreamExt;
 use kv_log_macro::{info, trace};
-use sqlx::{Postgres, Transaction};
+use sqlx::{Postgres, Transaction, PgPool};
 use std::collections::HashMap;
 use std::fmt;
 
-pub struct ProcessToken(pub Token, pub TaskPriority);
+pub enum ProcessToken {
+    Increment(Token, TaskPriority),
+    Clear(Token),
+}
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -19,6 +22,19 @@ impl fmt::Display for Token {
             self.trigger_datetime.to_rfc3339()
         )
     }
+}
+
+async fn get_threshold(pool: &PgPool, token: &Token) -> Result<i32> {
+    let (threshold,) = sqlx::query_as::<_, (i32,)>(
+        "SELECT threshold
+        FROM task
+        WHERE id = $1",
+    )
+    .bind(&token.task_id)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(threshold)
 }
 
 pub async fn process_tokens() -> Result<!> {
@@ -66,27 +82,26 @@ pub async fn process_tokens() -> Result<!> {
     info!("done restoring tokens from database");
 
     loop {
-        let ProcessToken(token, priority) = token_rx.recv().await?;
+        match token_rx.recv().await? {
+            ProcessToken::Increment(token, priority) => {
+                let count = tokens.entry(token.clone()).or_insert(0);
+                *count += 1;
 
-        let count = tokens.entry(token.clone()).or_insert(0);
-        *count += 1;
+                let threshold = get_threshold(&pool, &token).await?;
 
-        let (threshold,) = sqlx::query_as::<_, (i32,)>(
-            "SELECT threshold
-            FROM task
-            WHERE id = $1",
-        )
-        .bind(token.task_id)
-        .fetch_one(&pool)
-        .await?;
+                trace!("count is {} (threshold {})", *count, threshold, {
+                    task_id: token.task_id.to_string(),
+                    trigger_datetime: token.trigger_datetime.to_rfc3339(),
+                });
 
-        trace!("count is {} (threshold {})", *count, threshold, {
-            task_id: token.task_id.to_string(),
-            trigger_datetime: token.trigger_datetime.to_rfc3339(),
-        });
-        if *count >= threshold {
-            *count -= threshold;
-            execute_tx.send(ExecuteToken(token, priority)).await;
+                if *count >= threshold {
+                    *count -= threshold;
+                    execute_tx.send(ExecuteToken(token, priority)).await;
+                }
+            }
+            ProcessToken::Clear(token) => {
+                tokens.remove(&token);
+            }
         }
 
         // cleanup old tokens

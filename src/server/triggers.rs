@@ -188,7 +188,7 @@ async fn activate_trigger(trigger_time: TriggerTime, priority: TaskPriority) -> 
 
     // after committing the transaction we can tell the token processor to check thresholds
     for token in tokens_to_tx {
-        token_tx.send(ProcessToken(token, priority)).await;
+        token_tx.send(ProcessToken::Increment(token, priority)).await;
     }
 
     Ok(())

@@ -1,11 +1,13 @@
 use crate::server::api::util::RequestExt;
 use crate::server::api::State;
+use crate::postoffice;
 use chrono::{DateTime, Utc};
 use hightide::{Json, Responder};
 use serde::{Deserialize, Serialize};
-use sqlx::Done;
 use tide::Request;
 use uuid::Uuid;
+use crate::server::tokens::ProcessToken;
+use crate::messages::Token;
 
 #[derive(Deserialize)]
 struct QueryToken {
@@ -84,22 +86,32 @@ pub async fn clear_tokens_trigger_datetime(req: Request<State>) -> tide::Result<
     let job_id = req.param::<Uuid>("id")?;
     let trigger_datetime = req.param::<DateTime<Utc>>("trigger_datetime")?;
 
-    let done = sqlx::query(
+    let task_ids: Vec<(Uuid,)> = sqlx::query_as(
         "UPDATE token k
-         SET count = 0,
-             state = 'waiting'
+        SET count = 0,
+            state = 'waiting'
         FROM task t
         WHERE k.task_id = t.id
         AND t.job_id = $1
-        AND k.trigger_datetime = $2",
+        AND k.trigger_datetime = $2
+        RETURNING k.task_id",
     )
     .bind(&job_id)
     .bind(&trigger_datetime)
-    .execute(&req.get_pool())
+    .fetch_all(&req.get_pool())
     .await?;
 
+    let tokens_tx = postoffice::post_mail::<ProcessToken>().await?;
+    for (id,) in &task_ids {
+        let token = Token {
+            task_id: id.clone(),
+            trigger_datetime: trigger_datetime.clone()
+        };
+        tokens_tx.send(ProcessToken::Clear(token)).await;
+    }
+
     let body = ClearTokens {
-        tokens_cleared: done.rows_affected(),
+        tokens_cleared: task_ids.len() as u64,
     };
 
     Ok(Json(body))
