@@ -105,7 +105,7 @@ class Triggers extends Component {
                             title={trigger.trigger_name}
                             subTitle={`Trigger in ${trigger.job_name}`}
                         />
-                        <Table columns={this.columns} dataSource={times} />
+                        <Table columns={this.columns} dataSource={times} pagination={{position: ['bottomLeft']}}/>
                     </Body>
                 </Content>
             </Layout>

@@ -185,7 +185,7 @@ class Tokens extends Component {
                         />
                         <Row>
                             <Col span={16}>
-                                <Table key="1" columns={this.columns} dataSource={tokens} />
+                                <Table key="1" columns={this.columns} dataSource={tokens} pagination={{position: ['bottomLeft']}}/>
                             </Col>
                             <Col span={8}>
                                 <Graph key="2" id={id} trigger_datetime={trigger_datetime} />

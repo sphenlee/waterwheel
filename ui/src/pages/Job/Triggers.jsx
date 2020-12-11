@@ -93,7 +93,7 @@ class Triggers extends Component {
 
     render() {
         return (
-            <Table rowKey={"trigger_id"} columns={this.columns} dataSource={this.state.triggers} />
+            <Table rowKey={"trigger_id"} columns={this.columns} dataSource={this.state.triggers} pagination={{position: ['bottomLeft']}} />
         );
     }
 }

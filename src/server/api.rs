@@ -58,6 +58,8 @@ pub async fn serve() -> Result<()> {
 
     // job tokens
     app.at("/api/jobs/:id/tokens").get(wrap(job::get_tokens));
+    app.at("/api/jobs/:id/tokens-overview")
+        .get(wrap(job::get_tokens_overview));
     app.at("/api/jobs/:id/tokens/:trigger_datetime")
         .get(wrap(job::get_tokens_trigger_datetime))
         .delete(wrap(job::clear_tokens_trigger_datetime));

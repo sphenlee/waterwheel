@@ -89,7 +89,7 @@ class Workers extends Component {
                         <Breadcrumb.Item><Link to="/workers">Workers</Link></Breadcrumb.Item>
                     </Breadcrumb>
                     <Body>
-                        <Table columns={this.columns} dataSource={workers} loading={loading}/>
+                        <Table columns={this.columns} dataSource={workers} loading={loading} pagination={{position: ['bottomLeft']}}/>
                     </Body>
                 </Content>
             </Layout>

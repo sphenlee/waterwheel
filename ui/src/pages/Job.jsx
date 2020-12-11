@@ -1,6 +1,6 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
-import { List, Avatar, Layout, Breadcrumb, PageHeader, Collapse, Tabs, Row, Col, Statistic } from 'antd';
+import { List, Avatar, Layout, Breadcrumb, PageHeader, Collapse, Tabs, Row, Col, Statistic, Spin } from 'antd';
 import { geekblue, lime, red, grey, yellow } from '@ant-design/colors';
 import JSONPretty from 'react-json-pretty';
 import styled from 'styled-components';
@@ -10,6 +10,7 @@ import Body from '../components/Body.jsx';
 import TokenTable from './Job/TokenTable.jsx';
 import Triggers from './Job/Triggers.jsx';
 import Graph from '../components/Graph.jsx';
+import Overview from './Job/Overview.jsx';
 
 const { Content } = Layout;
 
@@ -19,6 +20,7 @@ class Job extends Component {
         super(props);
 
         this.state = {
+            loading: true,
             job: {},
             tokens: []
         };
@@ -26,9 +28,13 @@ class Job extends Component {
 
     async fetchJob(id) {
         try {
+            this.setState({
+                loading: true,
+            });
             let resp = await axios.get(`/api/jobs/${id}`);
             this.setState({
                 job: resp.data,
+                loading: false,
             });
         } catch(e) {
             console.log(e);
@@ -53,7 +59,7 @@ class Job extends Component {
 
     render() {
         const { history } = this.props;
-        const { job } = this.state;
+        const { job, loading } = this.state;
 
         return (
             <Layout>
@@ -93,13 +99,18 @@ class Job extends Component {
                                     </Col>
                                 </Row>
                             </Tabs.TabPane>
-                            <Tabs.TabPane tab="Triggers" key="2">
+                            <Tabs.TabPane tab="Tasks" key="2">
+                                <Spin spinning={loading}>
+                                    <Overview id={job.id} />
+                                </Spin>
+                            </Tabs.TabPane>
+                            <Tabs.TabPane tab="Triggers" key="3">
                                 <Triggers id={job.id} job={job}/>
                             </Tabs.TabPane>
-                            <Tabs.TabPane tab="Tokens" key="3">
+                            <Tabs.TabPane tab="Tokens" key="4">
                                 <TokenTable id={job.id}/>
                             </Tabs.TabPane>
-                            <Tabs.TabPane tab="Definition" key="4">
+                            <Tabs.TabPane tab="Definition" key="5">
                                 <JSONPretty data={job.raw_definition} />
                             </Tabs.TabPane>
                         </Tabs>

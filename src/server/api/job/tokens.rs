@@ -4,6 +4,8 @@ use crate::postoffice;
 use chrono::{DateTime, Utc};
 use hightide::{Json, Responder};
 use serde::{Deserialize, Serialize};
+use sqlx::Done;
+use std::collections::BTreeMap;
 use tide::Request;
 use uuid::Uuid;
 use crate::server::tokens::ProcessToken;
@@ -11,7 +13,7 @@ use crate::messages::Token;
 
 #[derive(Deserialize)]
 struct QueryToken {
-    state: String,
+    state: Option<String>,
 }
 
 #[derive(Serialize, sqlx::FromRow)]
@@ -24,11 +26,11 @@ struct GetToken {
     state: String,
 }
 
-pub async fn get_tokens(req: Request<State>) -> tide::Result<impl Responder> {
+async fn get_tokens_common(req: Request<State>) -> tide::Result<Vec<GetToken>> {
     let job_id = req.param::<Uuid>("id")?;
     let q = req.query::<QueryToken>()?;
 
-    let states: Vec<_> = q.state.split(',').map(|s| s.to_owned()).collect();
+    let states: Option<Vec<_>> = q.state.map(|s| s.split(',').map(|s| s.to_owned()).collect());
 
     let tokens = sqlx::query_as::<_, GetToken>(
         "SELECT
@@ -41,7 +43,7 @@ pub async fn get_tokens(req: Request<State>) -> tide::Result<impl Responder> {
         FROM task t
         JOIN token k ON k.task_id = t.id
         AND t.job_id = $1
-        AND k.state = ANY($2)
+        AND ($2 IS NULL OR k.state = ANY($2))
         ORDER BY k.trigger_datetime DESC",
     )
     .bind(&job_id)
@@ -49,7 +51,74 @@ pub async fn get_tokens(req: Request<State>) -> tide::Result<impl Responder> {
     .fetch_all(&req.get_pool())
     .await?;
 
+    Ok(tokens)
+}
+
+pub async fn get_tokens(req: Request<State>) -> tide::Result<impl Responder> {
+    let tokens = get_tokens_common(req).await?;
     Ok(Json(tokens))
+}
+
+#[derive(Serialize)]
+struct TokenState {
+    task_name: String,
+    task_id: Uuid,
+    state: String,
+}
+
+#[derive(Serialize)]
+struct TokensRow {
+    trigger_datetime: DateTime<Utc>,
+    task_states: BTreeMap<String, TokenState>,
+}
+
+#[derive(Serialize)]
+struct GetTokensOverview {
+    tokens: Vec<TokensRow>,
+    tasks: Vec<String>,
+}
+
+pub async fn get_tokens_overview(req: Request<State>) -> tide::Result<impl Responder> {
+    let tokens = get_tokens_common(req).await?;
+
+    let mut tasks = tokens
+        .iter()
+        .map(|t| t.task_name.clone())
+        .collect::<Vec<_>>();
+
+    tasks.sort();
+    tasks.dedup();
+
+    let mut tokens_by_time = BTreeMap::<DateTime<Utc>, BTreeMap<String, TokenState>>::new();
+
+    for token in &tokens {
+        tokens_by_time
+            .entry(token.trigger_datetime.clone())
+            .or_default()
+            .insert(
+                token.task_name.clone(),
+                TokenState {
+                    task_name: token.task_name.clone(),
+                    task_id: token.task_id.clone(),
+                    state: token.state.clone(),
+                },
+            );
+    }
+
+    let mut tokens_by_time = tokens_by_time
+        .into_iter()
+        .map(|(k, v)| TokensRow {
+            trigger_datetime: k,
+            task_states: v,
+        })
+        .collect::<Vec<_>>();
+
+    tokens_by_time.sort_by_key(|item| item.trigger_datetime);
+
+    Ok(Json(GetTokensOverview {
+        tokens: tokens_by_time,
+        tasks,
+    }))
 }
 
 pub async fn get_tokens_trigger_datetime(req: Request<State>) -> tide::Result<impl Responder> {
@@ -67,7 +136,8 @@ pub async fn get_tokens_trigger_datetime(req: Request<State>) -> tide::Result<im
         FROM task t
         JOIN token k ON k.task_id = t.id
         WHERE t.job_id = $1
-        AND k.trigger_datetime = $2",
+        AND k.trigger_datetime = $2
+        ORDER BY t.name",
     )
     .bind(&job_id)
     .bind(&trigger_datetime)

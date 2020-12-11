@@ -116,7 +116,7 @@ class TokenTable extends Component {
                     <Option value="waiting">Waiting</Option>
                 </Select>
 
-                <Table columns={this.columns} dataSource={tokens} loading={loading}/>
+                <Table columns={this.columns} dataSource={tokens} loading={loading} pagination={{position: ['bottomLeft']}}/>
             </Fragment>
         );
     }
