@@ -1,6 +1,7 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
-import { List, Avatar, Layout, Breadcrumb, PageHeader, Collapse, Tabs } from 'antd';
+import { List, Avatar, Layout, Breadcrumb, PageHeader, Collapse, Tabs, Row, Col, Statistic } from 'antd';
+import { geekblue, lime, red, grey, yellow } from '@ant-design/colors';
 import JSONPretty from 'react-json-pretty';
 import styled from 'styled-components';
 import axios from 'axios';
@@ -23,11 +24,9 @@ class Job extends Component {
         };
     }
 
-    async fetchJob() {
-        const {match} = this.props;
-        
+    async fetchJob(id) {
         try {
-            let resp = await axios.get(`/api/jobs/${match.params.id}`);
+            let resp = await axios.get(`/api/jobs/${id}`);
             this.setState({
                 job: resp.data,
             });
@@ -38,6 +37,18 @@ class Job extends Component {
 
     componentDidMount() {
         this.fetchJob();
+    }
+
+    componentDidMount() {
+        const { id } = this.props.match.params;
+
+        this.fetchJob(id)
+
+        this.interval = setInterval(() => this.fetchJob(id), 5000);
+    }
+
+    componentWillUnmount() {
+        clearInterval(this.interval);
     }
 
     render() {
@@ -61,7 +72,26 @@ class Job extends Component {
                         />
                         <Tabs>
                             <Tabs.TabPane tab="Overview" key="1">
-                                <Graph id={job.id} />
+                                <Row gutter={[16, 32]}>
+                                    <Col span={6}>
+                                        <Statistic title="Active Tasks"
+                                            valueStyle={{color: geekblue[5]}}
+                                            value={job.active_tasks} />
+                                    </Col>
+                                    <Col span={6}>
+                                        <Statistic title="Succeeded Tasks (last hour)"
+                                            valueStyle={{color: lime[5]}}
+                                            value={job.succeeded_tasks_last_hour} />
+                                    </Col>
+                                    <Col span={6}>
+                                        <Statistic title="Failed Tasks (last hour)"
+                                            valueStyle={{color: red[5]}}
+                                            value={job.failed_tasks_last_hour} />
+                                    </Col>
+                                    <Col span={24}>
+                                        <Graph id={job.id} />
+                                    </Col>
+                                </Row>
                             </Tabs.TabPane>
                             <Tabs.TabPane tab="Triggers" key="2">
                                 <Triggers id={job.id} job={job}/>

@@ -112,11 +112,9 @@ struct QueryJob {
 #[derive(Serialize, sqlx::FromRow)]
 struct GetJob {
     pub id: Uuid,
-    pub project: String,
     pub project_id: Uuid,
     pub name: String,
     pub description: String,
-    pub raw_definition: String,
 }
 
 pub async fn get_by_name(req: Request<State>) -> tide::Result<impl Responder> {
@@ -126,10 +124,8 @@ pub async fn get_by_name(req: Request<State>) -> tide::Result<impl Responder> {
         "SELECT
             j.id AS id,
             j.name AS name,
-            p.name AS project,
-            p.id AS project_id,
-            j.description AS description,
-            j.raw_definition AS raw_definition
+            j.project_id AS project_id,
+            j.description AS description
         FROM job j
         JOIN project p ON j.project_id = p.id
         WHERE j.name = $1
@@ -143,17 +139,53 @@ pub async fn get_by_name(req: Request<State>) -> tide::Result<impl Responder> {
     Ok(Json(job))
 }
 
+#[derive(Serialize, sqlx::FromRow)]
+struct GetJobExtra {
+    pub id: Uuid,
+    pub project: String,
+    pub project_id: Uuid,
+    pub name: String,
+    pub description: String,
+    pub raw_definition: String,
+    pub active_tasks: i64,
+    pub failed_tasks_last_hour: i64,
+    pub succeeded_tasks_last_hour: i64,
+}
+
 pub async fn get_by_id(req: Request<State>) -> tide::Result<impl Responder> {
     let id = req.param::<Uuid>("id")?;
 
-    let job = sqlx::query_as::<_, GetJob>(
+    let job = sqlx::query_as::<_, GetJobExtra>(
         "SELECT
             j.id AS id,
             j.name AS name,
             p.name AS project,
             p.id AS project_id,
             j.description AS description,
-            j.raw_definition AS raw_definition
+            j.raw_definition AS raw_definition,
+            (
+                SELECT count(1)
+                FROM task t
+                JOIN task_run tr ON tr.task_id = t.id
+                WHERE t.job_id = $1
+                AND tr.state = 'active'
+            ) AS active_tasks,
+            (
+                SELECT count(1)
+                FROM task t
+                JOIN task_run tr ON tr.task_id = t.id
+                WHERE t.job_id = $1
+                AND tr.state = 'failure'
+                AND CURRENT_TIMESTAMP - finish_datetime < INTERVAL '1 hour'
+            ) AS failed_tasks_last_hour,
+            (
+                SELECT count(1)
+                FROM task t
+                JOIN task_run tr ON tr.task_id = t.id
+                WHERE t.job_id = $1
+                AND tr.state = 'success'
+                AND CURRENT_TIMESTAMP - finish_datetime < INTERVAL '1 hour'
+            ) AS succeeded_tasks_last_hour
         FROM job j
         JOIN project p ON j.project_id = p.id
         WHERE j.id = $1",

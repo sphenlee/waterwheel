@@ -131,7 +131,6 @@ struct ProjectExtra {
     pub id: Uuid,
     pub name: String,
     pub description: String,
-
     pub num_jobs: i64,
     pub active_tasks: i64,
     pub failed_tasks_last_hour: i64,
