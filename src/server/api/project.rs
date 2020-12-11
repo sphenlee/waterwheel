@@ -126,12 +126,58 @@ pub async fn get_by_name(req: Request<State>) -> impl Responder {
     }
 }
 
+#[derive(Serialize, sqlx::FromRow)]
+struct ProjectExtra {
+    pub id: Uuid,
+    pub name: String,
+    pub description: String,
+
+    pub num_jobs: i64,
+    pub active_tasks: i64,
+    pub failed_tasks_last_hour: i64,
+    pub succeeded_tasks_last_hour: i64,
+}
+
 pub async fn get_by_id(req: Request<State>) -> tide::Result<Response> {
     let id_str = req.param::<String>("id")?;
     let id = Uuid::parse_str(&id_str)?;
 
-    let row = sqlx::query_as::<_, Project>(
-        "SELECT id, name, description
+    let row = sqlx::query_as::<_, ProjectExtra>(
+        "SELECT
+            id,
+            name,
+            description,
+            (
+                SELECT count(1)
+                FROM job j
+                WHERE j.project_id = $1
+            ) AS num_jobs,
+            (
+                SELECT count(1)
+                FROM job j
+                JOIN task t ON t.job_id = j.id
+                JOIN task_run tr ON tr.task_id = t.id
+                WHERE j.project_id = $1
+                AND tr.state = 'active'
+            ) AS active_tasks,
+            (
+                SELECT count(1)
+                FROM job j
+                JOIN task t ON t.job_id = j.id
+                JOIN task_run tr ON tr.task_id = t.id
+                WHERE j.project_id = $1
+                AND tr.state = 'failure'
+                AND CURRENT_TIMESTAMP - finish_datetime < INTERVAL '1 hour'
+            ) AS failed_tasks_last_hour,
+            (
+                SELECT count(1)
+                FROM job j
+                JOIN task t ON t.job_id = j.id
+                JOIN task_run tr ON tr.task_id = t.id
+                WHERE j.project_id = $1
+                AND tr.state = 'success'
+                AND CURRENT_TIMESTAMP - finish_datetime < INTERVAL '1 hour'
+            ) AS succeeded_tasks_last_hour
         FROM project
         WHERE id = $1",
     )

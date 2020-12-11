@@ -1,6 +1,7 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
-import { List, Avatar, Layout, Breadcrumb, PageHeader } from 'antd';
+import { List, Avatar, Layout, Breadcrumb, PageHeader, Row, Col, Statistic  } from 'antd';
+import { geekblue, lime, red, grey, yellow } from '@ant-design/colors';
 import axios from 'axios';
 
 import Body from '../components/Body.jsx';
@@ -65,6 +66,27 @@ class Project extends Component {
                             title={proj.name}
                             subTitle={proj.description}
                         />
+                        <Row gutter={[16, 32]}>
+                            <Col span={6}>
+                                <Statistic title="Jobs" value={proj.num_jobs} />
+                            </Col>
+                            <Col span={6}>
+                                <Statistic title="Active Tasks"
+                                    valueStyle={{color: geekblue[5]}}
+                                    value={proj.active_tasks} />
+                            </Col>
+                            <Col span={6}>
+                                <Statistic title="Succeeded Tasks (last hour)"
+                                    valueStyle={{color: lime[5]}}
+                                    value={proj.succeeded_tasks_last_hour} />
+                            </Col>
+                            <Col span={6}>
+                                <Statistic title="Failed Tasks (last hour)"
+                                    valueStyle={{color: red[5]}}
+                                    value={proj.failed_tasks_last_hour} />
+                            </Col>
+                            <Col span={24} />
+                        </Row>
                         <List
                             itemLayout="vertical"
                             dataSource={this.state.jobs}
