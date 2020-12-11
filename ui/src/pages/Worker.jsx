@@ -31,7 +31,7 @@ function makeColumns() {
             title: 'Task',
             key: 'task_id',
             render: (text, record) => (
-                <Link to={`/jobs/${record.job_id}`}>
+                <Link to={`/jobs/${record.job_id}/tokens/${record.trigger_datetime}`}>
                     {record.project_name}/{record.job_name}/{record.task_name}
                 </Link>
             ),

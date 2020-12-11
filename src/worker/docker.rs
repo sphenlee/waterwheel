@@ -4,11 +4,12 @@ use bollard::container::{
     Config, CreateContainerOptions, LogsOptions, RemoveContainerOptions, StartContainerOptions,
     WaitContainerOptions,
 };
-use bollard::image::CreateImageOptions;
+use bollard::image::{CreateImageOptions, ListImagesOptions};
 use futures::TryStreamExt;
 use kv_log_macro::{info, trace};
 use serde::Serialize;
 use tokio::io::AsyncWriteExt;
+use std::collections::HashMap;
 
 #[derive(Serialize)]
 struct LogMeta<'a> {
@@ -52,32 +53,40 @@ pub async fn run_docker(task_def: TaskDef) -> Result<bool> {
 
             let docker = bollard::Docker::connect_with_local_defaults()?;
 
+            let mut filters = HashMap::new();
+            filters.insert("reference", vec![&*image]);
+
+            trace!("listing images", {
+                filters: format!("{:?}", filters)
+            });
+
+            let list = docker.list_images(Some(ListImagesOptions {
+                filters,
+                ..ListImagesOptions::default()
+            })).await?;
+
+            trace!("got {} images", list.len());
+
+            if list.is_empty() {
+                let mut pull = docker.create_image(
+                    Some(CreateImageOptions::<&str> {
+                        from_image: &image,
+                        ..CreateImageOptions::default()
+                    }),
+                    None,
+                    None,
+                );
+
+                while let Some(data) = pull.try_next().await? {
+                    trace!("pulling image: {}", serde_json::to_string(&data)?);
+                }
+            }
+
             info!("launching container", {
                 image: &image,
                 args: format!("{:?}", args),
                 env: format!("{:?}", env),
             });
-
-            let tagged_image = if image.contains(':') {
-                image
-            } else {
-                image + ":latest"
-            };
-
-            let mut pull = docker.create_image(
-                Some(CreateImageOptions::<&str> {
-                    from_image: &tagged_image,
-                    ..CreateImageOptions::default()
-                }),
-                None,
-                None,
-            );
-
-            while let Some(data) = pull.try_next().await? {
-                trace!("pulling image: {}", serde_json::to_string(&data)?);
-            }
-
-            drop(pull);
 
             let container = docker
                 .create_container(
@@ -85,7 +94,7 @@ pub async fn run_docker(task_def: TaskDef) -> Result<bool> {
                     Config {
                         env: Some(env),
                         cmd: Some(args),
-                        image: Some(tagged_image),
+                        image: Some(image),
                         ..Config::default()
                     },
                 )

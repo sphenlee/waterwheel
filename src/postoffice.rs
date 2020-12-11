@@ -5,13 +5,13 @@ use typemap::SendMap;
 
 struct Mailbox<T> {
     tx: Sender<T>,
-    rx: Option<Receiver<T>>,
+    rx: Receiver<T>,
 }
 
 impl<T> Mailbox<T> {
     fn new() -> Mailbox<T> {
         let (tx, rx) = async_std::sync::channel(32);
-        Mailbox { tx, rx: Some(rx) }
+        Mailbox { tx, rx }
     }
 }
 
@@ -48,17 +48,9 @@ where
 }
 
 pub async fn receive_mail<T: Send + 'static>() -> Result<Receiver<T>> {
-    let rx = with_mailbox(|mailbox| match mailbox.rx.take() {
-        Some(rx) => Ok(rx),
-        None => panic!("someone has already claimed this mailbox"),
-    })
-    .await?;
-
-    Ok(rx)
+    with_mailbox(|mailbox| Ok(mailbox.rx.clone())).await
 }
 
 pub async fn post_mail<T: Send + 'static>() -> Result<Sender<T>> {
-    let tx = with_mailbox(|mailbox| Ok(mailbox.tx.clone())).await?;
-
-    Ok(tx)
+    with_mailbox(|mailbox| Ok(mailbox.tx.clone())).await
 }

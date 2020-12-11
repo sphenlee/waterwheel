@@ -181,22 +181,49 @@ pub async fn get_trigger(req: Request<State>) -> tide::Result<impl Responder> {
 pub struct GetTriggerTimes {
     trigger_datetime: DateTime<Utc>,
     name: String,
+    success: i64,
+    active: i64,
+    failure: i64,
+    waiting: i64,
 }
 
 pub async fn get_trigger_times(req: Request<State>) -> tide::Result<impl Responder> {
     let trigger_id = req.param::<Uuid>("id")?;
 
     let triggers = sqlx::query_as::<_, GetTriggerTimes>(
-        "SELECT
-            k.trigger_datetime AS trigger_datetime,
-            g.name AS name
-        FROM trigger g
-        JOIN trigger_edge te ON g.id = te.trigger_id
-        JOIN token k ON k.task_id = te.task_id
-        WHERE g.id = $1
-        GROUP BY k.trigger_datetime,
-                g.name
-        ORDER BY k.trigger_datetime DESC",
+        "WITH these_triggers AS (
+            SELECT
+                k.trigger_datetime AS trigger_datetime,
+                g.name AS name
+            FROM trigger g
+            JOIN trigger_edge te ON g.id = te.trigger_id
+            JOIN token k ON k.task_id = te.task_id
+            WHERE g.id = $1
+        ),
+        these_tokens AS (
+            SELECT
+                x.trigger_datetime AS trigger_datetime,
+                x.name AS name,
+                k.state AS state
+            FROM these_triggers x
+            JOIN token k ON k.trigger_datetime = x.trigger_datetime
+            JOIN task t ON t.id = k.task_id
+            JOIN trigger g ON g.job_id = t.job_id
+            WHERE g.id = $1
+        )
+        SELECT
+            trigger_datetime,
+            name,
+            sum(CASE WHEN state = 'success' THEN 1 ELSE 0 END) AS success,
+            sum(CASE WHEN state = 'active' THEN 1 ELSE 0 END) AS active,
+            sum(CASE WHEN state = 'failure' THEN 1 ELSE 0 END) AS failure,
+            sum(CASE WHEN state = 'waiting' THEN 1 ELSE 0 END) AS waiting
+        FROM these_tokens
+        GROUP BY trigger_datetime,
+            name
+        ORDER BY trigger_datetime DESC
+        LIMIT 100
+        ",
     )
     .bind(&trigger_id)
     .fetch_all(&req.get_pool())

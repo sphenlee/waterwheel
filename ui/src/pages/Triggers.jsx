@@ -1,6 +1,7 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
-import { Table, Layout, Breadcrumb, PageHeader, Button, notification } from 'antd';
+import { Table, Layout, Breadcrumb, PageHeader, Button, notification, Badge} from 'antd';
+import { geekblue, lime, red, grey, yellow } from '@ant-design/colors';
 import axios from 'axios';
 
 import Body from '../components/Body.jsx';
@@ -14,12 +15,23 @@ function makeColumns(job_id) {
       {
         title: 'Trigger Time',
         dataIndex: 'trigger_datetime',
-        key: 'trigger_datetime',
         render: (text, record) => (
                 <Link to={`/jobs/${job_id}/tokens/${record.trigger_datetime}`}>
                     {text}
                 </Link>
             )
+      },{
+        title: 'Tasks',
+        key: 'status',
+        render: (text, record) => (
+                <Fragment>
+                    <Badge count={record.success} style={{background: lime[7]}} title="Success"/>
+                    <Badge count={record.failure} style={{background: red[7]}} title="Failure"/>
+                    <Badge count={record.waiting} style={{background: grey[7]}} title="Waiting"/>
+                    <Badge count={record.active} style={{background: geekblue[7]}} title="Active"/>
+                </Fragment>
+            )
+
       }
     ];
 }

@@ -15,7 +15,7 @@ Features
 * [ ] overview interface to show recent job runs (like the box view of Airflow but less ugly)
 * [ ] APIs for activating tasks based on query criteria (eg. past/future)
 * [ ] keep history of jobs runs, record task attempts
-    * need to consider the data model to get this right
+    * need to consider the data model to get this rightw    
 * [ ] built in task retries - you can do this currently with cyclic graphs ;)
 * [ ] task value stash
     * to replace Airflow's xcom, variables and connections
