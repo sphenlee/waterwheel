@@ -4,16 +4,17 @@ use crate::postoffice;
 use chrono::{DateTime, Utc};
 use hightide::{Json, Responder};
 use serde::{Deserialize, Serialize};
-use sqlx::Done;
 use std::collections::BTreeMap;
 use tide::Request;
 use uuid::Uuid;
 use crate::server::tokens::ProcessToken;
 use crate::messages::Token;
+use std::cmp::Reverse;
 
 #[derive(Deserialize)]
 struct QueryToken {
     state: Option<String>,
+    //from: Option<DateTime<Utc>>
 }
 
 #[derive(Serialize, sqlx::FromRow)]
@@ -31,6 +32,7 @@ async fn get_tokens_common(req: Request<State>) -> tide::Result<Vec<GetToken>> {
     let q = req.query::<QueryToken>()?;
 
     let states: Option<Vec<_>> = q.state.map(|s| s.split(',').map(|s| s.to_owned()).collect());
+    //let from = q.from;
 
     let tokens = sqlx::query_as::<_, GetToken>(
         "SELECT
@@ -44,10 +46,12 @@ async fn get_tokens_common(req: Request<State>) -> tide::Result<Vec<GetToken>> {
         JOIN token k ON k.task_id = t.id
         AND t.job_id = $1
         AND ($2 IS NULL OR k.state = ANY($2))
-        ORDER BY k.trigger_datetime DESC",
+        --AND ($3 IS NULL OR k.trigger_datetime > $3)
+        LIMIT 100",
     )
-    .bind(&job_id)
+    .bind(job_id)
     .bind(&states)
+    //.bind(&from)
     .fetch_all(&req.get_pool())
     .await?;
 
@@ -111,9 +115,10 @@ pub async fn get_tokens_overview(req: Request<State>) -> tide::Result<impl Respo
             trigger_datetime: k,
             task_states: v,
         })
+        .take(50) // TODO - change this value
         .collect::<Vec<_>>();
 
-    tokens_by_time.sort_by_key(|item| item.trigger_datetime);
+    tokens_by_time.sort_by_key(|item| Reverse(item.trigger_datetime));
 
     Ok(Json(GetTokensOverview {
         tokens: tokens_by_time,
