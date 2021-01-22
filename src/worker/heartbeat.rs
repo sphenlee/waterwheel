@@ -1,7 +1,7 @@
 use crate::amqp::get_amqp_channel;
 use crate::messages::WorkerHeartbeat;
 use anyhow::Result;
-use async_std::net::SocketAddr;
+use std::net::SocketAddr;
 
 use chrono::Utc;
 use kv_log_macro::trace;
@@ -46,6 +46,6 @@ pub async fn heartbeat(addr: SocketAddr) -> Result<!> {
         )
         .await?;
 
-        async_std::task::sleep(std::time::Duration::from_secs(5)).await;
+        tokio::task::sleep(std::time::Duration::from_secs(5)).await;
     }
 }

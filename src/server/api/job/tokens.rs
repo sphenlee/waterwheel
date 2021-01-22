@@ -2,10 +2,9 @@ use crate::server::api::util::RequestExt;
 use crate::server::api::State;
 use crate::postoffice;
 use chrono::{DateTime, Utc};
-use hightide::{Json, Responder};
+use highnoon::{Request, Json, Responder};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use tide::Request;
 use uuid::Uuid;
 use crate::server::tokens::ProcessToken;
 use crate::messages::Token;
@@ -27,7 +26,7 @@ struct GetToken {
     state: String,
 }
 
-async fn get_tokens_common(req: Request<State>) -> tide::Result<Vec<GetToken>> {
+async fn get_tokens_common(req: Request<State>) -> highnoon::Result<Vec<GetToken>> {
     let job_id = req.param::<Uuid>("id")?;
     let q = req.query::<QueryToken>()?;
 
@@ -58,7 +57,7 @@ async fn get_tokens_common(req: Request<State>) -> tide::Result<Vec<GetToken>> {
     Ok(tokens)
 }
 
-pub async fn get_tokens(req: Request<State>) -> tide::Result<impl Responder> {
+pub async fn get_tokens(req: Request<State>) -> highnoon::Result<impl Responder> {
     let tokens = get_tokens_common(req).await?;
     Ok(Json(tokens))
 }
@@ -82,7 +81,7 @@ struct GetTokensOverview {
     tasks: Vec<String>,
 }
 
-pub async fn get_tokens_overview(req: Request<State>) -> tide::Result<impl Responder> {
+pub async fn get_tokens_overview(req: Request<State>) -> highnoon::Result<impl Responder> {
     let tokens = get_tokens_common(req).await?;
 
     let mut tasks = tokens
@@ -126,7 +125,7 @@ pub async fn get_tokens_overview(req: Request<State>) -> tide::Result<impl Respo
     }))
 }
 
-pub async fn get_tokens_trigger_datetime(req: Request<State>) -> tide::Result<impl Responder> {
+pub async fn get_tokens_trigger_datetime(req: Request<State>) -> highnoon::Result<impl Responder> {
     let job_id = req.param::<Uuid>("id")?;
     let trigger_datetime = req.param::<DateTime<Utc>>("trigger_datetime")?;
 
@@ -157,7 +156,7 @@ struct ClearTokens {
     tokens_cleared: u64,
 }
 
-pub async fn clear_tokens_trigger_datetime(req: Request<State>) -> tide::Result<impl Responder> {
+pub async fn clear_tokens_trigger_datetime(req: Request<State>) -> highnoon::Result<impl Responder> {
     let job_id = req.param::<Uuid>("id")?;
     let trigger_datetime = req.param::<DateTime<Utc>>("trigger_datetime")?;
 

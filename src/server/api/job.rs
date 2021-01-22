@@ -7,7 +7,7 @@ use crate::server::triggers::TriggerUpdate;
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use sqlx::Done;
-use tide::{Request, StatusCode};
+use highnoon::{Request, StatusCode, Json, Response, Responder};
 use uuid::Uuid;
 
 mod graph;
@@ -16,13 +16,12 @@ mod tokens;
 mod triggers;
 
 pub use graph::get_graph;
-use hightide::{Json, Responder, Response};
 pub use tokens::{
     clear_tokens_trigger_datetime, get_tokens, get_tokens_overview, get_tokens_trigger_datetime,
 };
 pub use triggers::{get_trigger, get_trigger_times, get_triggers_by_job};
 
-pub async fn create(mut req: Request<State>) -> tide::Result<tide::Response> {
+pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
     let data = req.body_string().await?;
     let job: Job = serde_json::from_str(&data)?;
 
@@ -119,7 +118,7 @@ struct GetJob {
     pub description: String,
 }
 
-pub async fn get_by_name(req: Request<State>) -> tide::Result<impl Responder> {
+pub async fn get_by_name(req: Request<State>) -> highnoon::Result<impl Responder> {
     let q = req.query::<QueryJob>()?;
 
     let job = sqlx::query_as::<_, GetJob>(
@@ -154,7 +153,7 @@ struct GetJobExtra {
     pub succeeded_tasks_last_hour: i64,
 }
 
-pub async fn get_by_id(req: Request<State>) -> tide::Result<impl Responder> {
+pub async fn get_by_id(req: Request<State>) -> highnoon::Result<impl Responder> {
     let id = req.param::<Uuid>("id")?;
 
     let job = sqlx::query_as::<_, GetJobExtra>(
@@ -199,7 +198,7 @@ pub async fn get_by_id(req: Request<State>) -> tide::Result<impl Responder> {
     Ok(Json(job))
 }
 
-pub async fn delete(req: Request<State>) -> tide::Result<StatusCode> {
+pub async fn delete(req: Request<State>) -> highnoon::Result<StatusCode> {
     let id = req.param::<Uuid>("id")?;
 
     let res = sqlx::query(

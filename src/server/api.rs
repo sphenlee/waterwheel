@@ -1,5 +1,4 @@
 use anyhow::Result;
-use hightide::wrap;
 use sqlx::postgres::PgDatabaseError;
 use sqlx::PgPool;
 
@@ -33,55 +32,55 @@ pub async fn serve() -> Result<()> {
         pool: crate::db::get_pool(),
     };
 
-    let mut app = tide::with_state(state);
-    app.with(tide::log::LogMiddleware::new());
+    let mut app = highnoon::App::new(state);
+    //app.with(tide::log::LogMiddleware::new());
 
     // project
     app.at("/api/projects")
-        .get(wrap(project::get_by_name))
-        .post(wrap(project::create))
-        .put(wrap(project::update));
+        .get(project::get_by_name)
+        .post(project::create)
+        .put(project::update);
     app.at("/api/projects/:id")
-        .get(wrap(project::get_by_id))
-        .delete(wrap(project::delete));
+        .get(project::get_by_id)
+        .delete(project::delete);
     app.at("/api/projects/:id/jobs")
-        .get(wrap(project::list_jobs));
+        .get(project::list_jobs);
 
     // job
     app.at("/api/jobs")
-        .get(wrap(job::get_by_name))
-        .post(wrap(job::create))
-        .put(wrap(job::create));
+        .get(job::get_by_name)
+        .post(job::create)
+        .put(job::create);
     app.at("/api/jobs/:id")
-        .get(wrap(job::get_by_id))
-        .delete(wrap(job::delete));
+        .get(job::get_by_id)
+        .delete(job::delete);
 
     // job tokens
-    app.at("/api/jobs/:id/tokens").get(wrap(job::get_tokens));
+    app.at("/api/jobs/:id/tokens").get(job::get_tokens);
     app.at("/api/jobs/:id/tokens-overview")
-        .get(wrap(job::get_tokens_overview));
+        .get(job::get_tokens_overview);
     app.at("/api/jobs/:id/tokens/:trigger_datetime")
-        .get(wrap(job::get_tokens_trigger_datetime))
-        .delete(wrap(job::clear_tokens_trigger_datetime));
+        .get(job::get_tokens_trigger_datetime)
+        .delete(job::clear_tokens_trigger_datetime);
 
     // job triggers
     app.at("/api/jobs/:id/triggers")
-        .get(wrap(job::get_triggers_by_job));
-    app.at("/api/jobs/:id/graph").get(wrap(job::get_graph));
+        .get(job::get_triggers_by_job);
+    app.at("/api/jobs/:id/graph").get(job::get_graph);
     app.at("/api/jobs/:job_id/triggers/:id")
-        .get(wrap(job::get_trigger));
+        .get(job::get_trigger);
 
     // task tokens
     app.at("/api/tasks/:id/tokens/:trigger_datetime")
-        .put(wrap(task::create_token));
+        .put(task::create_token);
 
     // trigger times
     app.at("/api/triggers/:id")
-        .get(wrap(job::get_trigger_times));
+        .get(job::get_trigger_times);
 
     // workers
-    app.at("/api/workers").get(wrap(workers::list));
-    app.at("/api/workers/:id").get(wrap(workers::tasks));
+    app.at("/api/workers").get(workers::list);
+    app.at("/api/workers/:id").get(workers::tasks);
 
     // web UI
 
@@ -89,7 +88,8 @@ pub async fn serve() -> Result<()> {
     {
         app.at("/static").serve_dir("ui/dist/")?;
         app.at("/").get(|_req| async {
-            let body = tide::Body::from_file("ui/dist/index.html").await?;
+            let body = highnoon::Response::ok()
+                .body()::from_file("ui/dist/index.html").await?;
             Ok(body)
         });
     }
@@ -105,7 +105,7 @@ pub async fn serve() -> Result<()> {
     let host =
         std::env::var("WATERWHEEL_SERVER_ADDR").unwrap_or_else(|_| "127.0.0.1:8080".to_owned());
 
-    app.listen(host).await?;
+    app.listen(host.parse()?).await?;
 
     Ok(())
 }

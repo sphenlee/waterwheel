@@ -1,8 +1,8 @@
 #![feature(never_type)]
 
 use anyhow::Result;
-use async_std::future::Future;
-use async_std::task;
+use futures::Future;
+use tokio::task;
 use chrono::Duration;
 use circuit_breaker::CircuitBreaker;
 use log::error;
@@ -23,7 +23,7 @@ where
 {
     let name = name.into();
 
-    let _ = async_std::task::Builder::new()
+    let _ = task::Builder::new()
         .name(name.clone())
         .spawn(async move {
             let mut cb = CircuitBreaker::new(5, Duration::minutes(1));
@@ -34,7 +34,7 @@ where
                 }
             }
             error!("task {} failed too many times, aborting!", name);
-            async_std::process::exit(1);
+            std::process::exit(1);
         })
         .expect("spawn failed");
 }

@@ -1,7 +1,7 @@
 use crate::postoffice;
 use crate::{amqp, spawn_retry};
 use anyhow::Result;
-use async_std::net::TcpListener;
+use tokio::net::TcpListener;
 
 use kv_log_macro::info;
 use once_cell::sync::Lazy;
@@ -27,8 +27,8 @@ pub async fn run_worker() -> Result<()> {
         spawn_retry(&format!("worker-{}", i), work::process_work);
     }
 
-    let mut app = tide::new();
-    app.with(tide::log::LogMiddleware::new());
+    let mut app = highnoon::App::new(());
+    //app.with(tide::log::LogMiddleware::new());
     app.at("/")
         .get(|_req| async { Ok("Hello from Waterwheel Worker!") });
 

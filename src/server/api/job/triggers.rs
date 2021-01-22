@@ -3,12 +3,11 @@ use crate::server::api::util::RequestExt;
 use crate::server::api::State;
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use hightide::{Json, Responder};
+use highnoon::{Request, Json, Responder};
 use serde::Serialize;
 use sqlx::{Postgres, Transaction};
 use std::str::FromStr;
 use thiserror::Error;
-use tide::Request;
 use uuid::Uuid;
 
 #[derive(Error, Debug)]
@@ -119,7 +118,7 @@ pub struct GetTriggerByJob {
     pub trigger_offset: Option<String>,
 }
 
-pub async fn get_triggers_by_job(req: Request<State>) -> tide::Result<impl Responder> {
+pub async fn get_triggers_by_job(req: Request<State>) -> highnoon::Result<impl Responder> {
     let job_id = req.param::<Uuid>("id")?;
 
     let triggers = sqlx::query_as::<_, GetTriggerByJob>(
@@ -154,7 +153,7 @@ pub struct GetTrigger {
     pub project_name: String,
 }
 
-pub async fn get_trigger(req: Request<State>) -> tide::Result<impl Responder> {
+pub async fn get_trigger(req: Request<State>) -> highnoon::Result<impl Responder> {
     let trigger_id = req.param::<Uuid>("id")?;
 
     let triggers = sqlx::query_as::<_, GetTrigger>(
@@ -187,7 +186,7 @@ pub struct GetTriggerTimes {
     waiting: i64,
 }
 
-pub async fn get_trigger_times(req: Request<State>) -> tide::Result<impl Responder> {
+pub async fn get_trigger_times(req: Request<State>) -> highnoon::Result<impl Responder> {
     let trigger_id = req.param::<Uuid>("id")?;
 
     let triggers = sqlx::query_as::<_, GetTriggerTimes>(

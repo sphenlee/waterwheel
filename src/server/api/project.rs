@@ -1,10 +1,9 @@
 use super::util::RequestExt;
 use super::{pg_error, State, PG_INTEGRITY_ERROR};
-use hightide::{Json, Responder, Response};
+use highnoon::{Json, Responder, Response, Request, StatusCode};
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use sqlx::Done;
-use tide::{Request, StatusCode};
 use uuid::Uuid;
 
 #[derive(Deserialize)]
@@ -13,7 +12,7 @@ struct NewProject {
     pub description: String,
 }
 
-pub async fn create(mut req: Request<State>) -> tide::Result<Response> {
+pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
     let proj: NewProject = req.body_json().await?;
 
     let id = uuid::Uuid::new_v4();
@@ -49,9 +48,9 @@ pub async fn create(mut req: Request<State>) -> tide::Result<Response> {
     }
 }
 
-pub async fn update(mut req: Request<State>) -> tide::Result<StatusCode> {
+pub async fn update(mut req: Request<State>) -> highnoon::Result<StatusCode> {
     let proj: NewProject = req.body_json().await?;
-    let id = req.param::<Uuid>("id")?;
+    let id = req.param("id").unwrap().parse::<Uuid>()?;
 
     let res = sqlx::query(
         "UPDATE project
@@ -93,7 +92,7 @@ struct Project {
     pub description: String,
 }
 
-pub async fn list(req: Request<State>) -> tide::Result<Response> {
+pub async fn list(req: Request<State>) -> highnoon::Result<Response> {
     let projs = sqlx::query_as::<_, Project>(
         "SELECT id, name, description
         FROM project",
@@ -137,7 +136,7 @@ struct ProjectExtra {
     pub succeeded_tasks_last_hour: i64,
 }
 
-pub async fn get_by_id(req: Request<State>) -> tide::Result<Response> {
+pub async fn get_by_id(req: Request<State>) -> highnoon::Result<Response> {
     let id_str = req.param::<String>("id")?;
     let id = Uuid::parse_str(&id_str)?;
 
@@ -190,7 +189,7 @@ pub async fn get_by_id(req: Request<State>) -> tide::Result<Response> {
     })
 }
 
-pub async fn delete(req: Request<State>) -> tide::Result<StatusCode> {
+pub async fn delete(req: Request<State>) -> highnoon::Result<StatusCode> {
     let id_str = req.param::<String>("id")?;
     let id = Uuid::parse_str(&id_str)?;
 
@@ -226,7 +225,7 @@ struct ListJob {
     description: String,
 }
 
-pub async fn list_jobs(req: Request<State>) -> tide::Result<impl Responder> {
+pub async fn list_jobs(req: Request<State>) -> highnoon::Result<impl Responder> {
     let id_str = req.param::<String>("id")?;
     let id = Uuid::parse_str(&id_str)?;
 

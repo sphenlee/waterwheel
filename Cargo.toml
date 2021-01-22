@@ -13,10 +13,9 @@ clap = "2.33.3"
 log = "0.4.11"
 env_logger = "0.7.1"
 lapin = "1.2.1"
-async-std = "1.6.3"
-tide = { version = "0.13.0", default-features = false, features = ["async-h1"] }
-async-amqp = "0.1.5"
-sqlx = { version = "0.4.0-beta.1", features = ["postgres", "chrono", "uuid"] }
+highnoon = { path = "../highnoon" }
+tokio-amqp = "0.1"
+sqlx = { version = "0.4", features = ["postgres", "chrono", "uuid", "runtime-tokio-rustls"] }
 dotenv = "0.15.0"
 anyhow = "1.0.32"
 chrono = "0.4.15"
@@ -32,6 +31,5 @@ typemap = "0.3.3"
 kv-log-macro = "1.0.7"
 colored = "2.0.0"
 log4rs = "0.13.0"
-hightide = "0.1.3"
 cron = "0.6.1"
 thiserror = "1.0.20"

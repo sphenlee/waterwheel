@@ -1,7 +1,7 @@
 use crate::amqp::get_amqp_channel;
 use crate::messages::WorkerHeartbeat;
 use anyhow::Result;
-use async_std::sync::Mutex;
+use tokio::sync::Mutex;
 use futures::TryStreamExt;
 use kv_log_macro::debug;
 use lapin::options::{

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use async_std::sync::{Mutex, Receiver, Sender};
+use tokio::sync::{Mutex, mpsc::Sender, mpsc::Receiver};
 use once_cell::sync::OnceCell;
 use typemap::SendMap;
 
@@ -10,7 +10,7 @@ struct Mailbox<T> {
 
 impl<T> Mailbox<T> {
     fn new() -> Mailbox<T> {
-        let (tx, rx) = async_std::sync::channel(32);
+        let (tx, rx) = tokio::sync::mpsc::channel(32);
         Mailbox { tx, rx }
     }
 }

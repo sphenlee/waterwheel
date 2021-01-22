@@ -1,9 +1,8 @@
 use crate::server::api::util::RequestExt;
 use crate::server::api::State;
 use chrono::{DateTime, Utc};
-use hightide::{Json, Responder};
+use highnoon::{Request, Json, Responder};
 use serde::{Deserialize, Serialize};
-use tide::Request;
 use uuid::Uuid;
 
 #[derive(Serialize, sqlx::FromRow)]
@@ -32,7 +31,7 @@ struct QueryGraph {
     trigger_datetime: Option<DateTime<Utc>>,
 }
 
-pub async fn get_graph(req: Request<State>) -> tide::Result<impl Responder> {
+pub async fn get_graph(req: Request<State>) -> highnoon::Result<impl Responder> {
     let job_id = req.param::<Uuid>("id")?;
 
     let q: QueryGraph = req.query()?;

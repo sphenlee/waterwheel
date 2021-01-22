@@ -4,11 +4,10 @@ use crate::server::api::util::RequestExt;
 use crate::server::api::State;
 use crate::server::tokens::{increment_token, ProcessToken};
 use chrono::{DateTime, Utc};
-use hightide::Responder;
-use tide::{Request, StatusCode};
+use highnoon::{Responder, Request, StatusCode};
 use uuid::Uuid;
 
-pub async fn create_token(req: Request<State>) -> tide::Result<impl Responder> {
+pub async fn create_token(req: Request<State>) -> highnoon::Result<impl Responder> {
     let token_tx = postoffice::post_mail::<ProcessToken>().await?;
 
     let task_id = req.param::<Uuid>("id")?;

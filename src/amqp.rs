@@ -1,5 +1,5 @@
 use anyhow::Result;
-use async_amqp::LapinAsyncStdExt;
+use tokio_amqp::LapinTokioExt;
 use lapin::{Channel, Connection, ConnectionProperties};
 use log::info;
 use once_cell::sync::OnceCell;
@@ -11,7 +11,7 @@ pub async fn amqp_connect() -> Result<()> {
     let addr = std::env::var("WATERWHEEL_AMQP_ADDR")
         .unwrap_or_else(|_| "amqp://127.0.0.1:5672/%2f".into());
 
-    let conn = Connection::connect(&addr, ConnectionProperties::default().with_async_std()).await?;
+    let conn = Connection::connect(&addr, ConnectionProperties::default().with_tokio()).await?;
 
     AMQP_CONNECTION
         .set(conn)
