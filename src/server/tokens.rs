@@ -4,7 +4,7 @@ use crate::{db, postoffice};
 use anyhow::Result;
 use futures::TryStreamExt;
 use kv_log_macro::{info, trace};
-use sqlx::{Postgres, Transaction, PgPool};
+use sqlx::{PgPool, Postgres, Transaction};
 use std::collections::HashMap;
 use std::fmt;
 

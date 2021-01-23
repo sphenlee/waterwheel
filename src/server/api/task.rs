@@ -24,7 +24,9 @@ pub async fn create_token(req: Request<State>) -> tide::Result<impl Responder> {
     increment_token(&mut txn, &token).await?;
     txn.commit().await?;
 
-    token_tx.send(ProcessToken::Increment(token, TaskPriority::High)).await;
+    token_tx
+        .send(ProcessToken::Increment(token, TaskPriority::High))
+        .await;
 
     Ok(StatusCode::Created)
 }

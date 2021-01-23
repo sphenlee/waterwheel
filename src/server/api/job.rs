@@ -1,5 +1,5 @@
-use super::types::Job;
 use super::request_ext::RequestExt;
+use super::types::Job;
 use super::State;
 use crate::postoffice;
 use crate::server::triggers::TriggerUpdate;
@@ -9,7 +9,6 @@ use serde::{Deserialize, Serialize};
 use sqlx::Done;
 use tide::{Request, StatusCode};
 use uuid::Uuid;
-
 
 mod graph;
 mod tasks;
@@ -243,7 +242,6 @@ pub async fn delete(req: Request<State>) -> tide::Result<StatusCode> {
     }
 }
 
-
 pub async fn get_paused(req: Request<State>) -> tide::Result<impl Responder> {
     let id = req.param::<Uuid>("id")?;
 
@@ -257,12 +255,8 @@ pub async fn get_paused(req: Request<State>) -> tide::Result<impl Responder> {
     .await?;
 
     match row {
-        Some((paused,)) => {
-            Response::ok().json(paused)
-        }
-        None => {
-            Ok(Response::status(StatusCode::NotFound))
-        }
+        Some((paused,)) => Response::ok().json(paused),
+        None => Ok(Response::status(StatusCode::NotFound)),
     }
 }
 

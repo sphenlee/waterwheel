@@ -1,5 +1,6 @@
 use crate::amqp::get_amqp_channel;
 use crate::messages::WorkerHeartbeat;
+use crate::server::status::SERVER_STATUS;
 use anyhow::Result;
 use async_std::sync::Mutex;
 use futures::TryStreamExt;
@@ -12,7 +13,6 @@ use lapin::ExchangeKind;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use uuid::Uuid;
-use crate::server::status::SERVER_STATUS;
 
 const HEARTBEAT_EXCHANGE: &str = "waterwheel.heartbeat";
 const HEARTBEAT_QUEUE: &str = "waterwheel.heartbeat";

@@ -1,15 +1,15 @@
+use crate::messages::Token;
+use crate::postoffice;
 use crate::server::api::request_ext::RequestExt;
 use crate::server::api::State;
-use crate::postoffice;
+use crate::server::tokens::ProcessToken;
 use chrono::{DateTime, Utc};
 use hightide::{Json, Responder};
 use serde::{Deserialize, Serialize};
+use std::cmp::Reverse;
 use std::collections::BTreeMap;
 use tide::Request;
 use uuid::Uuid;
-use crate::server::tokens::ProcessToken;
-use crate::messages::Token;
-use std::cmp::Reverse;
 
 #[derive(Deserialize)]
 struct QueryToken {
@@ -31,7 +31,9 @@ async fn get_tokens_common(req: Request<State>) -> tide::Result<Vec<GetToken>> {
     let job_id = req.param::<Uuid>("id")?;
     let q = req.query::<QueryToken>()?;
 
-    let states: Option<Vec<_>> = q.state.map(|s| s.split(',').map(|s| s.to_owned()).collect());
+    let states: Option<Vec<_>> = q
+        .state
+        .map(|s| s.split(',').map(|s| s.to_owned()).collect());
     //let from = q.from;
 
     let tokens = sqlx::query_as::<_, GetToken>(
@@ -181,7 +183,7 @@ pub async fn clear_tokens_trigger_datetime(req: Request<State>) -> tide::Result<
     for (id,) in &task_ids {
         let token = Token {
             task_id: id.clone(),
-            trigger_datetime: trigger_datetime.clone()
+            trigger_datetime: trigger_datetime.clone(),
         };
         tokens_tx.send(ProcessToken::Clear(token)).await;
     }

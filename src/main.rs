@@ -14,8 +14,8 @@ mod logging;
 pub mod messages;
 pub mod postoffice;
 mod server;
-mod worker;
 pub mod util;
+mod worker;
 
 pub fn spawn_retry<F, Fut>(name: impl Into<String>, func: F)
 where

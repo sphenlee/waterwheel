@@ -1,5 +1,5 @@
-use once_cell::sync::Lazy;
 use async_std::sync::Mutex;
+use once_cell::sync::Lazy;
 use serde::Serialize;
 
 #[derive(Default, Serialize)]

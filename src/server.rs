@@ -7,10 +7,10 @@ mod api;
 mod execute;
 mod heartbeat;
 mod progress;
+pub mod status;
 pub mod tokens;
 mod trigger_time;
 mod triggers;
-pub mod status;
 
 pub async fn run_server() -> Result<()> {
     postoffice::open()?;

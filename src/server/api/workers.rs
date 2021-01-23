@@ -1,11 +1,11 @@
+use crate::server::api::request_ext::RequestExt;
 use crate::server::api::State;
 use crate::server::heartbeat::WORKER_STATUS;
+use chrono::{DateTime, Utc};
 use hightide::{Json, Responder};
+use serde::Serialize;
 use tide::Request;
 use uuid::Uuid;
-use serde::Serialize;
-use crate::server::api::request_ext::RequestExt;
-use chrono::{DateTime, Utc};
 
 pub async fn list(_req: Request<State>) -> impl Responder {
     let status = WORKER_STATUS.lock().await;

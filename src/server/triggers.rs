@@ -1,4 +1,5 @@
 use crate::messages::{TaskPriority, Token};
+use crate::server::status::SERVER_STATUS;
 use crate::server::tokens::{increment_token, ProcessToken};
 use crate::server::trigger_time::TriggerTime;
 use crate::{db, postoffice};
@@ -14,7 +15,6 @@ use kv_log_macro::{debug, info, trace, warn};
 use sqlx::types::Uuid;
 use sqlx::Connection;
 use std::str::FromStr;
-use crate::server::status::SERVER_STATUS;
 
 const SMALL_SLEEP: std::time::Duration = std::time::Duration::from_millis(50);
 
@@ -193,7 +193,9 @@ async fn activate_trigger(trigger_time: TriggerTime, priority: TaskPriority) -> 
 
     // after committing the transaction we can tell the token processor to check thresholds
     for token in tokens_to_tx {
-        token_tx.send(ProcessToken::Increment(token, priority)).await;
+        token_tx
+            .send(ProcessToken::Increment(token, priority))
+            .await;
     }
 
     Ok(())
@@ -288,7 +290,10 @@ async fn update_trigger(uuid: &Uuid, queue: &mut Queue) -> Result<()> {
             queue.push(trigger.at(next));
         }
     } else {
-        debug!("trigger {} has been paused, it had been removed from the queue", uuid);
+        debug!(
+            "trigger {} has been paused, it had been removed from the queue",
+            uuid
+        );
     }
 
     Ok(())

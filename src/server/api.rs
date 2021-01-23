@@ -1,13 +1,13 @@
+use super::status::SERVER_STATUS;
 use anyhow::Result;
 use hightide::{wrap, Responder};
 use sqlx::PgPool;
-use super::status::SERVER_STATUS;
 
 mod job;
 mod project;
+pub mod request_ext;
 mod task;
 pub mod types;
-pub mod request_ext;
 mod workers;
 
 #[derive(Clone)]
@@ -37,8 +37,7 @@ pub async fn serve() -> Result<()> {
     // basic healthcheck to see if waterwheel is up
     app.at("/healthcheck").get(|_req| async { Ok("OK") });
 
-    app.at("/api/status")
-        .get(wrap(status));
+    app.at("/api/status").get(wrap(status));
 
     // project
     app.at("/api/projects")
