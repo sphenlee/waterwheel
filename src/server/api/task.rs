@@ -1,6 +1,6 @@
 use crate::messages::{TaskPriority, Token};
 use crate::postoffice;
-use crate::server::api::util::RequestExt;
+use crate::server::api::request_ext::RequestExt;
 use crate::server::api::State;
 use crate::server::tokens::{increment_token, ProcessToken};
 use chrono::{DateTime, Utc};

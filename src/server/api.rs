@@ -1,16 +1,14 @@
 use anyhow::Result;
-use hightide::wrap;
-use sqlx::postgres::PgDatabaseError;
+use hightide::{wrap, Responder};
 use sqlx::PgPool;
+use super::status::SERVER_STATUS;
 
 mod job;
 mod project;
 mod task;
 pub mod types;
-pub mod util;
+pub mod request_ext;
 mod workers;
-
-const PG_INTEGRITY_ERROR: &str = "23";
 
 #[derive(Clone)]
 pub struct State {
@@ -35,6 +33,12 @@ pub async fn serve() -> Result<()> {
 
     let mut app = tide::with_state(state);
     app.with(tide::log::LogMiddleware::new());
+
+    // basic healthcheck to see if waterwheel is up
+    app.at("/healthcheck").get(|_req| async { Ok("OK") });
+
+    app.at("/api/status")
+        .get(wrap(status));
 
     // project
     app.at("/api/projects")
@@ -113,12 +117,10 @@ pub async fn serve() -> Result<()> {
     Ok(())
 }
 
-pub fn pg_error<T>(res: sqlx::Result<T>) -> Result<std::result::Result<T, Box<PgDatabaseError>>> {
-    match res {
-        Ok(t) => Ok(Ok(t)),
-        Err(err) => match err {
-            sqlx::Error::Database(db_err) => Ok(Err(db_err.downcast::<PgDatabaseError>())),
-            err => Err(err.into()),
-        },
-    }
+async fn status(_req: tide::Request<State>) -> tide::Result<impl Responder> {
+    let status = SERVER_STATUS.lock().await;
+
+    let json = serde_json::to_string(&*status)?;
+
+    Ok(json)
 }

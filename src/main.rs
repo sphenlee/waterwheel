@@ -15,6 +15,7 @@ pub mod messages;
 pub mod postoffice;
 mod server;
 mod worker;
+pub mod util;
 
 pub fn spawn_retry<F, Fut>(name: impl Into<String>, func: F)
 where

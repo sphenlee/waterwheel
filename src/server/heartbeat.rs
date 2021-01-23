@@ -12,6 +12,7 @@ use lapin::ExchangeKind;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use uuid::Uuid;
+use crate::server::status::SERVER_STATUS;
 
 const HEARTBEAT_EXCHANGE: &str = "waterwheel.heartbeat";
 const HEARTBEAT_QUEUE: &str = "waterwheel.heartbeat";
@@ -72,7 +73,20 @@ pub async fn process_heartbeats() -> Result<!> {
             uuid: beat.uuid.to_string(),
         });
 
-        WORKER_STATUS.lock().await.insert(beat.uuid, beat);
+        let num_workers: usize;
+        let running_tasks: u64;
+        {
+            let mut worker_status = WORKER_STATUS.lock().await;
+            worker_status.insert(beat.uuid, beat);
+            num_workers = worker_status.len();
+            running_tasks = worker_status.values().map(|hb| hb.running_tasks).sum();
+        }
+
+        {
+            let mut server_status = SERVER_STATUS.lock().await;
+            server_status.num_workers = num_workers;
+            server_status.running_tasks = running_tasks;
+        }
     }
 
     unreachable!("consumer stopped consuming")

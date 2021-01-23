@@ -14,6 +14,7 @@ use kv_log_macro::{debug, info, trace, warn};
 use sqlx::types::Uuid;
 use sqlx::Connection;
 use std::str::FromStr;
+use crate::server::status::SERVER_STATUS;
 
 const SMALL_SLEEP: std::time::Duration = std::time::Duration::from_millis(50);
 
@@ -87,6 +88,10 @@ pub async fn process_triggers() -> Result<!> {
             update_trigger(&uuid, &mut queue).await?;
         }
         trace!("no trigger updates pending - going around the scheduler loop again");
+
+        // rather than update this every place we edit the queue just do it
+        // once per loop - it's for monitoring purposes anyway
+        SERVER_STATUS.lock().await.queued_triggers = queue.len();
 
         if log::max_level() >= log::Level::Trace {
             let queue_copy = queue.clone();

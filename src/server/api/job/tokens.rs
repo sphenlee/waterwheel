@@ -1,4 +1,4 @@
-use crate::server::api::util::RequestExt;
+use crate::server::api::request_ext::RequestExt;
 use crate::server::api::State;
 use crate::postoffice;
 use chrono::{DateTime, Utc};

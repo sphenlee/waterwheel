@@ -1,14 +1,15 @@
 use super::types::Job;
-use super::util::RequestExt;
+use super::request_ext::RequestExt;
 use super::State;
-use super::{pg_error, PG_INTEGRITY_ERROR};
 use crate::postoffice;
 use crate::server::triggers::TriggerUpdate;
+use crate::util::{pg_error, PG_INTEGRITY_ERROR};
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use sqlx::Done;
 use tide::{Request, StatusCode};
 use uuid::Uuid;
+
 
 mod graph;
 mod tasks;

@@ -1,7 +1,8 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
-import { List, Avatar, Layout, Breadcrumb, PageHeader, Collapse, Tabs, Row, Col, Statistic, Spin } from 'antd';
+import { List, Avatar, Layout, Breadcrumb, PageHeader, Collapse, Tabs, Row, Col, Statistic, Spin, Tag } from 'antd';
 import { geekblue, lime, red, grey, yellow } from '@ant-design/colors';
+import { PauseOutlined } from '@ant-design/icons';
 import JSONPretty from 'react-json-pretty';
 import styled from 'styled-components';
 import axios from 'axios';
@@ -41,9 +42,9 @@ class Job extends Component {
         }
     }
 
-    componentDidMount() {
-        this.fetchJob();
-    }
+    // componentDidMount() {
+    //     this.fetchJob();
+    // }
 
     componentDidMount() {
         const { id } = this.props.match.params;
@@ -75,6 +76,7 @@ class Job extends Component {
                             onBack={() => history.replace(`/projects/${job.project_id}`)}
                             title={job.name}
                             subTitle={job.description}
+                            tags={job.paused && <Tag color="warning" icon={<PauseOutlined />}>paused</Tag>}
                         />
                         <Tabs>
                             <Tabs.TabPane tab="Overview" key="1">

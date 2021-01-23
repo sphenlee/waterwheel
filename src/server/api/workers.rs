@@ -4,7 +4,7 @@ use hightide::{Json, Responder};
 use tide::Request;
 use uuid::Uuid;
 use serde::Serialize;
-use crate::server::api::util::RequestExt;
+use crate::server::api::request_ext::RequestExt;
 use chrono::{DateTime, Utc};
 
 pub async fn list(_req: Request<State>) -> impl Responder {
