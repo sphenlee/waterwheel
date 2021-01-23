@@ -24,7 +24,14 @@ pub use triggers::{get_trigger, get_trigger_times, get_triggers_by_job};
 
 pub async fn create(mut req: Request<State>) -> tide::Result<tide::Response> {
     let data = req.body_string().await?;
-    let job: Job = serde_json::from_str(&data)?;
+    let job: Job = match serde_json::from_str(&data) {
+        Ok(json) => json,
+        Err(err) => {
+            return Response::status(StatusCode::UnprocessableEntity)
+                .body(err.to_string())
+                .into_response()
+        }
+    };
 
     let trigger_tx = postoffice::post_mail::<TriggerUpdate>().await?;
 
@@ -43,15 +50,16 @@ pub async fn create(mut req: Request<State>) -> tide::Result<tide::Response> {
             SET name = $2,
                 project_id = (SELECT id FROM project WHERE name = $3),
                 description = $4,
-                raw_definition = $5
+                paused = $5,
+                raw_definition = $6
             WHERE id = $1",
         )
     } else {
         sqlx::query(
-            "INSERT INTO job(id, name, project_id, description, raw_definition)
+            "INSERT INTO job(id, name, project_id, description, paused, raw_definition)
             VALUES($1, $2,
                 (SELECT id FROM project WHERE name = $3),
-                $4, $5)",
+                $4, $5, $6)",
         )
     };
 
@@ -60,6 +68,7 @@ pub async fn create(mut req: Request<State>) -> tide::Result<tide::Response> {
         .bind(&job.name)
         .bind(&job.project)
         .bind(&job.description)
+        .bind(&job.paused)
         .bind(serde_json::to_string(&job)?)
         .execute(&mut txn)
         .await;
@@ -117,6 +126,7 @@ struct GetJob {
     pub project_id: Uuid,
     pub name: String,
     pub description: String,
+    pub paused: bool,
 }
 
 pub async fn get_by_name(req: Request<State>) -> tide::Result<impl Responder> {
@@ -127,7 +137,8 @@ pub async fn get_by_name(req: Request<State>) -> tide::Result<impl Responder> {
             j.id AS id,
             j.name AS name,
             j.project_id AS project_id,
-            j.description AS description
+            j.description AS description,
+            j.paused AS paused
         FROM job j
         JOIN project p ON j.project_id = p.id
         WHERE j.name = $1
@@ -148,6 +159,7 @@ struct GetJobExtra {
     pub project_id: Uuid,
     pub name: String,
     pub description: String,
+    pub paused: bool,
     pub raw_definition: String,
     pub active_tasks: i64,
     pub failed_tasks_last_hour: i64,
@@ -164,6 +176,7 @@ pub async fn get_by_id(req: Request<State>) -> tide::Result<impl Responder> {
             p.name AS project,
             p.id AS project_id,
             j.description AS description,
+            j.paused AS paused,
             j.raw_definition AS raw_definition,
             (
                 SELECT count(1)
@@ -202,6 +215,8 @@ pub async fn get_by_id(req: Request<State>) -> tide::Result<impl Responder> {
 pub async fn delete(req: Request<State>) -> tide::Result<StatusCode> {
     let id = req.param::<Uuid>("id")?;
 
+    // TODO - this breaks because of foreign key constraints
+    // should we even allow deleting a job?
     let res = sqlx::query(
         "DELETE FROM job
         WHERE id = $1",
@@ -221,8 +236,89 @@ pub async fn delete(req: Request<State>) -> tide::Result<StatusCode> {
             }
         }
         Err(err) => {
-            warn!("error deleting project: {}", err);
+            warn!("error deleting job: {}", err);
             Ok(StatusCode::InternalServerError)
         }
     }
+}
+
+
+pub async fn get_paused(req: Request<State>) -> tide::Result<impl Responder> {
+    let id = req.param::<Uuid>("id")?;
+
+    let row = sqlx::query_as::<_, (bool,)>(
+        "SELECT paused
+        FROM job
+        WHERE id = $1",
+    )
+    .bind(&id)
+    .fetch_optional(&req.get_pool())
+    .await?;
+
+    match row {
+        Some((paused,)) => {
+            Response::ok().json(paused)
+        }
+        None => {
+            Ok(Response::status(StatusCode::NotFound))
+        }
+    }
+}
+
+#[derive(Deserialize)]
+struct Paused {
+    paused: bool,
+}
+
+pub async fn set_paused(mut req: Request<State>) -> impl Responder {
+    let id = req.param::<Uuid>("id")?;
+
+    let Paused { paused } = req.body_json().await?;
+
+    let row = sqlx::query(
+        "UPDATE job
+        SET paused = $2
+        WHERE id = $1",
+    )
+    .bind(&id)
+    .bind(&paused)
+    .execute(&req.get_pool())
+    .await;
+
+    match row {
+        Ok(done) => {
+            if done.rows_affected() == 1 {
+                if paused {
+                    info!("paused job {}", id);
+                } else {
+                    info!("unpaused job {}", id);
+                }
+            } else {
+                info!("no job with id {}", id);
+                return Ok(StatusCode::NotFound);
+            }
+        }
+        Err(err) => {
+            warn!("error pausing job: {}", err);
+            return Ok(StatusCode::InternalServerError);
+        }
+    }
+
+    // send trigger updates for the whole job to notify the scheduler
+    let trigger_tx = postoffice::post_mail::<TriggerUpdate>().await?;
+
+    let triggers_to_tx = sqlx::query_as::<_, (Uuid,)>(
+        "SELECT id
+        FROM trigger
+        WHERE job_id = $1",
+    )
+    .bind(&id)
+    .fetch_all(&req.get_pool())
+    .await?;
+
+    for (id,) in triggers_to_tx {
+        trigger_tx.send(TriggerUpdate(id)).await;
+    }
+
+    Ok(StatusCode::NoContent)
 }

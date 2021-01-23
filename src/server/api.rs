@@ -55,6 +55,9 @@ pub async fn serve() -> Result<()> {
     app.at("/api/jobs/:id")
         .get(wrap(job::get_by_id))
         .delete(wrap(job::delete));
+    app.at("/api/jobs/:id/paused")
+        .get(wrap(job::get_paused))
+        .put(wrap(job::set_paused));
 
     // job tokens
     app.at("/api/jobs/:id/tokens").get(wrap(job::get_tokens));

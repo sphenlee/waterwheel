@@ -47,6 +47,7 @@ async fn get_tokens_common(req: Request<State>) -> tide::Result<Vec<GetToken>> {
         AND t.job_id = $1
         AND ($2 IS NULL OR k.state = ANY($2))
         --AND ($3 IS NULL OR k.trigger_datetime > $3)
+        ORDER BY k.trigger_datetime DESC
         LIMIT 100",
     )
     .bind(job_id)
@@ -115,7 +116,7 @@ pub async fn get_tokens_overview(req: Request<State>) -> tide::Result<impl Respo
             trigger_datetime: k,
             task_states: v,
         })
-        .take(50) // TODO - change this value
+        //.take(50) // TODO - change this value
         .collect::<Vec<_>>();
 
     tokens_by_time.sort_by_key(|item| Reverse(item.trigger_datetime));

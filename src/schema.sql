@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS job (
     name VARCHAR NOT NULL,
     project_id UUID NOT NULL REFERENCES project(id),
     description VARCHAR,
+    paused BOOLEAN,
     raw_definition VARCHAR,
     UNIQUE(project_id, name) INCLUDE (id)
 );

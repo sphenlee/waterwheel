@@ -253,9 +253,9 @@ async fn update_trigger(uuid: &Uuid, queue: &mut Queue) -> Result<()> {
     queue.extend(triggers.drain(..));
 
     // get the trigger's new info from the DB
-    let trigger: Trigger = sqlx::query_as(
+    let maybe_trigger: Option<Trigger> = sqlx::query_as(
         "SELECT
-            id,
+            t.id AS id,
             start_datetime,
             end_datetime,
             earliest_trigger_datetime,
@@ -263,21 +263,27 @@ async fn update_trigger(uuid: &Uuid, queue: &mut Queue) -> Result<()> {
             period,
             cron,
             trigger_offset
-        FROM trigger
-        WHERE id = $1
+        FROM trigger t
+        JOIN job j ON t.job_id = j.id
+        WHERE t.id = $1
+        AND NOT j.paused
     ",
     )
     .bind(uuid)
-    .fetch_one(&pool)
+    .fetch_optional(&pool)
     .await?;
 
-    // do a catchup
-    let next = catchup_trigger(&trigger).await?;
+    if let Some(trigger) = maybe_trigger {
+        // do a catchup
+        let next = catchup_trigger(&trigger).await?;
 
-    if trigger.end_datetime.is_none() || next < trigger.end_datetime.unwrap() {
-        // push one trigger in the future
-        trace!("queueing trigger at {}", next, { trigger_id: trigger.id.to_string() });
-        queue.push(trigger.at(next));
+        if trigger.end_datetime.is_none() || next < trigger.end_datetime.unwrap() {
+            // push one trigger in the future
+            trace!("queueing trigger at {}", next, { trigger_id: trigger.id.to_string() });
+            queue.push(trigger.at(next));
+        }
+    } else {
+        debug!("trigger {} has been paused, it had been removed from the queue", uuid);
     }
 
     Ok(())
@@ -288,10 +294,10 @@ async fn restore_triggers(queue: &mut Queue) -> Result<()> {
 
     info!("restoring triggers from database...");
 
-    // first load all triggers from the DB
+    // first load all unpaused triggers from the DB
     let mut cursor = sqlx::query_as::<_, Trigger>(
         "SELECT
-            id,
+            t.id AS id,
             start_datetime,
             end_datetime,
             earliest_trigger_datetime,
@@ -299,7 +305,9 @@ async fn restore_triggers(queue: &mut Queue) -> Result<()> {
             period,
             cron,
             trigger_offset
-        FROM trigger
+        FROM trigger t
+        JOIN job j ON t.job_id = j.id
+        WHERE NOT j.paused
     ",
     )
     .fetch(&pool);
@@ -314,7 +322,7 @@ async fn restore_triggers(queue: &mut Queue) -> Result<()> {
         }
     }
 
-    info!("done restoring triggers from database");
+    info!("done restoring {} triggers from database", queue.len());
 
     Ok(())
 }
