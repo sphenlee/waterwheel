@@ -11,7 +11,7 @@ import Body from '../components/Body.jsx';
 import TokenTable from './Job/TokenTable.jsx';
 import Triggers from './Job/Triggers.jsx';
 import Graph from '../components/Graph.jsx';
-import Overview from './Job/Overview.jsx';
+import TaskGrid from './Job/TaskGrid.jsx';
 
 const { Content } = Layout;
 
@@ -101,9 +101,9 @@ class Job extends Component {
                                     </Col>
                                 </Row>
                             </Tabs.TabPane>
-                            <Tabs.TabPane tab="Tasks" key="2">
+                            <Tabs.TabPane tab="Grid" key="2">
                                 <Spin spinning={loading}>
-                                    <Overview id={job.id} />
+                                    <TaskGrid id={job.id} />
                                 </Spin>
                             </Tabs.TabPane>
                             <Tabs.TabPane tab="Triggers" key="3">

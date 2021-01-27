@@ -84,7 +84,7 @@ function parseData(job_id, data) {
 }
 
 
-class TokenTable extends Component {
+class TaskGrid extends Component {
     constructor(props) {
         super(props);
 
@@ -140,7 +140,6 @@ class TokenTable extends Component {
 
         return (
             <Fragment>
-                {/*<Table columns={columns} dataSource={rows} loading={rows === []} pagination={{ position: ['bottomLeft']}}/>*/}
                 <table>
                     <thead>
                         {columns}
@@ -154,4 +153,4 @@ class TokenTable extends Component {
     }
 }
 
-export default TokenTable;
+export default TaskGrid;
