@@ -14,6 +14,7 @@ mod logging;
 pub mod messages;
 pub mod postoffice;
 mod server;
+pub mod util;
 mod worker;
 
 pub fn spawn_retry<F, Fut>(name: impl Into<String>, func: F)
@@ -23,9 +24,7 @@ where
 {
     let name = name.into();
 
-    let _ = task::Builder::new()
-        .name(name.clone())
-        .spawn(async move {
+    let _ = task::spawn(async move {
             let mut cb = CircuitBreaker::new(5, Duration::minutes(1));
             while cb.retry() {
                 match func().await {
@@ -35,11 +34,11 @@ where
             }
             error!("task {} failed too many times, aborting!", name);
             std::process::exit(1);
-        })
-        .expect("spawn failed");
+        });
 }
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     dotenv::dotenv().ok();
     logging::setup();
 
@@ -52,8 +51,8 @@ fn main() -> Result<()> {
     let args = app.get_matches();
 
     match args.subcommand() {
-        ("server", Some(_args)) => task::block_on(server::run_server()),
-        ("worker", Some(_args)) => task::block_on(worker::run_worker()),
+        ("server", Some(_args)) => server::run_server().await,
+        ("worker", Some(_args)) => worker::run_worker().await,
         _ => unreachable!("clap should have already checked the subcommands"),
     }
 }

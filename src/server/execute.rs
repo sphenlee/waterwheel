@@ -17,7 +17,7 @@ const TASK_QUEUE: &str = "waterwheel.tasks";
 
 const PERSISTENT: u8 = 2;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExecuteToken(pub Token, pub TaskPriority);
 
 #[derive(sqlx::FromRow)]
@@ -35,7 +35,7 @@ struct TaskParams {
 pub async fn process_executions() -> Result<!> {
     let pool = db::get_pool();
 
-    let execute_rx = postoffice::receive_mail::<ExecuteToken>().await?;
+    let mut execute_rx = postoffice::receive_mail::<ExecuteToken>().await?;
 
     let chan = get_amqp_channel().await?;
 

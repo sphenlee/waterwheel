@@ -1,14 +1,14 @@
-use crate::server::api::util::RequestExt;
-use crate::server::api::State;
+use crate::messages::Token;
 use crate::postoffice;
+use crate::server::api::request_ext::RequestExt;
+use crate::server::api::State;
+use crate::server::tokens::ProcessToken;
 use chrono::{DateTime, Utc};
 use highnoon::{Request, Json, Responder};
 use serde::{Deserialize, Serialize};
+use std::cmp::Reverse;
 use std::collections::BTreeMap;
 use uuid::Uuid;
-use crate::server::tokens::ProcessToken;
-use crate::messages::Token;
-use std::cmp::Reverse;
 
 #[derive(Deserialize)]
 struct QueryToken {
@@ -27,10 +27,12 @@ struct GetToken {
 }
 
 async fn get_tokens_common(req: Request<State>) -> highnoon::Result<Vec<GetToken>> {
-    let job_id = req.param::<Uuid>("id")?;
+    let job_id = req.param("id")?.parse::<Uuid>()?;
     let q = req.query::<QueryToken>()?;
 
-    let states: Option<Vec<_>> = q.state.map(|s| s.split(',').map(|s| s.to_owned()).collect());
+    let states: Option<Vec<_>> = q
+        .state
+        .map(|s| s.split(',').map(|s| s.to_owned()).collect());
     //let from = q.from;
 
     let tokens = sqlx::query_as::<_, GetToken>(
@@ -46,6 +48,7 @@ async fn get_tokens_common(req: Request<State>) -> highnoon::Result<Vec<GetToken
         AND t.job_id = $1
         AND ($2 IS NULL OR k.state = ANY($2))
         --AND ($3 IS NULL OR k.trigger_datetime > $3)
+        ORDER BY k.trigger_datetime DESC
         LIMIT 100",
     )
     .bind(job_id)
@@ -114,7 +117,7 @@ pub async fn get_tokens_overview(req: Request<State>) -> highnoon::Result<impl R
             trigger_datetime: k,
             task_states: v,
         })
-        .take(50) // TODO - change this value
+        //.take(50) // TODO - change this value
         .collect::<Vec<_>>();
 
     tokens_by_time.sort_by_key(|item| Reverse(item.trigger_datetime));
@@ -126,8 +129,8 @@ pub async fn get_tokens_overview(req: Request<State>) -> highnoon::Result<impl R
 }
 
 pub async fn get_tokens_trigger_datetime(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let job_id = req.param::<Uuid>("id")?;
-    let trigger_datetime = req.param::<DateTime<Utc>>("trigger_datetime")?;
+    let job_id = req.param("id")?.parse::<Uuid>()?;
+    let trigger_datetime = req.param("trigger_datetime")?.parse::<DateTime<Utc>>()?;
 
     let tokens = sqlx::query_as::<_, GetToken>(
         "SELECT
@@ -157,8 +160,8 @@ struct ClearTokens {
 }
 
 pub async fn clear_tokens_trigger_datetime(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let job_id = req.param::<Uuid>("id")?;
-    let trigger_datetime = req.param::<DateTime<Utc>>("trigger_datetime")?;
+    let job_id = req.param("id")?.parse::<Uuid>()?;
+    let trigger_datetime = req.param("trigger_datetime")?.parse::<DateTime<Utc>>()?;
 
     let task_ids: Vec<(Uuid,)> = sqlx::query_as(
         "UPDATE token k
@@ -179,9 +182,9 @@ pub async fn clear_tokens_trigger_datetime(req: Request<State>) -> highnoon::Res
     for (id,) in &task_ids {
         let token = Token {
             task_id: id.clone(),
-            trigger_datetime: trigger_datetime.clone()
+            trigger_datetime: trigger_datetime.clone(),
         };
-        tokens_tx.send(ProcessToken::Clear(token)).await;
+        tokens_tx.send(ProcessToken::Clear(token))?;
     }
 
     let body = ClearTokens {

@@ -56,8 +56,7 @@ pub async fn process_progress() -> Result<!> {
         // after committing the transaction we can tell the token processor to check thresholds
         for token in tokens_to_tx {
             token_tx
-                .send(ProcessToken::Increment(token, TaskPriority::Normal))
-                .await;
+                .send(ProcessToken::Increment(token, TaskPriority::Normal))?;
         }
     }
 

@@ -46,6 +46,6 @@ pub async fn heartbeat(addr: SocketAddr) -> Result<!> {
         )
         .await?;
 
-        tokio::task::sleep(std::time::Duration::from_secs(5)).await;
+        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
     }
 }

@@ -1,10 +1,10 @@
 use crate::server::api::State;
+use crate::server::api::request_ext::RequestExt;
 use crate::server::heartbeat::WORKER_STATUS;
 use highnoon::{Json, Responder, Request};
-use uuid::Uuid;
-use serde::Serialize;
-use crate::server::api::util::RequestExt;
 use chrono::{DateTime, Utc};
+use serde::Serialize;
+use uuid::Uuid;
 
 pub async fn list(_req: Request<State>) -> impl Responder {
     let status = WORKER_STATUS.lock().await;
@@ -30,7 +30,7 @@ struct GetWorkerTask {
 }
 
 pub async fn tasks(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let id = req.param::<Uuid>("id")?;
+    let id = req.param("id")?.parse::<Uuid>()?;
 
     let tasks = sqlx::query_as::<_, GetWorkerTask>(
         "SELECT

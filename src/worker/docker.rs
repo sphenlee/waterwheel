@@ -8,8 +8,8 @@ use bollard::image::{CreateImageOptions, ListImagesOptions};
 use futures::TryStreamExt;
 use kv_log_macro::{info, trace};
 use serde::Serialize;
-use tokio::io::AsyncWriteExt;
 use std::collections::HashMap;
+use tokio::io::AsyncWriteExt;
 
 #[derive(Serialize)]
 struct LogMeta<'a> {
@@ -49,14 +49,14 @@ pub async fn run_docker(task_def: TaskDef) -> Result<bool> {
     let mut filters = HashMap::new();
     filters.insert("reference", vec![&*image]);
 
-    trace!("listing images", {
-        filters: format!("{:?}", filters)
-    });
+            trace!("listing images", { filters: format!("{:?}", filters) });
 
-    let list = docker.list_images(Some(ListImagesOptions {
+            let list = docker
+                .list_images(Some(ListImagesOptions {
         filters,
         ..ListImagesOptions::default()
-    })).await?;
+                }))
+                .await?;
 
     trace!("got {} images", list.len());
 
@@ -131,7 +131,7 @@ pub async fn run_docker(task_def: TaskDef) -> Result<bool> {
         vector.write(b"\n").await?;
     }
 
-    vector.shutdown(std::net::Shutdown::Both)?;
+    vector.shutdown().await?;
 
     let mut waiter =
         docker.wait_container(&container.id, None::<WaitContainerOptions<String>>);

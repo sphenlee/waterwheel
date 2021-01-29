@@ -1,15 +1,14 @@
+use super::status::SERVER_STATUS;
 use anyhow::Result;
-use sqlx::postgres::PgDatabaseError;
 use sqlx::PgPool;
+use highnoon::{Request, Responder};
 
 mod job;
 mod project;
+pub mod request_ext;
 mod task;
 pub mod types;
-pub mod util;
 mod workers;
-
-const PG_INTEGRITY_ERROR: &str = "23";
 
 #[derive(Clone)]
 pub struct State {
@@ -20,9 +19,11 @@ pub struct State {
 macro_rules! get_file {
     ($file:expr => $mime:expr) => {
         |_req| async {
-            let mut body = tide::Body::from(include_str!($file));
-            body.set_mime($mime);
-            Ok(body)
+            use highnoon::{Response, headers::ContentType, Mime};
+
+            let body = include_str!($file);
+            Response::ok().body(body)
+                .header(ContentType::from($mime.parse::<Mime>().unwrap()))
         }
     };
 }
@@ -34,6 +35,11 @@ pub async fn serve() -> Result<()> {
 
     let mut app = highnoon::App::new(state);
     //app.with(tide::log::LogMiddleware::new());
+
+    // basic healthcheck to see if waterwheel is up
+    app.at("/healthcheck").get(|_req| async { Ok("OK") });
+
+    app.at("/api/status").get(status);
 
     // project
     app.at("/api/projects")
@@ -54,6 +60,9 @@ pub async fn serve() -> Result<()> {
     app.at("/api/jobs/:id")
         .get(job::get_by_id)
         .delete(job::delete);
+    app.at("/api/jobs/:id/paused")
+        .get(job::get_paused)
+        .put(job::set_paused);
 
     // job tokens
     app.at("/api/jobs/:id/tokens").get(job::get_tokens);
@@ -86,10 +95,10 @@ pub async fn serve() -> Result<()> {
 
     #[cfg(debug_assertions)]
     {
-        app.at("/static").serve_dir("ui/dist/")?;
+        app.at("/static").static_files("ui/dist/");
         app.at("/").get(|_req| async {
             let body = highnoon::Response::ok()
-                .body()::from_file("ui/dist/index.html").await?;
+                .path("ui/dist/index.html").await?;
             Ok(body)
         });
     }
@@ -110,12 +119,10 @@ pub async fn serve() -> Result<()> {
     Ok(())
 }
 
-pub fn pg_error<T>(res: sqlx::Result<T>) -> Result<std::result::Result<T, Box<PgDatabaseError>>> {
-    match res {
-        Ok(t) => Ok(Ok(t)),
-        Err(err) => match err {
-            sqlx::Error::Database(db_err) => Ok(Err(db_err.downcast::<PgDatabaseError>())),
-            err => Err(err.into()),
-        },
-    }
+async fn status(_req: Request<State>) -> highnoon::Result<impl Responder> {
+    let status = SERVER_STATUS.lock().await;
+
+    let json = serde_json::to_string(&*status)?;
+
+    Ok(json)
 }

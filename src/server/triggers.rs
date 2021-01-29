@@ -1,10 +1,10 @@
 use crate::messages::{TaskPriority, Token};
+use crate::server::status::SERVER_STATUS;
 use crate::server::tokens::{increment_token, ProcessToken};
 use crate::server::trigger_time::TriggerTime;
 use crate::{db, postoffice};
 use anyhow::Result;
-use tokio::time::timeout;
-use tokio::task;
+use tokio::time::{self, timeout};
 use binary_heap_plus::{BinaryHeap, MinComparator};
 use chrono::{DateTime, Duration, Utc};
 use cron::Schedule;
@@ -19,6 +19,7 @@ const SMALL_SLEEP: std::time::Duration = std::time::Duration::from_millis(50);
 
 type Queue = BinaryHeap<TriggerTime, MinComparator>;
 
+#[derive(Clone, Debug)]
 pub struct TriggerUpdate(pub Uuid);
 
 #[derive(sqlx::FromRow, Debug)]
@@ -69,7 +70,7 @@ impl Trigger {
 }
 
 pub async fn process_triggers() -> Result<!> {
-    let trigger_rx = postoffice::receive_mail::<TriggerUpdate>().await?;
+    let mut trigger_rx = postoffice::receive_mail::<TriggerUpdate>().await?;
     let mut queue = Queue::new_min();
 
     restore_triggers(&mut queue).await?;
@@ -87,6 +88,10 @@ pub async fn process_triggers() -> Result<!> {
             update_trigger(&uuid, &mut queue).await?;
         }
         trace!("no trigger updates pending - going around the scheduler loop again");
+
+        // rather than update this every place we edit the queue just do it
+        // once per loop - it's for monitoring purposes anyway
+        SERVER_STATUS.lock().await.queued_triggers = queue.len();
 
         if log::max_level() >= log::Level::Trace {
             let queue_copy = queue.clone();
@@ -108,7 +113,7 @@ pub async fn process_triggers() -> Result<!> {
                 trigger_id: next_triggertime.trigger_id.to_string()
             });
 
-            let sleep = Box::pin(task::sleep(delay.to_std()?));
+            let sleep = Box::pin(time::sleep(delay.to_std()?));
             let recv = Box::pin(trigger_rx.recv());
 
             match future::select(recv, sleep).await {
@@ -188,7 +193,8 @@ async fn activate_trigger(trigger_time: TriggerTime, priority: TaskPriority) -> 
 
     // after committing the transaction we can tell the token processor to check thresholds
     for token in tokens_to_tx {
-        token_tx.send(ProcessToken::Increment(token, priority)).await;
+        token_tx
+            .send(ProcessToken::Increment(token, priority))?;
     }
 
     Ok(())
@@ -253,9 +259,9 @@ async fn update_trigger(uuid: &Uuid, queue: &mut Queue) -> Result<()> {
     queue.extend(triggers.drain(..));
 
     // get the trigger's new info from the DB
-    let trigger: Trigger = sqlx::query_as(
+    let maybe_trigger: Option<Trigger> = sqlx::query_as(
         "SELECT
-            id,
+            t.id AS id,
             start_datetime,
             end_datetime,
             earliest_trigger_datetime,
@@ -263,21 +269,30 @@ async fn update_trigger(uuid: &Uuid, queue: &mut Queue) -> Result<()> {
             period,
             cron,
             trigger_offset
-        FROM trigger
-        WHERE id = $1
+        FROM trigger t
+        JOIN job j ON t.job_id = j.id
+        WHERE t.id = $1
+        AND NOT j.paused
     ",
     )
     .bind(uuid)
-    .fetch_one(&pool)
+    .fetch_optional(&pool)
     .await?;
 
-    // do a catchup
-    let next = catchup_trigger(&trigger).await?;
+    if let Some(trigger) = maybe_trigger {
+        // do a catchup
+        let next = catchup_trigger(&trigger).await?;
 
-    if trigger.end_datetime.is_none() || next < trigger.end_datetime.unwrap() {
-        // push one trigger in the future
-        trace!("queueing trigger at {}", next, { trigger_id: trigger.id.to_string() });
-        queue.push(trigger.at(next));
+        if trigger.end_datetime.is_none() || next < trigger.end_datetime.unwrap() {
+            // push one trigger in the future
+            trace!("queueing trigger at {}", next, { trigger_id: trigger.id.to_string() });
+            queue.push(trigger.at(next));
+        }
+    } else {
+        debug!(
+            "trigger {} has been paused, it had been removed from the queue",
+            uuid
+        );
     }
 
     Ok(())
@@ -288,10 +303,10 @@ async fn restore_triggers(queue: &mut Queue) -> Result<()> {
 
     info!("restoring triggers from database...");
 
-    // first load all triggers from the DB
+    // first load all unpaused triggers from the DB
     let mut cursor = sqlx::query_as::<_, Trigger>(
         "SELECT
-            id,
+            t.id AS id,
             start_datetime,
             end_datetime,
             earliest_trigger_datetime,
@@ -299,7 +314,9 @@ async fn restore_triggers(queue: &mut Queue) -> Result<()> {
             period,
             cron,
             trigger_offset
-        FROM trigger
+        FROM trigger t
+        JOIN job j ON t.job_id = j.id
+        WHERE NOT j.paused
     ",
     )
     .fetch(&pool);
@@ -314,7 +331,7 @@ async fn restore_triggers(queue: &mut Queue) -> Result<()> {
         }
     }
 
-    info!("done restoring triggers from database");
+    info!("done restoring {} triggers from database", queue.len());
 
     Ok(())
 }

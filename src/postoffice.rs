@@ -1,17 +1,16 @@
 use anyhow::Result;
-use tokio::sync::{Mutex, mpsc::Sender, mpsc::Receiver};
+use tokio::sync::{Mutex, broadcast::Sender, broadcast::Receiver};
 use once_cell::sync::OnceCell;
 use typemap::SendMap;
 
 struct Mailbox<T> {
     tx: Sender<T>,
-    rx: Receiver<T>,
 }
 
-impl<T> Mailbox<T> {
+impl<T: Clone> Mailbox<T> {
     fn new() -> Mailbox<T> {
-        let (tx, rx) = tokio::sync::mpsc::channel(32);
-        Mailbox { tx, rx }
+        let (tx, _) = tokio::sync::broadcast::channel(32);
+        Mailbox { tx }
     }
 }
 
@@ -30,7 +29,7 @@ pub fn open() -> Result<()> {
     Ok(())
 }
 
-async fn with_mailbox<T: Send + 'static, F, R>(f: F) -> Result<R>
+async fn with_mailbox<T: Clone + Send + 'static, F, R>(f: F) -> Result<R>
 where
     F: FnOnce(&mut Mailbox<T>) -> Result<R>,
 {
@@ -47,10 +46,10 @@ where
     f(mailbox)
 }
 
-pub async fn receive_mail<T: Send + 'static>() -> Result<Receiver<T>> {
-    with_mailbox(|mailbox| Ok(mailbox.rx.clone())).await
+pub async fn receive_mail<T: Clone + Send + 'static>() -> Result<Receiver<T>> {
+    with_mailbox(|mailbox| Ok(mailbox.tx.subscribe())).await
 }
 
-pub async fn post_mail<T: Send + 'static>() -> Result<Sender<T>> {
+pub async fn post_mail<T: Clone + Send + 'static>() -> Result<Sender<T>> {
     with_mailbox(|mailbox| Ok(mailbox.tx.clone())).await
 }

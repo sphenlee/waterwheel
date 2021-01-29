@@ -1,7 +1,6 @@
 use crate::postoffice;
 use crate::{amqp, spawn_retry};
 use anyhow::Result;
-use tokio::net::TcpListener;
 
 use kv_log_macro::info;
 use once_cell::sync::Lazy;
@@ -36,13 +35,14 @@ pub async fn run_worker() -> Result<()> {
 
     info!("worker id {}", *WORKER_ID);
 
-    let tcp = TcpListener::bind(host).await?;
+    let addr = host.parse()?;
+    /*let tcp = TcpListener::bind(host).await?;
     let addr = tcp.local_addr()?;
-    info!("worker listening on {}", addr);
+    info!("worker listening on {}", addr);*/
 
     spawn_retry("heartbeat", move || heartbeat::heartbeat(addr));
 
-    app.listen(tcp).await?;
+    app.listen(addr).await?;
 
     Ok(())
 }

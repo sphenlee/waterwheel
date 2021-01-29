@@ -1,7 +1,8 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
-import { List, Avatar, Layout, Breadcrumb, PageHeader, Collapse, Tabs, Row, Col, Statistic, Spin } from 'antd';
+import { List, Avatar, Layout, Breadcrumb, PageHeader, Collapse, Tabs, Row, Col, Statistic, Spin, Tag } from 'antd';
 import { geekblue, lime, red, grey, yellow } from '@ant-design/colors';
+import { PauseOutlined } from '@ant-design/icons';
 import JSONPretty from 'react-json-pretty';
 import styled from 'styled-components';
 import axios from 'axios';
@@ -10,7 +11,7 @@ import Body from '../components/Body.jsx';
 import TokenTable from './Job/TokenTable.jsx';
 import Triggers from './Job/Triggers.jsx';
 import Graph from '../components/Graph.jsx';
-import Overview from './Job/Overview.jsx';
+import TaskGrid from './Job/TaskGrid.jsx';
 
 const { Content } = Layout;
 
@@ -41,9 +42,9 @@ class Job extends Component {
         }
     }
 
-    componentDidMount() {
-        this.fetchJob();
-    }
+    // componentDidMount() {
+    //     this.fetchJob();
+    // }
 
     componentDidMount() {
         const { id } = this.props.match.params;
@@ -75,6 +76,7 @@ class Job extends Component {
                             onBack={() => history.replace(`/projects/${job.project_id}`)}
                             title={job.name}
                             subTitle={job.description}
+                            tags={job.paused && <Tag color="warning" icon={<PauseOutlined />}>paused</Tag>}
                         />
                         <Tabs>
                             <Tabs.TabPane tab="Overview" key="1">
@@ -99,9 +101,9 @@ class Job extends Component {
                                     </Col>
                                 </Row>
                             </Tabs.TabPane>
-                            <Tabs.TabPane tab="Tasks" key="2">
+                            <Tabs.TabPane tab="Grid" key="2">
                                 <Spin spinning={loading}>
-                                    <Overview id={job.id} />
+                                    <TaskGrid id={job.id} />
                                 </Spin>
                             </Tabs.TabPane>
                             <Tabs.TabPane tab="Triggers" key="3">

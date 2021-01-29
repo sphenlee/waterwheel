@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Table, Select, notification } from 'antd';
 import { geekblue, lime, red, grey, yellow } from '@ant-design/colors';
 import axios from 'axios';
+import styled from 'styled-components';
 
 import {
   CheckCircleOutlined,
@@ -17,6 +18,20 @@ import {
 import State from '../../components/State.jsx';
 
 const { Option } = Select;
+
+const HeaderCell = styled.td`
+    writing-mode: vertical-rl;
+`;
+
+const Cell = styled.td`
+    border-bottom: 1px solid #ddd;
+    padding-right: 15px;
+`;
+
+const Row = styled.tr`
+    padding-bottom: 15px;
+`;
+
 
 function iconForState(tok) {
     if (tok === undefined) {
@@ -41,59 +56,27 @@ function iconForState(tok) {
 function parseData(job_id, data) {
     let {tasks, tokens} = data;
 
-/*    let columns = [
-      {
-        title: 'Trigger Time',
-        dataIndex: 'trigger_datetime',
-        key: 'trigger_datetime',
-        render: (text, record) => (
-                <Link to={`/jobs/${job_id}/tokens/${record.trigger_datetime}`}>
-                    {text}
-                </Link>
-            )
-      }
-    ].concat(tasks.map(t => ({
-        title: t,
-        dataIndex: t,
-        key: t + '.task_id',
-        render: (text, record) => {
-            if (text !== undefined) {
-                return <State state={text.state} />;
-            } else {
-                return <div />;
-            }
-        }
-    })));
 
-    console.log('cols', columns);
+    let columns = <tr>{[
+        <td key="trigger_datetime">Trigger Datetime</td>
+    ].concat(tasks.map(t => (<HeaderCell key={t}>{t}</HeaderCell>)))
+}</tr>;
 
-    let rows = tokens.map(t => ({
-        trigger_datetime: t.trigger_datetime,
-        ...t.task_states,
-    }));
-
-    console.log('rows', rows);
-*/
-    let columns = [
-        <td>Trigger Datetime</td>
-    ].concat(tasks.map(t => (<td style={{writingMode: 'vertical-rl'}}>{t}</td>)));
-
-    let style = {
-        borderBottom: '1px solid #ddd'
-    };
 
     let rows = tokens.map(tok => (
-        <tr>{
+        <Row key={tok.trigger_datetime}>{
             [
-                <td style={style}>
+                <Cell key="trigger_datetime">
                     <Link to={`/jobs/${job_id}/tokens/${tok.trigger_datetime}`}>
                         {tok.trigger_datetime}
                     </Link>
-                </td>
+                </Cell>
             ].concat(tasks.map(t => (
-                <td style={style}>{iconForState(tok.task_states[t])}</td>
+                <Cell key={t}>
+                    {iconForState(tok.task_states[t])}
+                </Cell>
             )))
-        }</tr>
+        }</Row>
     ));
 
 
@@ -101,7 +84,7 @@ function parseData(job_id, data) {
 }
 
 
-class TokenTable extends Component {
+class TaskGrid extends Component {
     constructor(props) {
         super(props);
 
@@ -157,7 +140,6 @@ class TokenTable extends Component {
 
         return (
             <Fragment>
-                {/*<Table columns={columns} dataSource={rows} loading={rows === []} pagination={{ position: ['bottomLeft']}}/>*/}
                 <table>
                     <thead>
                         {columns}
@@ -171,4 +153,4 @@ class TokenTable extends Component {
     }
 }
 
-export default TokenTable;
+export default TaskGrid;

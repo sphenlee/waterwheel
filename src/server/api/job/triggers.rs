@@ -1,5 +1,5 @@
+use crate::server::api::request_ext::RequestExt;
 use crate::server::api::types::{period_from_string, Job, Trigger};
-use crate::server::api::util::RequestExt;
 use crate::server::api::State;
 use anyhow::Result;
 use chrono::{DateTime, Utc};
@@ -119,7 +119,7 @@ pub struct GetTriggerByJob {
 }
 
 pub async fn get_triggers_by_job(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let job_id = req.param::<Uuid>("id")?;
+    let job_id = req.param("id")?.parse::<Uuid>()?;
 
     let triggers = sqlx::query_as::<_, GetTriggerByJob>(
         "SELECT
@@ -154,7 +154,7 @@ pub struct GetTrigger {
 }
 
 pub async fn get_trigger(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let trigger_id = req.param::<Uuid>("id")?;
+    let trigger_id = req.param("id")?.parse::<Uuid>()?;
 
     let triggers = sqlx::query_as::<_, GetTrigger>(
         "SELECT
@@ -187,7 +187,7 @@ pub struct GetTriggerTimes {
 }
 
 pub async fn get_trigger_times(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let trigger_id = req.param::<Uuid>("id")?;
+    let trigger_id = req.param("id")?.parse::<Uuid>()?;
 
     let triggers = sqlx::query_as::<_, GetTriggerTimes>(
         "WITH these_triggers AS (

@@ -1,5 +1,6 @@
-use super::util::RequestExt;
-use super::{pg_error, State, PG_INTEGRITY_ERROR};
+use super::request_ext::RequestExt;
+use super::State;
+use crate::util::{pg_error, PG_INTEGRITY_ERROR};
 use highnoon::{Json, Responder, Response, Request, StatusCode};
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
@@ -35,14 +36,14 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
                 name: proj.name,
                 description: proj.description,
             };
-            Ok(Response::status(StatusCode::Created).json(proj)?)
+            Ok(Response::status(StatusCode::CREATED).json(proj)?)
         }
         Err(err) => {
             warn!("error creating project: {}", err);
             if &err.code()[..2] == PG_INTEGRITY_ERROR {
-                Ok(Response::status(StatusCode::Conflict))
+                Ok(Response::status(StatusCode::CONFLICT))
             } else {
-                Ok(Response::status(StatusCode::InternalServerError))
+                Ok(Response::status(StatusCode::INTERNAL_SERVER_ERROR))
             }
         }
     }
@@ -67,14 +68,14 @@ pub async fn update(mut req: Request<State>) -> highnoon::Result<StatusCode> {
     match pg_error(res)? {
         Ok(_done) => {
             info!("updated project {} -> {}", proj.name, id);
-            Ok(StatusCode::Created)
+            Ok(StatusCode::CREATED)
         }
         Err(err) => {
             warn!("error creating project: {}", err);
             if &err.code()[..2] == PG_INTEGRITY_ERROR {
-                Ok(StatusCode::Conflict)
+                Ok(StatusCode::CONFLICT)
             } else {
-                Ok(StatusCode::InternalServerError)
+                Ok(StatusCode::INTERNAL_SERVER_ERROR)
             }
         }
     }
@@ -117,7 +118,7 @@ pub async fn get_by_name(req: Request<State>) -> impl Responder {
         .await?;
 
         Ok(match row {
-            None => Response::status(StatusCode::NotFound),
+            None => Response::status(StatusCode::NOT_FOUND),
             Some(proj) => Response::ok().json(proj)?,
         })
     } else {
@@ -137,7 +138,7 @@ struct ProjectExtra {
 }
 
 pub async fn get_by_id(req: Request<State>) -> highnoon::Result<Response> {
-    let id_str = req.param::<String>("id")?;
+    let id_str = req.param("id")?;
     let id = Uuid::parse_str(&id_str)?;
 
     let row = sqlx::query_as::<_, ProjectExtra>(
@@ -184,13 +185,13 @@ pub async fn get_by_id(req: Request<State>) -> highnoon::Result<Response> {
     .await?;
 
     Ok(match row {
-        None => Response::status(StatusCode::NotFound),
+        None => Response::status(StatusCode::NOT_FOUND),
         Some(proj) => Response::ok().json(proj)?,
     })
 }
 
 pub async fn delete(req: Request<State>) -> highnoon::Result<StatusCode> {
-    let id_str = req.param::<String>("id")?;
+    let id_str = req.param("id")?;
     let id = Uuid::parse_str(&id_str)?;
 
     let res = sqlx::query(
@@ -205,15 +206,15 @@ pub async fn delete(req: Request<State>) -> highnoon::Result<StatusCode> {
         Ok(done) => {
             if done.rows_affected() == 1 {
                 info!("deleted project {}", id);
-                Ok(StatusCode::NoContent)
+                Ok(StatusCode::NO_CONTENT)
             } else {
                 info!("no project with id {}", id);
-                Ok(StatusCode::NotFound)
+                Ok(StatusCode::NOT_FOUND)
             }
         }
         Err(err) => {
             warn!("error deleting project: {}", err);
-            Ok(StatusCode::InternalServerError)
+            Ok(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
 }
@@ -226,7 +227,7 @@ struct ListJob {
 }
 
 pub async fn list_jobs(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let id_str = req.param::<String>("id")?;
+    let id_str = req.param("id")?;
     let id = Uuid::parse_str(&id_str)?;
 
     let jobs = sqlx::query_as::<_, ListJob>(

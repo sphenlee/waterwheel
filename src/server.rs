@@ -7,6 +7,7 @@ mod api;
 mod execute;
 mod heartbeat;
 mod progress;
+pub mod status;
 pub mod tokens;
 mod trigger_time;
 mod triggers;

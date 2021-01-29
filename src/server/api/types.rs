@@ -20,6 +20,8 @@ pub struct Job {
     pub project: String,
     pub name: String,
     pub description: String,
+    #[serde(default)]
+    pub paused: bool,
     pub triggers: Vec<Trigger>,
     pub tasks: Vec<Task>,
 }
