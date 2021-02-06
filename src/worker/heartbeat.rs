@@ -1,7 +1,6 @@
 use crate::amqp::get_amqp_channel;
 use crate::messages::WorkerHeartbeat;
 use anyhow::Result;
-use std::net::SocketAddr;
 
 use chrono::Utc;
 use kv_log_macro::trace;
@@ -14,7 +13,7 @@ use std::sync::atomic::Ordering;
 
 const HEARTBEAT_EXCHANGE: &str = "waterwheel.heartbeat";
 
-pub async fn heartbeat(addr: SocketAddr) -> Result<!> {
+pub async fn heartbeat() -> Result<!> {
     let chan = get_amqp_channel().await?;
 
     // declare outgoing exchange
@@ -37,7 +36,7 @@ pub async fn heartbeat(addr: SocketAddr) -> Result<!> {
             BasicPublishOptions::default(),
             serde_json::to_vec(&WorkerHeartbeat {
                 uuid: *WORKER_ID,
-                addr: addr.to_string(),
+                addr: "TODO".to_owned(),
                 last_seen_datetime: Utc::now(),
                 running_tasks: RUNNING_TASKS.load(Ordering::Relaxed),
                 total_tasks: TOTAL_TASKS.load(Ordering::Relaxed),

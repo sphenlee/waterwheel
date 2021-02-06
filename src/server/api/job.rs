@@ -6,7 +6,6 @@ use crate::server::triggers::TriggerUpdate;
 use crate::util::{pg_error, PG_INTEGRITY_ERROR};
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
-use sqlx::Done;
 use highnoon::{Request, StatusCode, Json, Response, Responder};
 use uuid::Uuid;
 

@@ -95,7 +95,7 @@ pub async fn serve() -> Result<()> {
 
     #[cfg(debug_assertions)]
     {
-        app.at("/static").static_files("ui/dist/");
+        app.at("/static/*").static_files("ui/dist/");
         app.at("/").get(|_req| async {
             let body = highnoon::Response::ok()
                 .path("ui/dist/index.html").await?;
@@ -114,7 +114,7 @@ pub async fn serve() -> Result<()> {
     let host =
         std::env::var("WATERWHEEL_SERVER_ADDR").unwrap_or_else(|_| "127.0.0.1:8080".to_owned());
 
-    app.listen(host.parse()?).await?;
+    app.listen(host).await?;
 
     Ok(())
 }

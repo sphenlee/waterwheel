@@ -35,14 +35,13 @@ pub async fn run_worker() -> Result<()> {
 
     info!("worker id {}", *WORKER_ID);
 
-    let addr = host.parse()?;
     /*let tcp = TcpListener::bind(host).await?;
     let addr = tcp.local_addr()?;
-    info!("worker listening on {}", addr);*/
+    info!("worker listening on {}", host);*/
 
-    spawn_retry("heartbeat", move || heartbeat::heartbeat(addr));
+    spawn_retry("heartbeat", move || heartbeat::heartbeat());
 
-    app.listen(addr).await?;
+    app.listen(host).await?;
 
     Ok(())
 }

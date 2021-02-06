@@ -1,5 +1,5 @@
 use log::{debug, info, trace};
-use sqlx::{Done, Executor, PgPool};
+use sqlx::{Executor, PgPool};
 
 const SCHEMA: &str = include_str!("schema.sql");
 

@@ -4,7 +4,6 @@ use crate::util::{pg_error, PG_INTEGRITY_ERROR};
 use highnoon::{Json, Responder, Response, Request, StatusCode};
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
-use sqlx::Done;
 use uuid::Uuid;
 
 #[derive(Deserialize)]

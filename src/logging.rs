@@ -6,7 +6,7 @@ use std::io::Write;
 
 pub fn setup() {
     if std::fs::metadata("log4rs.yaml").is_ok() {
-        log4rs::init_file("log4rs.yaml", log4rs::file::Deserializers::default())
+        log4rs::init_file("log4rs.yaml", log4rs::config::Deserializers::default())
             .expect("failed installing log4rs logger");
     } else {
         env_logger::builder().format(env_log_format_with_kv).init();
