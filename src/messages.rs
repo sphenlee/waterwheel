@@ -1,10 +1,11 @@
-use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 // state of a token
 // TODO - strings are still hardcoded, use the enum!
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all="lowercase")]
 pub enum TokenState {
     // waiting for the count to reach the threshold
     Waiting,
@@ -14,8 +15,38 @@ pub enum TokenState {
     Running,
     // task completed successfully
     Success,
-    // tails failed
+    // task failed
     Failure,
+}
+
+impl TokenState {
+    pub fn to_string(&self) -> &'static str {
+        match self {
+            TokenState::Waiting => "waiting",
+            TokenState::Active => "active",
+            TokenState::Running => "running",
+            TokenState::Success => "success",
+            TokenState::Failure => "failure",
+        }
+    }
+
+    pub fn from_string(s: &str) -> Self {
+        match s {
+            "waiting" => TokenState::Waiting,
+            "active" => TokenState::Active,
+            "running" => TokenState::Running,
+            "success" => TokenState::Success,
+            "failure" => TokenState::Failure,
+            _ => panic!("invalid token state! {}", s)
+        }
+    }
+
+    pub fn is_final(&self) -> bool {
+        match self {
+            TokenState::Success | TokenState::Failure => true,
+            _ => false,
+        }
+    }
 }
 
 // TODO - move this out into general code
@@ -41,24 +72,24 @@ pub struct TaskDef {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct TaskResult {
+pub struct TaskProgress {
     pub task_run_id: Uuid,
     pub task_id: Uuid,
     pub trigger_datetime: DateTime<Utc>,
     pub started_datetime: DateTime<Utc>,
-    pub finished_datetime: DateTime<Utc>,
-    pub result: String,
+    pub finished_datetime: Option<DateTime<Utc>>,
+    pub result: TokenState,
     pub worker_id: Uuid,
 }
 
-impl TaskResult {
-    pub fn get_token(&self) -> Result<Token> {
-        Ok(Token {
-            task_id: self.task_id.clone(),
-            trigger_datetime: self.trigger_datetime.clone(),
-        })
-    }
-}
+// impl TaskProgress {
+//     pub fn get_token(&self) -> Result<Token> {
+//         Ok(Token {
+//             task_id: self.task_id.clone(),
+//             trigger_datetime: self.trigger_datetime.clone(),
+//         })
+//     }
+// }
 
 #[repr(u8)]
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]

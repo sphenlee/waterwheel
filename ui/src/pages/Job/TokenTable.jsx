@@ -100,7 +100,7 @@ class TokenTable extends Component {
             <Fragment>
                 <Select
                   mode="multiple"
-                  defaultValue={["active"]}
+                  defaultValue={["active", "running"]}
                   style={{ width: 350 }}
                   onChange={(value) => {
                     this.setState({
@@ -111,6 +111,7 @@ class TokenTable extends Component {
                   }}
                 >
                     <Option value="active">Active</Option>
+                    <Option value="running">Running</Option>
                     <Option value="success">Success</Option>
                     <Option value="failure">Failure</Option>
                     <Option value="waiting">Waiting</Option>

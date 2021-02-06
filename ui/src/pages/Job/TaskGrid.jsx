@@ -41,6 +41,8 @@ function iconForState(tok) {
     let state = tok.state;
 
     if (state == 'active') {
+        return <SyncOutlined style={{color: grey[5]}}/>;
+    } else if (state == 'running') {
         return <SyncOutlined spin style={{color: geekblue[5]}}/>;
     } else if (state == 'waiting') {
         return <ClockCircleOutlined style={{color: grey[5]}}/>;
