@@ -23,7 +23,7 @@ function makeColumns() {
     trigger_datetime: DateTime<Utc>,
     queued_datetime: DateTime<Utc>,
     started_datetime: DateTime<Utc>,
-    finish_datetime: DateTime<Utc>,
+    finish_datetime: Option<DateTime<Utc>>,
     state: String,
     */
     return [
@@ -50,7 +50,7 @@ function makeColumns() {
         },{
             title: 'Finished Time',
             dataIndex: 'finish_datetime',
-            render: text => <RelDate>{text}</RelDate>,
+            render: text => (text && <RelDate>{text}</RelDate>),
         },{
             title: 'State',
             dataIndex: 'state',

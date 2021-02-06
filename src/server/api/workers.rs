@@ -25,7 +25,7 @@ struct GetWorkerTask {
     trigger_datetime: DateTime<Utc>,
     queued_datetime: DateTime<Utc>,
     started_datetime: DateTime<Utc>,
-    finish_datetime: DateTime<Utc>,
+    finish_datetime: Option<DateTime<Utc>>,
     state: String,
 }
 

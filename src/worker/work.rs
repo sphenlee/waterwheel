@@ -1,5 +1,5 @@
 use crate::amqp::get_amqp_channel;
-use crate::messages::{TaskDef, TaskResult};
+use crate::messages::{TaskDef, TaskProgress, TokenState};
 use crate::worker::docker;
 use anyhow::Result;
 
@@ -13,7 +13,7 @@ use lapin::types::FieldTable;
 use lapin::{BasicProperties, ExchangeKind};
 
 use super::{RUNNING_TASKS, TOTAL_TASKS, WORKER_ID};
-use chrono::Utc;
+use chrono::{Utc, DateTime};
 use std::sync::atomic::Ordering;
 
 // TODO - queues should be configurable for task routing
@@ -94,6 +94,20 @@ pub async fn process_work() -> Result<!> {
             started_datetime: started_datetime.to_rfc3339(),
         });
 
+        chan.basic_publish(
+            RESULT_EXCHANGE,
+            "",
+            BasicPublishOptions::default(),
+            task_progress_payload(
+                &task_def,
+                started_datetime,
+                None,
+                TokenState::Running,
+            )?,
+            BasicProperties::default(),
+        )
+        .await?;
+
         let success = if task_def.image.is_some() {
             match docker::run_docker(task_def.clone()).await {
                 Ok(_) => true,
@@ -116,32 +130,22 @@ pub async fn process_work() -> Result<!> {
         TOTAL_TASKS.fetch_add(1, Ordering::Relaxed);
 
         let result = match success {
-            true => "success".to_string(),
-            false => "failure".to_string(),
+            true => TokenState::Success,
+            false => TokenState::Failure,
         };
 
         info!("task completed", {
-            result: result,
+            result: result.to_string(),
             task_id: task_def.task_id.to_string(),
             trigger_datetime: task_def.trigger_datetime.to_rfc3339(),
             started_datetime: started_datetime.to_rfc3339(),
         });
 
-        let payload = serde_json::to_vec(&TaskResult {
-            task_run_id: task_def.task_run_id,
-            task_id: task_def.task_id,
-            trigger_datetime: task_def.trigger_datetime,
-            started_datetime,
-            finished_datetime,
-            worker_id: *WORKER_ID,
-            result,
-        })?;
-
         chan.basic_publish(
             RESULT_EXCHANGE,
             "",
             BasicPublishOptions::default(),
-            payload,
+            task_progress_payload(&task_def, started_datetime, Some(finished_datetime), result)?,
             BasicProperties::default(),
         )
         .await?;
@@ -152,4 +156,24 @@ pub async fn process_work() -> Result<!> {
     }
 
     unreachable!("consumer stopped consuming")
+}
+
+
+fn task_progress_payload(
+    task_def: &TaskDef,
+    started_datetime: DateTime<Utc>,
+    finished_datetime: Option<DateTime<Utc>>,
+    result: TokenState,
+) -> Result<Vec<u8>> {
+    let payload = serde_json::to_vec(&TaskProgress {
+        task_run_id: task_def.task_run_id,
+        task_id: task_def.task_id,
+        trigger_datetime: task_def.trigger_datetime,
+        started_datetime,
+        finished_datetime,
+        worker_id: *WORKER_ID,
+        result,
+    })?;
+
+    Ok(payload)
 }

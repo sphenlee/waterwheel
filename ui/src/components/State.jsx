@@ -17,6 +17,9 @@ class State extends Component {
     let color;
     let icon;
     if (state == 'active') {
+      color = 'default';
+      icon = <SyncOutlined/>;
+    } else if (state == 'running') {
       color = 'processing';
       icon = <SyncOutlined spin/>;
     } else if (state == 'waiting') {
