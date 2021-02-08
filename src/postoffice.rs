@@ -42,7 +42,7 @@ where
 
     let mailbox = postoffice
         .entry::<Mailbox<T>>()
-        .or_insert_with(|| Mailbox::<T>::new());
+        .or_insert_with(Mailbox::<T>::new);
 
     f(mailbox)
 }

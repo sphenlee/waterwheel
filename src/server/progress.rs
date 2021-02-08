@@ -98,7 +98,7 @@ pub async fn advance_tokens(
     while let Some((child_task_id,)) = cursor.try_next().await? {
         let token = Token {
             task_id: child_task_id,
-            trigger_datetime: task_progress.trigger_datetime.clone(),
+            trigger_datetime: task_progress.trigger_datetime,
         };
 
         increment_token(&mut *txn, &token).await?;

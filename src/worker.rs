@@ -11,7 +11,7 @@ mod docker;
 mod heartbeat;
 mod work;
 
-static WORKER_ID: Lazy<Uuid> = Lazy::new(|| Uuid::new_v4());
+static WORKER_ID: Lazy<Uuid> = Lazy::new(Uuid::new_v4);
 
 pub static RUNNING_TASKS: AtomicU64 = AtomicU64::new(0);
 pub static TOTAL_TASKS: AtomicU64 = AtomicU64::new(0);
@@ -39,7 +39,7 @@ pub async fn run_worker() -> Result<()> {
     let addr = tcp.local_addr()?;
     info!("worker listening on {}", host);*/
 
-    spawn_retry("heartbeat", move || heartbeat::heartbeat());
+    spawn_retry("heartbeat", heartbeat::heartbeat);
 
     app.listen(host).await?;
 

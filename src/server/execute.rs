@@ -107,13 +107,13 @@ pub async fn process_executions() -> Result<!> {
 
         let task_def = TaskDef {
             task_run_id: Uuid::new_v4(),
-            task_id: token.task_id.clone(),
+            task_id: token.task_id,
             task_name: params.task_name,
-            job_id: params.job_id.clone(),
+            job_id: params.job_id,
             job_name: params.job_name,
-            project_id: params.project_id.clone(),
+            project_id: params.project_id,
             project_name: params.project_name,
-            trigger_datetime: token.trigger_datetime.clone(),
+            trigger_datetime: token.trigger_datetime,
             image: params.image,
             args: params.args.unwrap_or_default(),
             env: params.env,

@@ -119,13 +119,13 @@ pub async fn get_tokens_overview(req: Request<State>) -> highnoon::Result<impl R
 
     for token in &tokens {
         tokens_by_time
-            .entry(token.trigger_datetime.clone())
+            .entry(token.trigger_datetime)
             .or_default()
             .insert(
                 token.task_name.clone(),
                 TokenState {
                     task_name: token.task_name.clone(),
-                    task_id: token.task_id.clone(),
+                    task_id: token.task_id,
                     state: token.state.clone(),
                 },
             );
@@ -201,10 +201,10 @@ pub async fn clear_tokens_trigger_datetime(
     .await?;
 
     let mut tokens_tx = postoffice::post_mail::<ProcessToken>().await?;
-    for (id,) in &task_ids {
+    for &(id,) in &task_ids {
         let token = Token {
-            task_id: id.clone(),
-            trigger_datetime: trigger_datetime.clone(),
+            task_id: id,
+            trigger_datetime,
         };
         tokens_tx.send(ProcessToken::Clear(token)).await?;
     }

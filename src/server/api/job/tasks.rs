@@ -63,7 +63,7 @@ fn parse_reference(reference: &str) -> Result<Reference> {
     }
 }
 
-fn resolve_reference(mut reference: Reference, job: &Job) -> Result<Reference> {
+fn resolve_reference(mut reference: Reference, job: &Job) -> Reference {
     if reference.proj.is_none() {
         reference.proj = Some(job.project.clone());
     }
@@ -72,7 +72,7 @@ fn resolve_reference(mut reference: Reference, job: &Job) -> Result<Reference> {
         reference.job = Some(job.name.clone());
     }
 
-    Ok(reference)
+    reference
 }
 
 pub async fn create_task(
@@ -157,7 +157,7 @@ pub async fn create_task(
     if let Some(depends) = &task.depends {
         for d in depends {
             let reference = parse_reference(d)?;
-            let reference = resolve_reference(reference, &job)?;
+            let reference = resolve_reference(reference, &job);
 
             match reference.kind {
                 ReferenceKind::Trigger => {
@@ -174,7 +174,7 @@ pub async fn create_task(
     if let Some(depends) = &task.depends_failure {
         for d in depends {
             let reference = parse_reference(d)?;
-            let reference = resolve_reference(reference, &job)?;
+            let reference = resolve_reference(reference, &job);
 
             match reference.kind {
                 ReferenceKind::Trigger => {

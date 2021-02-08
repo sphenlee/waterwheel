@@ -42,10 +42,7 @@ impl TokenState {
     }
 
     pub fn is_final(&self) -> bool {
-        match self {
-            TokenState::Success | TokenState::Failure => true,
-            _ => false,
-        }
+        matches!(self, TokenState::Success | TokenState::Failure)
     }
 }
 
