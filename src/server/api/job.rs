@@ -8,6 +8,7 @@ use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use highnoon::{Request, StatusCode, Json, Response, Responder};
 use uuid::Uuid;
+use postage::prelude::*;
 
 mod graph;
 mod tasks;
@@ -31,7 +32,7 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
         }
     };
 
-    let trigger_tx = postoffice::post_mail::<TriggerUpdate>().await?;
+    let mut trigger_tx = postoffice::post_mail::<TriggerUpdate>().await?;
 
     let pool = req.get_pool();
     let mut txn = pool.begin().await?;
@@ -106,7 +107,7 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
     txn.commit().await?;
 
     for id in triggers_to_tx {
-        trigger_tx.send(TriggerUpdate(id))?;
+        trigger_tx.send(TriggerUpdate(id)).await?;
     }
 
     StatusCode::CREATED.into_response()
@@ -298,7 +299,7 @@ pub async fn set_paused(mut req: Request<State>) -> impl Responder {
     }
 
     // send trigger updates for the whole job to notify the scheduler
-    let trigger_tx = postoffice::post_mail::<TriggerUpdate>().await?;
+    let mut trigger_tx = postoffice::post_mail::<TriggerUpdate>().await?;
 
     let triggers_to_tx = sqlx::query_as::<_, (Uuid,)>(
         "SELECT id
@@ -310,7 +311,7 @@ pub async fn set_paused(mut req: Request<State>) -> impl Responder {
     .await?;
 
     for (id,) in triggers_to_tx {
-        trigger_tx.send(TriggerUpdate(id))?;
+        trigger_tx.send(TriggerUpdate(id)).await?;
     }
 
     Ok(StatusCode::NO_CONTENT)

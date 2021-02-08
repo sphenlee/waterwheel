@@ -11,6 +11,7 @@ use lapin::types::FieldTable;
 use lapin::{BasicProperties, ExchangeKind};
 use sqlx::Connection;
 use uuid::Uuid;
+use postage::prelude::*;
 
 const TASK_EXCHANGE: &str = "waterwheel.tasks";
 const TASK_QUEUE: &str = "waterwheel.tasks";
@@ -74,8 +75,8 @@ pub async fn process_executions() -> Result<!> {
 
     // TODO - recover any tasks
 
-    loop {
-        let ExecuteToken(token, priority) = execute_rx.recv().await?;
+    while let Some(msg) = execute_rx.recv().await {
+        let ExecuteToken(token, priority) = msg;
         info!("enqueueing", {
             task_id: token.task_id.to_string(),
             trigger_datetime: token.trigger_datetime.to_rfc3339(),
@@ -165,6 +166,8 @@ pub async fn process_executions() -> Result<!> {
             trigger_datetime: token.trigger_datetime.to_rfc3339(),
         });
     }
+
+    unreachable!("ExecuteToken channel was closed!")
 }
 /*
 async fn mark_success(token: &Token) -> Result<()> {

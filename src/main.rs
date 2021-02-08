@@ -29,7 +29,7 @@ where
             while cb.retry() {
                 match func().await {
                     Ok(_) => unreachable!("func never returns"),
-                    Err(err) => error!("task {} failed: {}", name, err),
+                    Err(err) => error!("task {} failed: {:?}", name, err),
                 }
             }
             error!("task {} failed too many times, aborting!", name);

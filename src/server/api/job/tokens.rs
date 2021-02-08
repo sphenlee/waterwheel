@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
 use std::collections::BTreeMap;
 use uuid::Uuid;
+use postage::prelude::*;
 
 #[derive(Deserialize)]
 struct QueryToken {
@@ -178,13 +179,13 @@ pub async fn clear_tokens_trigger_datetime(req: Request<State>) -> highnoon::Res
     .fetch_all(&req.get_pool())
     .await?;
 
-    let tokens_tx = postoffice::post_mail::<ProcessToken>().await?;
+    let mut tokens_tx = postoffice::post_mail::<ProcessToken>().await?;
     for (id,) in &task_ids {
         let token = Token {
             task_id: id.clone(),
             trigger_datetime: trigger_datetime.clone(),
         };
-        tokens_tx.send(ProcessToken::Clear(token))?;
+        tokens_tx.send(ProcessToken::Clear(token)).await?;
     }
 
     let body = ClearTokens {

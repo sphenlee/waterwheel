@@ -6,9 +6,10 @@ use crate::server::tokens::{increment_token, ProcessToken};
 use chrono::{DateTime, Utc};
 use highnoon::{Responder, Request, StatusCode};
 use uuid::Uuid;
+use postage::prelude::*;
 
 pub async fn create_token(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let token_tx = postoffice::post_mail::<ProcessToken>().await?;
+    let mut token_tx = postoffice::post_mail::<ProcessToken>().await?;
 
     let task_id = req.param("id")?.parse::<Uuid>()?;
     let trigger_datetime = req.param("trigger_datetime")?.parse::<DateTime<Utc>>()?;
@@ -24,7 +25,7 @@ pub async fn create_token(req: Request<State>) -> highnoon::Result<impl Responde
     txn.commit().await?;
 
     token_tx
-        .send(ProcessToken::Increment(token, TaskPriority::High))?;
+        .send(ProcessToken::Increment(token, TaskPriority::High)).await?;
 
     Ok(StatusCode::CREATED)
 }

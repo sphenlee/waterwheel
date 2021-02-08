@@ -34,7 +34,7 @@ pub async fn serve() -> Result<()> {
     };
 
     let mut app = highnoon::App::new(state);
-    //app.with(tide::log::LogMiddleware::new());
+    app.with(highnoon::filter::Log);
 
     // basic healthcheck to see if waterwheel is up
     app.at("/healthcheck").get(|_req| async { Ok("OK") });

@@ -1,7 +1,8 @@
 use anyhow::Result;
-use tokio::sync::{Mutex, broadcast::Sender, broadcast::Receiver};
+use tokio::sync::Mutex;
 use once_cell::sync::OnceCell;
 use typemap::SendMap;
+use postage::dispatch::{Receiver, Sender};
 
 struct Mailbox<T> {
     tx: Sender<T>,
@@ -9,7 +10,7 @@ struct Mailbox<T> {
 
 impl<T: Clone> Mailbox<T> {
     fn new() -> Mailbox<T> {
-        let (tx, _) = tokio::sync::broadcast::channel(32);
+        let (tx, _) = postage::dispatch::channel(32);
         Mailbox { tx }
     }
 }

@@ -14,6 +14,7 @@ use kv_log_macro::{debug, info, trace, warn};
 use sqlx::types::Uuid;
 use sqlx::Connection;
 use std::str::FromStr;
+use postage::prelude::*;
 
 const SMALL_SLEEP: std::time::Duration = std::time::Duration::from_millis(50);
 
@@ -78,13 +79,13 @@ pub async fn process_triggers() -> Result<!> {
     loop {
         if queue.is_empty() {
             debug!("no triggers queued, waiting for a trigger update");
-            let TriggerUpdate(uuid) = trigger_rx.recv().await?;
+            let TriggerUpdate(uuid) = trigger_rx.recv().await.expect("TriggerUpdate channel was closed!");
             update_trigger(&uuid, &mut queue).await?;
         }
 
         trace!("checking for pending trigger updates");
         while let Ok(recv) = timeout(SMALL_SLEEP, trigger_rx.recv()).await {
-            let TriggerUpdate(uuid) = recv?;
+            let TriggerUpdate(uuid) = recv.expect("TriggerUpdate channel was closed!");
             update_trigger(&uuid, &mut queue).await?;
         }
         trace!("no trigger updates pending - going around the scheduler loop again");
@@ -119,7 +120,7 @@ pub async fn process_triggers() -> Result<!> {
             match future::select(recv, sleep).await {
                 Either::Left((recv, _)) => {
                     trace!("received a trigger update while sleeping");
-                    let TriggerUpdate(uuid) = recv?;
+                    let TriggerUpdate(uuid) = recv.expect("TriggerUpdate channel was closed!");
 
                     // put the trigger we slept on back in the queue
                     // update trigger might delete it, or we might select it as the next trigger
@@ -144,7 +145,7 @@ pub async fn process_triggers() -> Result<!> {
 async fn activate_trigger(trigger_time: TriggerTime, priority: TaskPriority) -> Result<()> {
     let pool = db::get_pool();
 
-    let token_tx = postoffice::post_mail::<ProcessToken>().await?;
+    let mut token_tx = postoffice::post_mail::<ProcessToken>().await?;
 
     debug!("activating trigger", {
         trigger_id: trigger_time.trigger_id.to_string(),
@@ -194,7 +195,8 @@ async fn activate_trigger(trigger_time: TriggerTime, priority: TaskPriority) -> 
     // after committing the transaction we can tell the token processor to check thresholds
     for token in tokens_to_tx {
         token_tx
-            .send(ProcessToken::Increment(token, priority))?;
+            .send(ProcessToken::Increment(token, priority))
+            .await?;
     }
 
     Ok(())

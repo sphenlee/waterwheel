@@ -8,13 +8,14 @@ use kv_log_macro::{debug, info};
 use lapin::options::{BasicAckOptions, BasicConsumeOptions, QueueDeclareOptions};
 use lapin::types::FieldTable;
 use sqlx::{types::Uuid, Connection, Postgres, Transaction};
+use postage::prelude::*;
 
 const RESULT_QUEUE: &str = "waterwheel.results";
 
 pub async fn process_progress() -> Result<!> {
     let chan = amqp::get_amqp_channel().await?;
 
-    let token_tx = postoffice::post_mail::<ProcessToken>().await?;
+    let mut token_tx = postoffice::post_mail::<ProcessToken>().await?;
 
     // declare queue for consuming incoming messages
     chan.queue_declare(
@@ -39,6 +40,13 @@ pub async fn process_progress() -> Result<!> {
     while let Some((chan, msg)) = consumer.try_next().await? {
         let task_progress: TaskProgress = serde_json::from_slice(&msg.data)?;
 
+        info!(
+        "received task progress", {
+            result: task_progress.result.to_string(),
+            task_id: task_progress.task_id.to_string(),
+            trigger_datetime: task_progress.trigger_datetime.to_rfc3339(),
+        });
+
         let pool = db::get_pool();
         let mut conn = pool.acquire().await?;
         let mut txn = conn.begin().await?;
@@ -61,7 +69,7 @@ pub async fn process_progress() -> Result<!> {
         // after committing the transaction we can tell the token processor increment tokens
         for token in tokens_to_tx {
             token_tx
-                .send(ProcessToken::Increment(token, TaskPriority::Normal))?;
+                .send(ProcessToken::Increment(token, TaskPriority::Normal)).await?;
         }
     }
 
@@ -73,13 +81,6 @@ pub async fn advance_tokens(
     task_progress: &TaskProgress,
 ) -> Result<Vec<Token>> {
     let pool = db::get_pool();
-
-    info!(
-    "received task result", {
-        result: task_progress.result.to_string(),
-        task_id: task_progress.task_id.to_string(),
-        trigger_datetime: task_progress.trigger_datetime.to_rfc3339(),
-    });
 
     let mut cursor = sqlx::query_as::<_, (Uuid,)>(
         "SELECT child_task_id

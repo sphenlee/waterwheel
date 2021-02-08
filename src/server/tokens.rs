@@ -7,6 +7,7 @@ use kv_log_macro::{info, trace};
 use sqlx::{PgPool, Postgres, Transaction};
 use std::collections::HashMap;
 use std::fmt;
+use postage::prelude::*;
 
 
 #[derive(Clone, Debug)]
@@ -43,12 +44,12 @@ pub async fn process_tokens() -> Result<!> {
     let pool = db::get_pool();
 
     let mut token_rx = postoffice::receive_mail::<ProcessToken>().await?;
-    let execute_tx = postoffice::post_mail::<ExecuteToken>().await?;
+    let mut execute_tx = postoffice::post_mail::<ExecuteToken>().await?;
 
     let mut tokens = restore_tokens().await?;
 
-    loop {
-        match token_rx.recv().await? {
+    while let Some(msg) = token_rx.recv().await {
+        match msg {
             ProcessToken::Increment(token, priority) => {
                 let count = tokens.entry(token.clone()).or_insert(0);
                 *count += 1;
@@ -62,7 +63,7 @@ pub async fn process_tokens() -> Result<!> {
 
                 if *count >= threshold {
                     *count -= threshold;
-                    execute_tx.send(ExecuteToken(token, priority))?;
+                    execute_tx.send(ExecuteToken(token, priority)).await?;
                 }
             }
             ProcessToken::Clear(token) => {
@@ -73,6 +74,8 @@ pub async fn process_tokens() -> Result<!> {
         // cleanup old tokens
         tokens.retain(|_, v| *v > 0);
     }
+
+    unreachable!("ProcessToken channel was closed!")
 }
 
 /// Adds a token to a task node
@@ -116,7 +119,7 @@ async fn restore_tokens() -> Result<HashMap<Token, i32>> {
 
     let pool = db::get_pool();
 
-    let execute_tx = postoffice::post_mail::<ExecuteToken>().await?;
+    let mut execute_tx = postoffice::post_mail::<ExecuteToken>().await?;
 
     let mut tokens = HashMap::<Token, i32>::new();
 
@@ -145,7 +148,7 @@ async fn restore_tokens() -> Result<HashMap<Token, i32>> {
 
         if count >= threshold {
             execute_tx
-                .send(ExecuteToken(token.clone(), TaskPriority::Normal))?;
+                .send(ExecuteToken(token.clone(), TaskPriority::Normal)).await?;
         }
 
         tokens.insert(token, count);

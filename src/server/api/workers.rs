@@ -50,7 +50,7 @@ pub async fn tasks(req: Request<State>) -> highnoon::Result<impl Responder> {
         JOIN job j ON j.id = t.job_id
         JOIN project p ON p.id = j.project_id
         WHERE r.worker_id = $1
-        ORDER BY r.trigger_datetime DESC
+        ORDER BY r.started_datetime DESC
         LIMIT 100",
     )
     .bind(&id)
