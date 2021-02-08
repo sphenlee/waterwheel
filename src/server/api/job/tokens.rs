@@ -4,12 +4,12 @@ use crate::server::api::request_ext::RequestExt;
 use crate::server::api::State;
 use crate::server::tokens::ProcessToken;
 use chrono::{DateTime, Utc};
-use highnoon::{Request, Json, Responder};
+use highnoon::{Json, Request, Responder};
+use postage::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
 use std::collections::BTreeMap;
 use uuid::Uuid;
-use postage::prelude::*;
 
 #[derive(Deserialize)]
 struct QueryToken {
@@ -160,7 +160,9 @@ struct ClearTokens {
     tokens_cleared: u64,
 }
 
-pub async fn clear_tokens_trigger_datetime(req: Request<State>) -> highnoon::Result<impl Responder> {
+pub async fn clear_tokens_trigger_datetime(
+    req: Request<State>,
+) -> highnoon::Result<impl Responder> {
     let job_id = req.param("id")?.parse::<Uuid>()?;
     let trigger_datetime = req.param("trigger_datetime")?.parse::<DateTime<Utc>>()?;
 

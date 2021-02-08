@@ -49,14 +49,14 @@ pub async fn run_docker(task_def: TaskDef) -> Result<bool> {
     let mut filters = HashMap::new();
     filters.insert("reference", vec![&*image]);
 
-            trace!("listing images", { filters: format!("{:?}", filters) });
+    trace!("listing images", { filters: format!("{:?}", filters) });
 
-            let list = docker
-                .list_images(Some(ListImagesOptions {
-        filters,
-        ..ListImagesOptions::default()
-                }))
-                .await?;
+    let list = docker
+        .list_images(Some(ListImagesOptions {
+            filters,
+            ..ListImagesOptions::default()
+        }))
+        .await?;
 
     trace!("got {} images", list.len());
 
@@ -133,8 +133,7 @@ pub async fn run_docker(task_def: TaskDef) -> Result<bool> {
 
     vector.shutdown().await?;
 
-    let mut waiter =
-        docker.wait_container(&container.id, None::<WaitContainerOptions<String>>);
+    let mut waiter = docker.wait_container(&container.id, None::<WaitContainerOptions<String>>);
 
     let mut exit = 0;
     while let Some(x) = waiter.try_next().await? {

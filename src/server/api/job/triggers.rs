@@ -3,7 +3,7 @@ use crate::server::api::types::{period_from_string, Job, Trigger};
 use crate::server::api::State;
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use highnoon::{Request, Json, Responder};
+use highnoon::{Json, Request, Responder};
 use serde::Serialize;
 use sqlx::{Postgres, Transaction};
 use std::str::FromStr;

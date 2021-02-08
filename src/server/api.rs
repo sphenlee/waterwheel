@@ -1,7 +1,7 @@
 use super::status::SERVER_STATUS;
 use anyhow::Result;
-use sqlx::PgPool;
 use highnoon::{Request, Responder};
+use sqlx::PgPool;
 
 mod job;
 mod project;
@@ -19,10 +19,11 @@ pub struct State {
 macro_rules! get_file {
     ($file:expr => $mime:expr) => {
         |_req| async {
-            use highnoon::{Response, headers::ContentType, Mime};
+            use highnoon::{headers::ContentType, Mime, Response};
 
             let body = include_str!($file);
-            Response::ok().body(body)
+            Response::ok()
+                .body(body)
                 .header(ContentType::from($mime.parse::<Mime>().unwrap()))
         }
     };
@@ -49,8 +50,7 @@ pub async fn serve() -> Result<()> {
     app.at("/api/projects/:id")
         .get(project::get_by_id)
         .delete(project::delete);
-    app.at("/api/projects/:id/jobs")
-        .get(project::list_jobs);
+    app.at("/api/projects/:id/jobs").get(project::list_jobs);
 
     // job
     app.at("/api/jobs")
@@ -84,8 +84,7 @@ pub async fn serve() -> Result<()> {
         .put(task::create_token);
 
     // trigger times
-    app.at("/api/triggers/:id")
-        .get(job::get_trigger_times);
+    app.at("/api/triggers/:id").get(job::get_trigger_times);
 
     // workers
     app.at("/api/workers").get(workers::list);
@@ -97,8 +96,7 @@ pub async fn serve() -> Result<()> {
     {
         app.at("/static/*").static_files("ui/dist/");
         app.at("/").get(|_req| async {
-            let body = highnoon::Response::ok()
-                .path("ui/dist/index.html").await?;
+            let body = highnoon::Response::ok().path("ui/dist/index.html").await?;
             Ok(body)
         });
     }

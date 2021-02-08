@@ -13,7 +13,7 @@ use lapin::types::FieldTable;
 use lapin::{BasicProperties, ExchangeKind};
 
 use super::{RUNNING_TASKS, TOTAL_TASKS, WORKER_ID};
-use chrono::{Utc, DateTime};
+use chrono::{DateTime, Utc};
 use std::sync::atomic::Ordering;
 
 // TODO - queues should be configurable for task routing
@@ -98,12 +98,7 @@ pub async fn process_work() -> Result<!> {
             RESULT_EXCHANGE,
             "",
             BasicPublishOptions::default(),
-            task_progress_payload(
-                &task_def,
-                started_datetime,
-                None,
-                TokenState::Running,
-            )?,
+            task_progress_payload(&task_def, started_datetime, None, TokenState::Running)?,
             BasicProperties::default(),
         )
         .await?;
@@ -157,7 +152,6 @@ pub async fn process_work() -> Result<!> {
 
     unreachable!("consumer stopped consuming")
 }
-
 
 fn task_progress_payload(
     task_def: &TaskDef,

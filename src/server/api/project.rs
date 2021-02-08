@@ -1,7 +1,7 @@
 use super::request_ext::RequestExt;
 use super::State;
 use crate::util::{pg_error, PG_INTEGRITY_ERROR};
-use highnoon::{Json, Responder, Response, Request, StatusCode};
+use highnoon::{Json, Request, Responder, Response, StatusCode};
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;

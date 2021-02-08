@@ -1,6 +1,6 @@
-use tokio::sync::Mutex;
 use once_cell::sync::Lazy;
 use serde::Serialize;
+use tokio::sync::Mutex;
 
 #[derive(Default, Serialize)]
 pub struct ServerStatus {

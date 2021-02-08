@@ -1,5 +1,5 @@
 use crate::amqp;
-use crate::messages::{TaskProgress, Token, TaskPriority};
+use crate::messages::{TaskPriority, TaskProgress, Token};
 use crate::server::tokens::{increment_token, ProcessToken};
 use crate::{db, postoffice};
 use anyhow::Result;
@@ -7,8 +7,8 @@ use futures::TryStreamExt;
 use kv_log_macro::{debug, info};
 use lapin::options::{BasicAckOptions, BasicConsumeOptions, QueueDeclareOptions};
 use lapin::types::FieldTable;
-use sqlx::{types::Uuid, Connection, Postgres, Transaction};
 use postage::prelude::*;
+use sqlx::{types::Uuid, Connection, Postgres, Transaction};
 
 const RESULT_QUEUE: &str = "waterwheel.results";
 
@@ -69,7 +69,8 @@ pub async fn process_progress() -> Result<!> {
         // after committing the transaction we can tell the token processor increment tokens
         for token in tokens_to_tx {
             token_tx
-                .send(ProcessToken::Increment(token, TaskPriority::Normal)).await?;
+                .send(ProcessToken::Increment(token, TaskPriority::Normal))
+                .await?;
         }
     }
 

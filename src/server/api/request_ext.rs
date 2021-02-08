@@ -1,6 +1,6 @@
 use super::State;
-use sqlx::PgPool;
 use highnoon::Request;
+use sqlx::PgPool;
 
 // extension methods for State
 pub trait RequestExt {

@@ -1,8 +1,8 @@
 use anyhow::Result;
-use tokio_amqp::LapinTokioExt;
 use lapin::{Channel, Connection, ConnectionProperties};
 use log::info;
 use once_cell::sync::OnceCell;
+use tokio_amqp::LapinTokioExt;
 
 static AMQP_CONNECTION: OnceCell<Connection> = OnceCell::new();
 

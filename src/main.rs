@@ -1,11 +1,11 @@
 #![feature(never_type)]
 
 use anyhow::Result;
-use futures::Future;
-use tokio::task;
 use chrono::Duration;
 use circuit_breaker::CircuitBreaker;
+use futures::Future;
 use log::error;
+use tokio::task;
 
 mod amqp;
 pub mod circuit_breaker;
@@ -25,16 +25,16 @@ where
     let name = name.into();
 
     let _ = task::spawn(async move {
-            let mut cb = CircuitBreaker::new(5, Duration::minutes(1));
-            while cb.retry() {
-                match func().await {
-                    Ok(_) => unreachable!("func never returns"),
-                    Err(err) => error!("task {} failed: {:?}", name, err),
-                }
+        let mut cb = CircuitBreaker::new(5, Duration::minutes(1));
+        while cb.retry() {
+            match func().await {
+                Ok(_) => unreachable!("func never returns"),
+                Err(err) => error!("task {} failed: {:?}", name, err),
             }
-            error!("task {} failed too many times, aborting!", name);
-            std::process::exit(1);
-        });
+        }
+        error!("task {} failed too many times, aborting!", name);
+        std::process::exit(1);
+    });
 }
 
 #[tokio::main]

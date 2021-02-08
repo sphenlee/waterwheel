@@ -4,17 +4,17 @@ use crate::server::tokens::{increment_token, ProcessToken};
 use crate::server::trigger_time::TriggerTime;
 use crate::{db, postoffice};
 use anyhow::Result;
-use tokio::time::{self, timeout};
 use binary_heap_plus::{BinaryHeap, MinComparator};
 use chrono::{DateTime, Duration, Utc};
 use cron::Schedule;
 use futures::future::{self, Either};
 use futures::TryStreamExt;
 use kv_log_macro::{debug, info, trace, warn};
+use postage::prelude::*;
 use sqlx::types::Uuid;
 use sqlx::Connection;
 use std::str::FromStr;
-use postage::prelude::*;
+use tokio::time::{self, timeout};
 
 const SMALL_SLEEP: std::time::Duration = std::time::Duration::from_millis(50);
 
@@ -79,7 +79,10 @@ pub async fn process_triggers() -> Result<!> {
     loop {
         if queue.is_empty() {
             debug!("no triggers queued, waiting for a trigger update");
-            let TriggerUpdate(uuid) = trigger_rx.recv().await.expect("TriggerUpdate channel was closed!");
+            let TriggerUpdate(uuid) = trigger_rx
+                .recv()
+                .await
+                .expect("TriggerUpdate channel was closed!");
             update_trigger(&uuid, &mut queue).await?;
         }
 

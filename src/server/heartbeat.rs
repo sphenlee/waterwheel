@@ -2,7 +2,6 @@ use crate::amqp::get_amqp_channel;
 use crate::messages::WorkerHeartbeat;
 use crate::server::status::SERVER_STATUS;
 use anyhow::Result;
-use tokio::sync::Mutex;
 use futures::TryStreamExt;
 use kv_log_macro::debug;
 use lapin::options::{
@@ -12,6 +11,7 @@ use lapin::types::FieldTable;
 use lapin::ExchangeKind;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
+use tokio::sync::Mutex;
 use uuid::Uuid;
 
 const HEARTBEAT_EXCHANGE: &str = "waterwheel.heartbeat";

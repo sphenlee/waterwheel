@@ -4,11 +4,10 @@ use crate::{db, postoffice};
 use anyhow::Result;
 use futures::TryStreamExt;
 use kv_log_macro::{info, trace};
+use postage::prelude::*;
 use sqlx::{PgPool, Postgres, Transaction};
 use std::collections::HashMap;
 use std::fmt;
-use postage::prelude::*;
-
 
 #[derive(Clone, Debug)]
 pub enum ProcessToken {
@@ -148,7 +147,8 @@ async fn restore_tokens() -> Result<HashMap<Token, i32>> {
 
         if count >= threshold {
             execute_tx
-                .send(ExecuteToken(token.clone(), TaskPriority::Normal)).await?;
+                .send(ExecuteToken(token.clone(), TaskPriority::Normal))
+                .await?;
         }
 
         tokens.insert(token, count);

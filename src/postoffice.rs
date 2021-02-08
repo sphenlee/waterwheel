@@ -1,8 +1,8 @@
 use anyhow::Result;
-use tokio::sync::Mutex;
 use once_cell::sync::OnceCell;
-use typemap::SendMap;
 use postage::dispatch::{Receiver, Sender};
+use tokio::sync::Mutex;
+use typemap::SendMap;
 
 struct Mailbox<T> {
     tx: Sender<T>,

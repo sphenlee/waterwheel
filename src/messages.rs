@@ -5,7 +5,7 @@ use uuid::Uuid;
 // state of a token
 // TODO - strings are still hardcoded, use the enum!
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all="lowercase")]
+#[serde(rename_all = "lowercase")]
 pub enum TokenState {
     // waiting for the count to reach the threshold
     Waiting,
@@ -37,7 +37,7 @@ impl TokenState {
             "running" => TokenState::Running,
             "success" => TokenState::Success,
             "failure" => TokenState::Failure,
-            _ => panic!("invalid token state! {}", s)
+            _ => panic!("invalid token state! {}", s),
         }
     }
 
