@@ -104,7 +104,7 @@ class TaskGrid extends Component {
             this.setState({
                 loading: true
             });
-            let resp = await axios.get(`/api/jobs/${id}/tokens-overview`);
+            let resp = await axios.get(`/api/jobs/${id}/tokens-overview?limit=25`);
 
             let {rows, columns} = parseData(id, resp.data);
 

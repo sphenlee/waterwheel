@@ -14,7 +14,8 @@ use uuid::Uuid;
 #[derive(Deserialize)]
 struct QueryToken {
     state: Option<String>,
-    //from: Option<DateTime<Utc>>
+    before: Option<DateTime<Utc>>,
+    limit: Option<u32>,
 }
 
 #[derive(Serialize, sqlx::FromRow)]
@@ -34,27 +35,45 @@ async fn get_tokens_common(req: Request<State>) -> highnoon::Result<Vec<GetToken
     let states: Option<Vec<_>> = q
         .state
         .map(|s| s.split(',').map(|s| s.to_owned()).collect());
-    //let from = q.from;
 
     let tokens = sqlx::query_as::<_, GetToken>(
-        "SELECT
-            t.id AS task_id,
-            t.name AS task_name,
-            t.threshold AS threshold,
-            k.count AS count,
-            k.trigger_datetime AS trigger_datetime,
-            k.state AS state
-        FROM task t
-        JOIN token k ON k.task_id = t.id
-        AND t.job_id = $1
-        AND ($2 IS NULL OR k.state = ANY($2))
-        --AND ($3 IS NULL OR k.trigger_datetime > $3)
-        ORDER BY k.trigger_datetime DESC
-        LIMIT 100",
+        "WITH these_tokens AS (
+            SELECT
+                t.id AS task_id,
+                t.name AS task_name,
+                t.threshold AS threshold,
+                k.count AS count,
+                k.trigger_datetime AS trigger_datetime,
+                k.state AS state
+            FROM task t
+            JOIN token k ON k.task_id = t.id
+            WHERE t.job_id = $1
+        ),
+        these_datetimes AS (
+            SELECT DISTINCT
+                trigger_datetime
+            FROM these_tokens
+            WHERE ($2 IS NULL OR trigger_datetime < $2)
+            ORDER BY trigger_datetime DESC
+            LIMIT $3
+        )
+        SELECT
+            task_id,
+            task_name,
+            threshold,
+            count,
+            tt.trigger_datetime AS trigger_datetime,
+            state
+        FROM these_tokens tt
+        JOIN these_datetimes td ON td.trigger_datetime = tt.trigger_datetime
+        WHERE ($4 IS NULL OR state = ANY($4))
+        ORDER BY trigger_datetime DESC
+        "
     )
     .bind(job_id)
-    .bind(&states)
-    //.bind(&from)
+    .bind(&q.before)
+    .bind(q.limit.unwrap_or(200))
+    .bind(states)
     .fetch_all(&req.get_pool())
     .await?;
 
