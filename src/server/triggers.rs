@@ -89,6 +89,7 @@ pub async fn process_triggers() -> Result<!> {
         trace!("checking for pending trigger updates");
         while let Ok(recv) = timeout(SMALL_SLEEP, trigger_rx.recv()).await {
             let TriggerUpdate(uuid) = recv.expect("TriggerUpdate channel was closed!");
+            // TODO - batch the updates to avoid multiple heap recreations
             update_trigger(&uuid, &mut queue).await?;
         }
         trace!("no trigger updates pending - going around the scheduler loop again");
@@ -97,10 +98,11 @@ pub async fn process_triggers() -> Result<!> {
         // once per loop - it's for monitoring purposes anyway
         SERVER_STATUS.lock().await.queued_triggers = queue.len();
 
+        #[cfg(debug_assertions)]
         if log::max_level() >= log::Level::Trace {
             let queue_copy = queue.clone();
-            trace!("dumping the whole trigger queue:");
-            for trigger in queue_copy.into_iter_sorted() {
+            trace!("dumping the first 10 triggers in the queue:");
+            for trigger in queue_copy.into_iter_sorted().take(10) {
                 trace!(
                     "    {}: {}",
                     trigger.trigger_datetime.to_rfc3339(),

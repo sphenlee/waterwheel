@@ -3,7 +3,7 @@ use crate::messages::WorkerHeartbeat;
 use crate::server::status::SERVER_STATUS;
 use anyhow::Result;
 use futures::TryStreamExt;
-use kv_log_macro::debug;
+use kv_log_macro::trace;
 use lapin::options::{
     BasicConsumeOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
 };
@@ -69,7 +69,7 @@ pub async fn process_heartbeats() -> Result<!> {
 
     while let Some((_chan, msg)) = consumer.try_next().await? {
         let beat: WorkerHeartbeat = serde_json::from_slice(&msg.data)?;
-        debug!("received heartbeat", {
+        trace!("received heartbeat", {
             uuid: beat.uuid.to_string(),
         });
 

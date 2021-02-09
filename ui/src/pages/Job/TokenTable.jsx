@@ -50,7 +50,7 @@ class TokenTable extends Component {
         this.columns = makeColumns(props.id);
 
         this.state = {
-            filter: ['active'],
+            filter: ['active', 'running'],
             loading: false,
             tokens: []
         }

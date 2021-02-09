@@ -105,7 +105,7 @@ pub async fn process_work() -> Result<!> {
 
         let success = if task_def.image.is_some() {
             match docker::run_docker(task_def.clone()).await {
-                Ok(_) => true,
+                Ok(exit) => exit,
                 Err(err) => {
                     error!("failed to run task: {}", err, {
                         task_id: task_def.task_id.to_string(),

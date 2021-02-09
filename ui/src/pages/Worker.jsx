@@ -1,6 +1,7 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
-import { Table, Layout, Breadcrumb, PageHeader } from 'antd';
+import { Table, Layout, Breadcrumb, PageHeader, Row, Col, Statistic } from 'antd';
+import { geekblue } from '@ant-design/colors';
 
 
 import axios from 'axios';
@@ -13,19 +14,6 @@ import RelDate from '../components/Date.jsx';
 const { Content } = Layout;
 
 function makeColumns() {
-    /*
-    job_id: Uuid,
-    job_name: String,
-    project_id: Uuid,
-    project_name: String,
-    task_id: Uuid,
-    task_name: String,
-    trigger_datetime: DateTime<Utc>,
-    queued_datetime: DateTime<Utc>,
-    started_datetime: DateTime<Utc>,
-    finish_datetime: Option<DateTime<Utc>>,
-    state: String,
-    */
     return [
         {
             title: 'Task',
@@ -67,16 +55,19 @@ class Worker extends Component {
         this.columns = makeColumns(props.match.params.id);
 
         this.state = {
-            job: {},
-            tokens: []
+            tasks: [],
+
         }
     }
 
-    async fetchTasks(id, trigger_datetime) {
+    async fetchWorker(id, trigger_datetime) {
         try {
             let resp = await axios.get(`/api/workers/${id}`);
             this.setState({
-                tasks: resp.data,
+                tasks: resp.data.tasks,
+                last_seen_datetime: resp.data.last_seen_datetime,
+                running_tasks: resp.data.running_tasks,
+                total_tasks: resp.data.total_tasks,
             });
         } catch(e) {
             console.log(e);
@@ -86,13 +77,14 @@ class Worker extends Component {
     componentDidMount() {
         const { id } = this.props.match.params;
 
-        this.fetchTasks(id);
+        this.fetchWorker(id);
+        this.interval = setInterval(() => this.fetchWorker(id), 5000);
     }
 
     render() {
         const { history, match } = this.props;
         const { id } = match.params;
-        const { tasks } = this.state;
+        const { tasks, last_seen_datetime, running_tasks, total_tasks } = this.state;
 
         return (
             <Layout>
@@ -108,6 +100,25 @@ class Worker extends Component {
                             title={`Worker ${id}`}
                             subTitle={'A worker'}
                         />
+                        <Row gutter={[16, 32]}>
+                            <Col span={6}>
+                                <Statistic title="Running Tasks"
+                                    valueStyle={{color: geekblue[5]}}
+                                    value={running_tasks} />
+                            </Col>
+                            <Col span={6}>
+                                <Statistic title="Total Tasks"
+                                    valueStyle={{color: geekblue[5]}}
+                                    value={total_tasks} />
+                            </Col>
+                            <Col span={6}>
+                                <Statistic title="Last Seen"
+                                    value={last_seen_datetime}
+                                    formatter={(val) => <Moment fromNow withTitle>{val}</Moment>}
+                                    />
+                            </Col>
+                            <Col span={24} />
+                        </Row>
                         <Table key="1" columns={this.columns} dataSource={tasks} />
                     </Body>
                 </Content>

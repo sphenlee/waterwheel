@@ -50,7 +50,7 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
 
 pub async fn update(mut req: Request<State>) -> highnoon::Result<StatusCode> {
     let proj: NewProject = req.body_json().await?;
-    let id = req.param("id").unwrap().parse::<Uuid>()?;
+    let id = req.param("id")?.parse::<Uuid>()?;
 
     let res = sqlx::query(
         "UPDATE project

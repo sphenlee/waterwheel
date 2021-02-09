@@ -45,10 +45,10 @@ pub async fn serve() -> Result<()> {
     // project
     app.at("/api/projects")
         .get(project::get_by_name)
-        .post(project::create)
-        .put(project::update);
+        .post(project::create);
     app.at("/api/projects/:id")
         .get(project::get_by_id)
+        .put(project::update)
         .delete(project::delete);
     app.at("/api/projects/:id/jobs").get(project::list_jobs);
 

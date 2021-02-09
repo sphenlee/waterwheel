@@ -77,7 +77,7 @@ pub async fn process_executions() -> Result<!> {
 
     while let Some(msg) = execute_rx.recv().await {
         let ExecuteToken(token, priority) = msg;
-        info!("enqueueing", {
+        debug!("enqueueing", {
             task_id: token.task_id.to_string(),
             trigger_datetime: token.trigger_datetime.to_rfc3339(),
             priority: log::kv::Value::from_debug(&priority),
@@ -161,9 +161,13 @@ pub async fn process_executions() -> Result<!> {
 
         txn.commit().await?;
 
-        debug!("done enqueueing", {
+        info!("task enqueued", {
             task_id: token.task_id.to_string(),
+            project_name: task_def.project_name,
+            job_name: task_def.job_name,
+            task_name: task_def.task_name,
             trigger_datetime: token.trigger_datetime.to_rfc3339(),
+            priority: log::kv::Value::from_debug(&priority),
         });
     }
 
