@@ -1,17 +1,18 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
 import { Table, Select, notification } from 'antd';
-import { geekblue, lime, red, grey, yellow } from '@ant-design/colors';
+import { geekblue, lime, red, grey, yellow, orange } from '@ant-design/colors';
 import axios from 'axios';
 import styled from 'styled-components';
 
 import {
   CheckCircleOutlined,
   SyncOutlined,
-  CloseCircleOutlined,
+  CloseSquareOutlined,
   ExclamationCircleOutlined,
   ClockCircleOutlined,
   MinusCircleOutlined,
+  WarningOutlined,
 } from '@ant-design/icons';
 
 
@@ -49,7 +50,9 @@ function iconForState(tok) {
     } else if (state == 'success') {
         return <CheckCircleOutlined style={{color: lime[5]}}/>;
     } else if (state == 'failure') {
-        return <CloseCircleOutlined style={{color: red[5]}}/>;
+        return <CloseSquareOutlined style={{color: red[5]}}/>;
+    } else if (state == 'error') {
+        return <WarningOutlined style={{color: orange[5]}}/>;
     } else {
         return '';
     }

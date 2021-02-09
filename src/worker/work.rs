@@ -103,31 +103,27 @@ pub async fn process_work() -> Result<!> {
         )
         .await?;
 
-        let success = if task_def.image.is_some() {
+        let result = if task_def.image.is_some() {
             match docker::run_docker(task_def.clone()).await {
-                Ok(exit) => exit,
+                Ok(true) => TokenState::Success,
+                Ok(false) => TokenState::Failure,
                 Err(err) => {
                     error!("failed to run task: {}", err, {
                         task_id: task_def.task_id.to_string(),
                         trigger_datetime: task_def.trigger_datetime.to_rfc3339(),
                     });
-                    false
+                    TokenState::Error
                 }
             }
         } else {
             // task has no image, mark success immediately
-            true
+            TokenState::Success
         };
 
         let finished_datetime = Utc::now();
 
         RUNNING_TASKS.fetch_sub(1, Ordering::Relaxed);
         TOTAL_TASKS.fetch_add(1, Ordering::Relaxed);
-
-        let result = match success {
-            true => TokenState::Success,
-            false => TokenState::Failure,
-        };
 
         info!("task completed", {
             result: result.to_string(),

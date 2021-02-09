@@ -17,6 +17,8 @@ pub enum TokenState {
     Success,
     // task failed
     Failure,
+    // an error occurred (ie. task did not succeed or fail)
+    Error,
 }
 
 impl TokenState {
@@ -27,6 +29,7 @@ impl TokenState {
             TokenState::Running => "running",
             TokenState::Success => "success",
             TokenState::Failure => "failure",
+            TokenState::Error => "error",
         }
     }
 
@@ -37,12 +40,13 @@ impl TokenState {
             "running" => TokenState::Running,
             "success" => TokenState::Success,
             "failure" => TokenState::Failure,
+            "error" => TokenState::Error,
             _ => panic!("invalid token state! {}", s),
         }
     }
 
     pub fn is_final(&self) -> bool {
-        matches!(self, TokenState::Success | TokenState::Failure)
+        matches!(self, TokenState::Success | TokenState::Failure | TokenState::Error)
     }
 }
 

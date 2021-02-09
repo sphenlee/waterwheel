@@ -3,10 +3,11 @@ import { Tag } from 'antd';
 import {
   CheckCircleOutlined,
   SyncOutlined,
-  CloseCircleOutlined,
+  CloseSquareOutlined,
   ExclamationCircleOutlined,
   ClockCircleOutlined,
   MinusCircleOutlined,
+  WarningOutlined,
 } from '@ant-design/icons';
 
 
@@ -30,9 +31,13 @@ class State extends Component {
       icon = <CheckCircleOutlined />;
     } else if (state == 'failure') {
       color = 'error';
-      icon = <CloseCircleOutlined />;
+      icon = <CloseSquareOutlined />;
+    } else if (state == 'error') {
+      color = 'warning';
+      icon = <WarningOutlined />;
     } else {
-
+      color = 'warning';
+      icon = <WarningOutlined />;
     }
 
 

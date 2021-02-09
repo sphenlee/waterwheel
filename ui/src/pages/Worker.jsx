@@ -81,6 +81,11 @@ class Worker extends Component {
         this.interval = setInterval(() => this.fetchWorker(id), 5000);
     }
 
+    componentWillUnmount() {
+        clearInterval(this.interval);
+    }
+
+
     render() {
         const { history, match } = this.props;
         const { id } = match.params;
