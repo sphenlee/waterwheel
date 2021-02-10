@@ -19,7 +19,8 @@ function makeColumns(job_id) {
                 <Link to={`/jobs/${job_id}/tokens/${record.trigger_datetime}`}>
                     {text}
                 </Link>
-            )
+            ),
+        width: 300,
       },{
         title: 'Tasks',
         key: 'status',

@@ -1,6 +1,6 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
-import { Table, Select, notification } from 'antd';
+import { Table, Select, notification, Popconfirm } from 'antd';
 import { geekblue, lime, red, grey, yellow, orange } from '@ant-design/colors';
 import axios from 'axios';
 import styled from 'styled-components';
@@ -13,6 +13,7 @@ import {
   ClockCircleOutlined,
   MinusCircleOutlined,
   WarningOutlined,
+  QuestionCircleOutlined,
 } from '@ant-design/icons';
 
 
@@ -34,12 +35,12 @@ const Row = styled.tr`
 `;
 
 
-function iconForState(tok) {
-    if (tok === undefined) {
+function iconForState(task) {
+    if (task === undefined) {
         return '';
     }
 
-    let state = tok.state;
+    let state = task.state;
 
     if (state == 'active') {
         return <SyncOutlined style={{color: grey[5]}}/>;
@@ -58,14 +59,47 @@ function iconForState(tok) {
     }
 }
 
+async function activateToken(trigger_datetime, task_id) {
+    await axios.put(`/api/tasks/${task_id}/tokens/${trigger_datetime}`);
+    notification.success({
+        message: 'Task Activated',
+        description: 'The task has been activated and will run shortly.',
+        placement: 'bottomLeft',
+    })
+}
+
+function makeCell(task, tok) {
+    let this_task = tok.task_states[task];
+
+    return (
+        <Cell key={task}>
+            <Popconfirm
+                key="1"
+                title={'Activate this task?'}
+                okText={'Confirm'}
+                cancelText={'Cancel'}
+                okButtonProps={{size: 'normal'}}
+                cancelButtonProps={{size: 'normal'}}
+                onConfirm={() => activateToken(tok.trigger_datetime, this_task.task_id)}
+                icon={<QuestionCircleOutlined style={{ color: geekblue[5] }}/>}
+            >
+                {iconForState(this_task)}    
+            </Popconfirm>
+        </Cell>
+    );
+}
+
 function parseData(job_id, data) {
     let {tasks, tokens} = data;
 
 
-    let columns = <tr>{[
-        <td key="trigger_datetime">Trigger Datetime</td>
-    ].concat(tasks.map(t => (<HeaderCell key={t}>{t}</HeaderCell>)))
-}</tr>;
+    let columns = <tr>{
+        [
+            <td key="trigger_datetime">Trigger Datetime</td>
+        ].concat(tasks.map(t => (
+            <HeaderCell key={t}>{t}</HeaderCell>
+        )))
+    }</tr>;
 
 
     let rows = tokens.map(tok => (
@@ -76,10 +110,8 @@ function parseData(job_id, data) {
                         {tok.trigger_datetime}
                     </Link>
                 </Cell>
-            ].concat(tasks.map(t => (
-                <Cell key={t}>
-                    {iconForState(tok.task_states[t])}
-                </Cell>
+            ].concat(tasks.map(task => (
+                makeCell(task, tok)
             )))
         }</Row>
     ));
