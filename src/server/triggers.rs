@@ -14,9 +14,8 @@ use postage::prelude::*;
 use sqlx::types::Uuid;
 use sqlx::Connection;
 use std::str::FromStr;
-use tokio::time::{self, timeout};
-
-const SMALL_SLEEP: std::time::Duration = std::time::Duration::from_millis(50);
+use tokio::time;
+use postage::stream::TryRecvError;
 
 type Queue = BinaryHeap<TriggerTime, MinComparator>;
 
@@ -77,6 +76,23 @@ pub async fn process_triggers() -> Result<!> {
     restore_triggers(&mut queue).await?;
 
     loop {
+        trace!("checking for pending trigger updates");
+        loop {
+            match trigger_rx.try_recv() {
+                Ok(TriggerUpdate(uuid)) => {
+                    // TODO - batch the updates to avoid multiple heap recreations
+                    update_trigger(&uuid, &mut queue).await?;
+                },
+                Err(TryRecvError::Pending) => break,
+                Err(TryRecvError::Closed) => panic!("TriggerUpdated channel was closed!")
+            }
+        }
+        trace!("no trigger updates pending - going around the scheduler loop again");
+
+        // rather than update this every place we edit the queue just do it
+        // once per loop - it's for monitoring purposes anyway
+        SERVER_STATUS.lock().await.queued_triggers = queue.len();
+
         if queue.is_empty() {
             debug!("no triggers queued, waiting for a trigger update");
             let TriggerUpdate(uuid) = trigger_rx
@@ -84,19 +100,8 @@ pub async fn process_triggers() -> Result<!> {
                 .await
                 .expect("TriggerUpdate channel was closed!");
             update_trigger(&uuid, &mut queue).await?;
+            continue;
         }
-
-        trace!("checking for pending trigger updates");
-        while let Ok(recv) = timeout(SMALL_SLEEP, trigger_rx.recv()).await {
-            let TriggerUpdate(uuid) = recv.expect("TriggerUpdate channel was closed!");
-            // TODO - batch the updates to avoid multiple heap recreations
-            update_trigger(&uuid, &mut queue).await?;
-        }
-        trace!("no trigger updates pending - going around the scheduler loop again");
-
-        // rather than update this every place we edit the queue just do it
-        // once per loop - it's for monitoring purposes anyway
-        SERVER_STATUS.lock().await.queued_triggers = queue.len();
 
         #[cfg(debug_assertions)]
         if log::max_level() >= log::Level::Trace {

@@ -22,15 +22,7 @@ pub use tokens::{
 pub use triggers::{get_trigger, get_trigger_times, get_triggers_by_job};
 
 pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
-    let data = req.body_bytes().await?;
-    let job: Job = match serde_json::from_slice(&data) {
-        Ok(json) => json,
-        Err(err) => {
-            return Response::status(StatusCode::UNPROCESSABLE_ENTITY)
-                .body(err.to_string())
-                .into_response()
-        }
-    };
+    let job: Job = req.body_json().await?;
 
     let mut trigger_tx = postoffice::post_mail::<TriggerUpdate>().await?;
 

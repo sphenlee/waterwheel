@@ -53,7 +53,7 @@ template = {
 
 for i in range(500):
     job = template.copy()
-    job['name'] = f'job {i + 1000}'
+    job['name'] = f'job {i}'
     job['uuid'] = str(uuid.uuid4())
 
     print(f'creating job {i + 500}')
