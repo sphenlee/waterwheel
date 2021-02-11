@@ -95,7 +95,7 @@ pub async fn serve() -> Result<()> {
     #[cfg(debug_assertions)]
     {
         app.at("/static/*").static_files("ui/dist/");
-        app.at("/").get(|_req| async {
+        app.at("/**").get(|_req| async {
             let body = highnoon::Response::ok().path("ui/dist/index.html").await?;
             Ok(body)
         });
@@ -105,7 +105,7 @@ pub async fn serve() -> Result<()> {
     {
         app.at("/static/main.js")
             .get(get_file!("../../ui/dist/main.js" => "text/javascript"));
-        app.at("/")
+        app.at("/**")
             .get(get_file!("../../ui/dist/index.html" => "text/html;charset=utf-8"));
     }
 

@@ -1,0 +1,41 @@
+{
+  "uuid": "67b56d78-134a-4299-958e-e16e37469145",
+  "project": "test_project",
+  "name": "test_trigger_crash",
+  "description": "possibly causes a crash in the server process",
+  "triggers": [
+    {
+      "name": "trigger_a",
+      "start": "2021-02-11T00:00:00Z",
+      "period": "1h"
+    },
+    {
+      "name": "trigger_b",
+      "start": "2021-02-11T00:20:00Z",
+      "period": "1h"
+    },
+    {
+      "name": "trigger_c",
+      "start": "2021-02-11T00:40:00Z",
+      "period": "1h"
+    }
+  ],
+  "tasks": [
+    {
+      "name": "step_0",
+      "docker": {
+        "image": "bash",
+        "args": [
+          "echo",
+          "step 0"
+        ]
+      },
+      "depends": [
+        "trigger/trigger_a",
+        "trigger/trigger_b",
+        "trigger/trigger_c"
+      ],
+      "threshold": 1
+    }
+  ]
+}

@@ -136,7 +136,7 @@ class Tokens extends Component {
                     </Breadcrumb>
                     <Body>
                         <PageHeader
-                            onBack={() => history.replace(`/jobs/${id}`)}
+                            onBack={() => history.goBack()}
                             title={`${job.name} @ ${trigger_datetime}`}
                             subTitle={job.description}
                             extra={[

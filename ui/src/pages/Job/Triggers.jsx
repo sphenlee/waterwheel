@@ -88,7 +88,7 @@ class Triggers extends Component {
     }
 
     componentDidMount() {
-        this.fetchTriggers(this.props.job.id);
+        this.fetchTriggers(this.props.id);
     }
 
     render() {

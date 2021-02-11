@@ -102,7 +102,7 @@ class Triggers extends Component {
                     </Breadcrumb>
                     <Body>
                         <PageHeader
-                            onBack={() => history.replace(`/jobs/${job_id}`)}
+                            onBack={() => history.goBack()}
                             title={trigger.trigger_name}
                             subTitle={`Trigger in ${trigger.job_name}`}
                         />

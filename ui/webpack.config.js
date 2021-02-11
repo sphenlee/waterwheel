@@ -31,6 +31,6 @@ module.exports = {
     })
   ],
   output: {
-    publicPath: 'static/',
+    publicPath: '/static/',
   },
 };

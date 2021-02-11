@@ -42,10 +42,6 @@ class Job extends Component {
         }
     }
 
-    // componentDidMount() {
-    //     this.fetchJob();
-    // }
-
     componentDidMount() {
         const { id } = this.props.match.params;
 
@@ -59,8 +55,11 @@ class Job extends Component {
     }
 
     render() {
-        const { history } = this.props;
+        const { history, match } = this.props;
         const { job, loading } = this.state;
+
+        const job_id = match.params.id;
+        const tab = match.params.tab || 'overview';
 
         return (
             <Layout>
@@ -69,17 +68,21 @@ class Job extends Component {
                         <Breadcrumb.Item><Link to="/">Home</Link></Breadcrumb.Item>
                         <Breadcrumb.Item><Link to="/projects">Projects</Link></Breadcrumb.Item>
                         <Breadcrumb.Item><Link to={`/projects/${job.project_id}`}>{job.project || "..."}</Link></Breadcrumb.Item>
-                        <Breadcrumb.Item><Link to={`/jobs/${job.id}`}>{job.name || "..."}</Link></Breadcrumb.Item>
+                        <Breadcrumb.Item><Link to={`/jobs/${job_id}`}>{job.name || "..."}</Link></Breadcrumb.Item>
                     </Breadcrumb>
                     <Body>
                         <PageHeader
-                            onBack={() => history.replace(`/projects/${job.project_id}`)}
+                            onBack={() => history.goBack()}
                             title={job.name}
                             subTitle={job.description}
                             tags={job.paused && <Tag color="warning" icon={<PauseOutlined />}>paused</Tag>}
                         />
-                        <Tabs>
-                            <Tabs.TabPane tab="Overview" key="1">
+                        <Tabs
+                            activeKey={tab}
+                            onChange={(activeKey) => history.replace(`/jobs/${job_id}/${activeKey}`)}
+                            destroyInactiveTabPane={true}
+                        >
+                            <Tabs.TabPane tab="Overview" key="overview">
                                 <Row gutter={[16, 32]}>
                                     <Col span={6}>
                                         <Statistic title="Active Tasks"
@@ -97,22 +100,22 @@ class Job extends Component {
                                             value={job.failed_tasks_last_hour} />
                                     </Col>
                                     <Col span={24}>
-                                        <Graph id={job.id} />
+                                        <Graph id={job_id} />
                                     </Col>
                                 </Row>
                             </Tabs.TabPane>
-                            <Tabs.TabPane tab="Grid" key="2">
+                            <Tabs.TabPane tab="Grid" key="grid">
                                 <Spin spinning={loading}>
-                                    <TaskGrid id={job.id} />
+                                    <TaskGrid id={job_id} />
                                 </Spin>
                             </Tabs.TabPane>
-                            <Tabs.TabPane tab="Triggers" key="3">
-                                <Triggers id={job.id} job={job}/>
+                            <Tabs.TabPane tab="Triggers" key="triggers">
+                                <Triggers id={job_id} job={job}/>
                             </Tabs.TabPane>
-                            <Tabs.TabPane tab="Tokens" key="4">
-                                <TokenTable id={job.id}/>
+                            <Tabs.TabPane tab="Tokens" key="tokens">
+                                <TokenTable id={job_id}/>
                             </Tabs.TabPane>
-                            <Tabs.TabPane tab="Definition" key="5">
+                            <Tabs.TabPane tab="Definition" key="definition">
                                 <JSONPretty data={job.raw_definition} />
                             </Tabs.TabPane>
                         </Tabs>

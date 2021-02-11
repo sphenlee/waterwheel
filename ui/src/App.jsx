@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { HashRouter as Router, Switch, Route } from "react-router-dom";
+import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
 
 import { Layout, Breadcrumb } from 'antd';
 
@@ -27,6 +27,7 @@ class App extends Component {
             <Route path="/projects" component={Projects} />
             <Route path="/jobs/:id/tokens/:trigger_datetime" component={Tokens} />
             <Route path="/jobs/:job_id/triggers/:trigger_id" component={Triggers} />
+            <Route path="/jobs/:id/:tab" component={Job} />
             <Route path="/jobs/:id" component={Job} />
             <Route path="/workers/:id" component={Worker} />
             <Route path="/workers" component={Workers} />

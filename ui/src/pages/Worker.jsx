@@ -101,7 +101,7 @@ class Worker extends Component {
                     </Breadcrumb>
                     <Body>
                         <PageHeader
-                            onBack={() => history.replace(`/workers`)}
+                            onBack={() => history.back()}
                             title={`Worker ${id}`}
                             subTitle={'A worker'}
                         />
