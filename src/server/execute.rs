@@ -117,6 +117,7 @@ pub async fn process_executions() -> Result<!> {
             image: params.image,
             args: params.args.unwrap_or_default(),
             env: params.env,
+            priority,
         };
 
         let props = BasicProperties::default()

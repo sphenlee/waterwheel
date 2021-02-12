@@ -1,5 +1,5 @@
 use crate::amqp;
-use crate::messages::{TaskPriority, TaskProgress, Token};
+use crate::messages::{TaskProgress, Token};
 use crate::server::tokens::{increment_token, ProcessToken};
 use crate::{db, postoffice};
 use anyhow::Result;
@@ -69,7 +69,7 @@ pub async fn process_progress() -> Result<!> {
         // after committing the transaction we can tell the token processor increment tokens
         for token in tokens_to_tx {
             token_tx
-                .send(ProcessToken::Increment(token, TaskPriority::Normal))
+                .send(ProcessToken::Increment(token, task_progress.priority))
                 .await?;
         }
     }

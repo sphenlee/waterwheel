@@ -92,6 +92,7 @@ pub async fn process_work() -> Result<!> {
             task_id: task_def.task_id.to_string(),
             trigger_datetime: task_def.trigger_datetime.to_rfc3339(),
             started_datetime: started_datetime.to_rfc3339(),
+            priority: format!("{:?}", task_def.priority),
         });
 
         chan.basic_publish(
@@ -163,6 +164,7 @@ fn task_progress_payload(
         finished_datetime,
         worker_id: *WORKER_ID,
         result,
+        priority: task_def.priority,
     })?;
 
     Ok(payload)

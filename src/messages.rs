@@ -70,6 +70,8 @@ pub struct TaskDef {
     pub image: Option<String>,
     pub args: Vec<String>,
     pub env: Option<Vec<String>>,
+    #[serde(default)]
+    pub priority: TaskPriority,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -81,6 +83,7 @@ pub struct TaskProgress {
     pub finished_datetime: Option<DateTime<Utc>>,
     pub result: TokenState,
     pub worker_id: Uuid,
+    pub priority: TaskPriority,
 }
 
 // impl TaskProgress {
@@ -93,12 +96,22 @@ pub struct TaskProgress {
 // }
 
 #[repr(u8)]
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[derive(Copy, Clone,
+    Eq, PartialEq, Ord, PartialOrd,
+    Hash,
+    Debug,
+    Serialize, Deserialize)]
 pub enum TaskPriority {
     BackFill = 0,
     Low = 1,
     Normal = 2,
     High = 3,
+}
+
+impl Default for TaskPriority {
+    fn default() -> Self {
+        Self::Normal
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]
