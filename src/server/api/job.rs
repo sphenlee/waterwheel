@@ -145,7 +145,7 @@ pub async fn get_by_name(req: Request<State>) -> highnoon::Result<impl Responder
 
 #[derive(Serialize, sqlx::FromRow)]
 struct GetJobExtra {
-    pub id: Uuid,
+    pub id: Uuid, // TODO - consistency in naming ids
     pub project: String,
     pub project_id: Uuid,
     pub name: String,

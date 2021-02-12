@@ -106,7 +106,7 @@ pub async fn process_triggers() -> Result<!> {
         #[cfg(debug_assertions)]
         if log::max_level() >= log::Level::Trace {
             let queue_copy = queue.clone();
-            trace!("dumping the first 10 triggers in the queue:");
+            trace!("dumping the first 10 (of total {}) triggers in the queue:", queue_copy.len());
             for trigger in queue_copy.into_iter_sorted().take(10) {
                 trace!(
                     "    {}: {}",

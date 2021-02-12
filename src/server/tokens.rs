@@ -79,7 +79,7 @@ pub async fn process_tokens() -> Result<!> {
 
 /// Adds a token to a task node
 /// Usually you need to update some other state at the same time so it takes in a begun transaction
-/// so you can do the other update before comitting (eg. update the trigger's last trigger time, or
+/// so you can do the other update before committing (eg. update the trigger's last trigger time, or
 /// update the state of the upstream task to be 'done')
 /// After adding the token you have to send the token over to the process_tokens future to actually
 /// check if the node has activated

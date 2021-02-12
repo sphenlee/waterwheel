@@ -164,7 +164,9 @@ class TaskGrid extends Component {
     componentDidMount() {
         this.fetchTokens()
 
-        this.interval = setInterval(() => this.fetchTokens(), 5000);
+        // TODO - change back to 5s!
+        // TODO - use a websocket to poll for token status changes
+        this.interval = setInterval(() => this.fetchTokens(), 500);
     }
 
     componentWillUnmount() {
