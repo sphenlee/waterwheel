@@ -6,6 +6,7 @@ use sqlx::PgPool;
 mod job;
 mod project;
 pub mod request_ext;
+mod stash;
 mod task;
 pub mod types;
 mod workers;
@@ -52,6 +53,13 @@ pub async fn serve() -> Result<()> {
         .delete(project::delete);
     app.at("/api/projects/:id/jobs").get(project::list_jobs);
 
+    // project stash
+    app.at("/api/projects/:id/stash").get(stash::list_project_stash);
+    app.at("/api/projects/:id/stash/:key")
+        .put(stash::create_project_stash)
+        .get(stash::get_project_stash)
+        .delete(stash::delete_project_stash);
+
     // job
     app.at("/api/jobs")
         .get(job::get_by_name)
@@ -89,6 +97,13 @@ pub async fn serve() -> Result<()> {
     // workers
     app.at("/api/workers").get(workers::list);
     app.at("/api/workers/:id").get(workers::tasks);
+
+    // stash
+    app.at("/api/stash").get(stash::list_global_stash);
+    app.at("/api/stash/:key")
+        .put(stash::create_global_stash)
+        .get(stash::get_global_stash)
+        .delete(stash::delete_global_stash);
 
     // web UI
 

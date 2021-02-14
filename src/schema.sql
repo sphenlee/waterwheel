@@ -70,3 +70,16 @@ CREATE TABLE IF NOT EXISTS task_edge (
     kind VARCHAR NOT NULL,
     UNIQUE(parent_task_id, child_task_id, kind)
 );
+
+CREATE TABLE IF NOT EXISTS global_stash (
+    name VARCHAR PRIMARY KEY,
+    data BYTEA
+);
+
+CREATE TABLE IF NOT EXISTS project_stash (
+    project_id UUID NOT NULL REFERENCES project(id),
+    name VARCHAR NOT NULL,
+    data BYTEA,
+    UNIQUE(project_id, name)
+);
+
