@@ -68,7 +68,7 @@ async fn get_tokens_common(req: Request<State>) -> highnoon::Result<Vec<GetToken
         JOIN these_datetimes td ON td.trigger_datetime = tt.trigger_datetime
         WHERE ($4 IS NULL OR state = ANY($4))
         ORDER BY trigger_datetime DESC
-        "
+        ",
     )
     .bind(job_id)
     .bind(&q.before)

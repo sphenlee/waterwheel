@@ -1,7 +1,7 @@
 use super::request_ext::RequestExt;
 use super::State;
 use highnoon::{Json, Request, Responder, StatusCode};
-use kv_log_macro::{info};
+use kv_log_macro::info;
 use uuid::Uuid;
 
 #[derive(sqlx::FromRow, serde::Serialize)]
@@ -27,13 +27,14 @@ pub async fn create_global_stash(mut req: Request<State>) -> highnoon::Result<im
         VALUES ($1, $2)
         ON CONFLICT (name)
         DO UPDATE
-        SET data = $2")
-        .bind(&key)
-        .bind(&data)
-        .execute(&db)
-        .await?;
+        SET data = $2",
+    )
+    .bind(&key)
+    .bind(&data)
+    .execute(&db)
+    .await?;
 
-    info!("created global stash item", {key: key});
+    info!("created global stash item", { key: key });
 
     Ok(StatusCode::CREATED)
 }
@@ -43,10 +44,10 @@ pub async fn list_global_stash(req: Request<State>) -> highnoon::Result<impl Res
 
     let rows = sqlx::query_as::<_, StashName>(
         "SELECT name
-        FROM global_stash")
-        .fetch_all(&db)
-        .await?
-        ;
+        FROM global_stash",
+    )
+    .fetch_all(&db)
+    .await?;
 
     Ok(Json(rows))
 }
@@ -59,10 +60,11 @@ pub async fn get_global_stash(req: Request<State>) -> highnoon::Result<impl Resp
     let row = sqlx::query_as::<_, StashData>(
         "SELECT data
         FROM global_stash
-        WHERE name = $1")
-        .bind(&key)
-        .fetch_optional(&db)
-        .await?;
+        WHERE name = $1",
+    )
+    .bind(&key)
+    .fetch_optional(&db)
+    .await?;
 
     Ok(row)
 }
@@ -75,17 +77,16 @@ pub async fn delete_global_stash(req: Request<State>) -> highnoon::Result<impl R
     let done = sqlx::query(
         "DELETE
         FROM global_stash
-        WHERE name = $1")
-        .bind(&key)
-        .execute(&db)
-        .await?;
+        WHERE name = $1",
+    )
+    .bind(&key)
+    .execute(&db)
+    .await?;
 
-
-    info!("deleted global stash item", {key: key});
+    info!("deleted global stash item", { key: key });
 
     Ok(StatusCode::NO_CONTENT)
 }
-
 
 pub async fn create_project_stash(mut req: Request<State>) -> highnoon::Result<impl Responder> {
     let data = req.body_bytes().await?;
@@ -100,12 +101,13 @@ pub async fn create_project_stash(mut req: Request<State>) -> highnoon::Result<i
         VALUES ($1, $2, $3)
         ON CONFLICT (project_id, name)
         DO UPDATE
-        SET data = $3")
-        .bind(&proj_id)
-        .bind(&key)
-        .bind(&data)
-        .execute(&db)
-        .await?;
+        SET data = $3",
+    )
+    .bind(&proj_id)
+    .bind(&key)
+    .bind(&data)
+    .execute(&db)
+    .await?;
 
     info!("created project stash item", {
         project_id: proj_id.to_string(),
@@ -123,11 +125,11 @@ pub async fn list_project_stash(req: Request<State>) -> highnoon::Result<impl Re
     let rows = sqlx::query_as::<_, StashName>(
         "SELECT name
         FROM project_stash
-        WHERE project_id = $1")
-        .bind(&proj_id)
-        .fetch_all(&db)
-        .await?
-        ;
+        WHERE project_id = $1",
+    )
+    .bind(&proj_id)
+    .fetch_all(&db)
+    .await?;
 
     Ok(Json(rows))
 }
@@ -142,11 +144,12 @@ pub async fn get_project_stash(req: Request<State>) -> highnoon::Result<impl Res
         "SELECT data
         FROM project_stash
         WHERE project_id = $1
-        AND name = $2")
-        .bind(&proj_id)
-        .bind(&key)
-        .fetch_optional(&db)
-        .await?;
+        AND name = $2",
+    )
+    .bind(&proj_id)
+    .bind(&key)
+    .fetch_optional(&db)
+    .await?;
 
     Ok(row)
 }
@@ -161,11 +164,12 @@ pub async fn delete_project_stash(req: Request<State>) -> highnoon::Result<impl 
         "DELETE
         FROM project_stash
         WHERE project_id = $1
-        AND name = $2")
-        .bind(&proj_id)
-        .bind(&key)
-        .execute(&db)
-        .await?;
+        AND name = $2",
+    )
+    .bind(&proj_id)
+    .bind(&key)
+    .execute(&db)
+    .await?;
 
     info!("deleted project stash item", {
         project_id: proj_id.to_string(),

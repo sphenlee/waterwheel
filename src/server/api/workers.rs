@@ -67,13 +67,12 @@ pub async fn tasks(req: Request<State>) -> highnoon::Result<Response> {
 
     let status = WORKER_STATUS.lock().await;
     if let Some(worker) = status.get(&id) {
-        Response::ok()
-            .json(GetWorker {
-                last_seen_datetime: worker.last_seen_datetime,
-                running_tasks: worker.running_tasks,
-                total_tasks: worker.total_tasks,
-                tasks
-            })
+        Response::ok().json(GetWorker {
+            last_seen_datetime: worker.last_seen_datetime,
+            running_tasks: worker.running_tasks,
+            total_tasks: worker.total_tasks,
+            tasks,
+        })
     } else {
         Ok(Response::status(StatusCode::NOT_FOUND))
     }

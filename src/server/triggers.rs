@@ -11,11 +11,11 @@ use futures::future::{self, Either};
 use futures::TryStreamExt;
 use kv_log_macro::{debug, info, trace, warn};
 use postage::prelude::*;
+use postage::stream::TryRecvError;
 use sqlx::types::Uuid;
 use sqlx::Connection;
 use std::str::FromStr;
 use tokio::time;
-use postage::stream::TryRecvError;
 
 type Queue = BinaryHeap<TriggerTime, MinComparator>;
 
@@ -82,9 +82,9 @@ pub async fn process_triggers() -> Result<!> {
                 Ok(TriggerUpdate(uuid)) => {
                     // TODO - batch the updates to avoid multiple heap recreations
                     update_trigger(&uuid, &mut queue).await?;
-                },
+                }
                 Err(TryRecvError::Pending) => break,
-                Err(TryRecvError::Closed) => panic!("TriggerUpdated channel was closed!")
+                Err(TryRecvError::Closed) => panic!("TriggerUpdated channel was closed!"),
             }
         }
         trace!("no trigger updates pending - going around the scheduler loop again");
@@ -106,7 +106,10 @@ pub async fn process_triggers() -> Result<!> {
         #[cfg(debug_assertions)]
         if log::max_level() >= log::Level::Trace {
             let queue_copy = queue.clone();
-            trace!("dumping the first 10 (of total {}) triggers in the queue:", queue_copy.len());
+            trace!(
+                "dumping the first 10 (of total {}) triggers in the queue:",
+                queue_copy.len()
+            );
             for trigger in queue_copy.into_iter_sorted().take(10) {
                 trace!(
                     "    {}: {}",

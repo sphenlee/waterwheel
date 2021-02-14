@@ -46,7 +46,10 @@ impl TokenState {
     }
 
     pub fn is_final(&self) -> bool {
-        matches!(self, TokenState::Success | TokenState::Failure | TokenState::Error)
+        matches!(
+            self,
+            TokenState::Success | TokenState::Failure | TokenState::Error
+        )
     }
 }
 
@@ -96,11 +99,7 @@ pub struct TaskProgress {
 // }
 
 #[repr(u8)]
-#[derive(Copy, Clone,
-    Eq, PartialEq, Ord, PartialOrd,
-    Hash,
-    Debug,
-    Serialize, Deserialize)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize, Deserialize)]
 pub enum TaskPriority {
     BackFill = 0,
     Low = 1,

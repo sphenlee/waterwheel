@@ -54,7 +54,8 @@ pub async fn serve() -> Result<()> {
     app.at("/api/projects/:id/jobs").get(project::list_jobs);
 
     // project stash
-    app.at("/api/projects/:id/stash").get(stash::list_project_stash);
+    app.at("/api/projects/:id/stash")
+        .get(stash::list_project_stash);
     app.at("/api/projects/:id/stash/:key")
         .put(stash::create_project_stash)
         .get(stash::get_project_stash)
