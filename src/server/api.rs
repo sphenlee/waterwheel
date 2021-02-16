@@ -11,9 +11,15 @@ mod task;
 pub mod types;
 mod workers;
 
-#[derive(Clone)]
 pub struct State {
     pool: PgPool,
+}
+
+impl highnoon::State for State {
+    type Context = ();
+    fn new_context(&self) -> () {
+        ()
+    }
 }
 
 #[allow(unused)]

@@ -2,7 +2,7 @@ use anyhow::Result;
 use sqlx::postgres::PgDatabaseError;
 
 /// Postgres returns errors in a weird way, sigh
-pub const PG_INTEGRITY_ERROR: &str = "23";
+const PG_INTEGRITY_ERROR: &str = "23";
 
 /// Converts a SQLx error into a nested error - the outer layer is for all unexpected
 /// errors, the inner layer is for Database errors from Postgres. The inner error is
@@ -15,4 +15,9 @@ pub fn pg_error<T>(res: sqlx::Result<T>) -> Result<std::result::Result<T, Box<Pg
             err => Err(err.into()),
         },
     }
+}
+
+/// Check if an error is an integrity error (ie. unique constraint or FK relation failed)
+pub fn is_pg_integrity_error(err: &PgDatabaseError) -> bool {
+    &err.code()[..2] == PG_INTEGRITY_ERROR
 }

@@ -3,7 +3,7 @@ use super::types::Job;
 use super::State;
 use crate::postoffice;
 use crate::server::triggers::TriggerUpdate;
-use crate::util::{pg_error, PG_INTEGRITY_ERROR};
+use crate::util::{pg_error, is_pg_integrity_error};
 use highnoon::{Json, Request, Responder, Response, StatusCode};
 use log::{info, warn};
 use postage::prelude::*;
@@ -70,7 +70,7 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
         }
         Err(err) => {
             warn!("error creating job: {}", err);
-            return if &err.code()[..2] == PG_INTEGRITY_ERROR {
+            return if is_pg_integrity_error(&err) {
                 StatusCode::CONFLICT.into_response()
             } else {
                 Err(err.into())

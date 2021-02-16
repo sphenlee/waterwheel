@@ -1,6 +1,6 @@
 use super::request_ext::RequestExt;
 use super::State;
-use crate::util::{pg_error, PG_INTEGRITY_ERROR};
+use crate::util::{pg_error, is_pg_integrity_error};
 use highnoon::{Json, Request, Responder, Response, StatusCode};
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
@@ -39,7 +39,7 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
         }
         Err(err) => {
             warn!("error creating project: {}", err);
-            if &err.code()[..2] == PG_INTEGRITY_ERROR {
+            if is_pg_integrity_error(&err) {
                 Ok(Response::status(StatusCode::CONFLICT))
             } else {
                 Ok(Response::status(StatusCode::INTERNAL_SERVER_ERROR))
@@ -71,7 +71,7 @@ pub async fn update(mut req: Request<State>) -> highnoon::Result<StatusCode> {
         }
         Err(err) => {
             warn!("error creating project: {}", err);
-            if &err.code()[..2] == PG_INTEGRITY_ERROR {
+            if is_pg_integrity_error(&err) {
                 Ok(StatusCode::CONFLICT)
             } else {
                 Ok(StatusCode::INTERNAL_SERVER_ERROR)

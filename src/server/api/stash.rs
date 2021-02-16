@@ -74,7 +74,7 @@ pub async fn delete_global_stash(req: Request<State>) -> highnoon::Result<impl R
 
     let key = req.param("key")?;
 
-    let done = sqlx::query(
+    let _done = sqlx::query(
         "DELETE
         FROM global_stash
         WHERE name = $1",
@@ -160,7 +160,7 @@ pub async fn delete_project_stash(req: Request<State>) -> highnoon::Result<impl 
     let proj_id = req.param("id")?.parse::<Uuid>()?;
     let key = req.param("key")?;
 
-    let done = sqlx::query(
+    let _done = sqlx::query(
         "DELETE
         FROM project_stash
         WHERE project_id = $1
