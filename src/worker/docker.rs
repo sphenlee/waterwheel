@@ -76,7 +76,7 @@ pub async fn run_docker(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
         }
     }
 
-    info!("launching container", {
+    trace!("launching container", {
         image: &image,
         args: format!("{:?}", args),
         env: format!("{:?}", env),

@@ -69,7 +69,7 @@ mod json_format {
     #[derive(serde::Serialize)]
     struct JsonRecord<'a> {
         ts: String,
-        level: log::Level,
+        level: &'static str,
         target: &'a str,
         msg: String,
         extra: HashMap<String, String>,
@@ -93,7 +93,7 @@ mod json_format {
     pub(crate) fn format(fmt: &mut Formatter, record: &log::Record) -> std::io::Result<()> {
         let mut json = JsonRecord {
             ts: chrono::Local::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, false),
-            level: record.level(),
+            level: record.level().as_str(),
             target: record.target(),
             msg: record.args().to_string(),
             extra: HashMap::new(),
