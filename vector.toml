@@ -14,5 +14,5 @@
 [sinks.output]
   type = "file"
   inputs = ["parse"]
-  path = "/var/log/waterwheel/{{task_id}}/{{trigger_datetime}}.log"
+  path = "/var/log/waterwheel/{{meta.task_id}}/{{meta.trigger_datetime}}.log"
   encoding.codec = "ndjson"

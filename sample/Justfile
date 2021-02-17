@@ -1,0 +1,5 @@
+build:
+    docker build -t waterwheel_custom:1 ./custom
+
+deploy: build
+    python3 deploy.py

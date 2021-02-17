@@ -1,9 +1,6 @@
 use crate::messages::TaskDef;
 use anyhow::Result;
-use bollard::container::{
-    Config, CreateContainerOptions, LogsOptions, RemoveContainerOptions, StartContainerOptions,
-    WaitContainerOptions,
-};
+use bollard::container::{Config, CreateContainerOptions, LogsOptions, RemoveContainerOptions, StartContainerOptions, WaitContainerOptions};
 use bollard::image::{CreateImageOptions, ListImagesOptions};
 use futures::TryStreamExt;
 use kv_log_macro::{info, trace};
@@ -25,11 +22,13 @@ struct LogMessage<'a> {
     msg: &'a str,
 }
 
-pub async fn run_docker(task_def: TaskDef) -> Result<bool> {
+pub async fn run_docker(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
     // TODO - return actual error messages from Docker
     let image = task_def.image.unwrap();
     let args = task_def.args;
     let mut env = task_def.env.unwrap_or_default();
+
+    let server_addr = std::env::var("WATERWHEEL_SERVER_ADDR")?;
 
     env.push(format!(
         "WATERWHEEL_TRIGGER_DATETIME={}",
@@ -43,6 +42,8 @@ pub async fn run_docker(task_def: TaskDef) -> Result<bool> {
     env.push(format!("WATERWHEEL_JOB_ID={}", task_def.job_id));
     env.push(format!("WATERWHEEL_PROJECT_NAME={}", task_def.project_name));
     env.push(format!("WATERWHEEL_PROJECT_ID={}", task_def.project_id));
+    env.push(format!("WATERWHEEL_JWT={}", stash_jwt));
+    env.push(format!("WATERWHEEL_SERVER_ADDR={}", server_addr));
 
     let docker = bollard::Docker::connect_with_local_defaults()?;
 

@@ -1,0 +1,26 @@
+uuid: '65a09aa1-f923-4bf6-99f3-2cee7888e159'
+
+project: test_project
+name: sample job
+description: a sample job for testing custom docker images
+
+triggers:
+  - name: daily
+    start: '2021-01-01T00:00:00Z'
+    period: '10m'
+
+tasks:
+  - name: step1
+    docker:
+      image: waterwheel_custom:1
+      args: []
+    depends:
+      - trigger/daily
+
+  - name: failure
+    depends_failure:
+      - task/step1
+
+  - name: success
+    depends:
+      - task/step1

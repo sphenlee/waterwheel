@@ -1,6 +1,7 @@
 use crate::amqp::get_amqp_channel;
 use crate::messages::{TaskDef, TaskProgress, TokenState};
 use crate::worker::docker;
+use crate::server::stash;
 use anyhow::Result;
 
 use futures::TryStreamExt;
@@ -105,7 +106,10 @@ pub async fn process_work() -> Result<!> {
         .await?;
 
         let result = if task_def.image.is_some() {
-            match docker::run_docker(task_def.clone()).await {
+
+            let stash_jwt = stash::generate_jwt(&task_def.task_id.to_string())?;
+
+            match docker::run_docker(task_def.clone(), stash_jwt).await {
                 Ok(true) => TokenState::Success,
                 Ok(false) => TokenState::Failure,
                 Err(err) => {

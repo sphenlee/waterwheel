@@ -132,7 +132,7 @@ pub async fn serve() -> Result<()> {
     }
 
     let host =
-        std::env::var("WATERWHEEL_SERVER_ADDR").unwrap_or_else(|_| "127.0.0.1:8080".to_owned());
+        std::env::var("WATERWHEEL_SERVER_BIND").unwrap_or_else(|_| "127.0.0.1:8080".to_owned());
 
     app.listen(host).await?;
 

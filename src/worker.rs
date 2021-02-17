@@ -1,5 +1,6 @@
 use crate::postoffice;
 use crate::{amqp, spawn_retry};
+use crate::server::stash;
 use anyhow::Result;
 
 use kv_log_macro::info;
@@ -17,6 +18,8 @@ pub static RUNNING_TASKS: AtomicU64 = AtomicU64::new(0);
 pub static TOTAL_TASKS: AtomicU64 = AtomicU64::new(0);
 
 pub async fn run_worker() -> Result<()> {
+    stash::load_rsa_keys()?;
+
     amqp::amqp_connect().await?;
     postoffice::open()?;
 
@@ -27,11 +30,13 @@ pub async fn run_worker() -> Result<()> {
     }
 
     let mut app = highnoon::App::new(());
-    //app.with(tide::log::LogMiddleware::new());
     app.at("/")
         .get(|_req| async { Ok("Hello from Waterwheel Worker!") });
 
-    let host = std::env::var("WATERWHEEL_WORKER_ADDR").unwrap_or_else(|_| "127.0.0.1:0".to_owned());
+    // healthcheck to see if the worker is up
+    app.at("/healthcheck").get(|_req| async { Ok("OK") });
+
+    let host = std::env::var("WATERWHEEL_WORKER_BIND").unwrap_or_else(|_| "127.0.0.1:0".to_owned());
 
     info!("worker id {}", *WORKER_ID);
 

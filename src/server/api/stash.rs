@@ -1,8 +1,11 @@
 use super::request_ext::RequestExt;
 use super::State;
-use highnoon::{Json, Request, Responder, StatusCode};
+use crate::server::stash;
+use highnoon::{Json, Request, Responder, StatusCode, Error};
 use kv_log_macro::info;
 use uuid::Uuid;
+use highnoon::headers::Authorization;
+use highnoon::headers::authorization::Bearer;
 
 #[derive(sqlx::FromRow, serde::Serialize)]
 struct StashName(String);
@@ -55,7 +58,13 @@ pub async fn list_global_stash(req: Request<State>) -> highnoon::Result<impl Res
 pub async fn get_global_stash(req: Request<State>) -> highnoon::Result<impl Responder> {
     let db = req.get_pool();
 
+    let subject = get_jwt_subject(&req)?;
     let key = req.param("key")?;
+
+    info!("task requested global stash", {
+        task_id: subject,
+        key: key,
+    });
 
     let row = sqlx::query_as::<_, StashData>(
         "SELECT data
@@ -138,15 +147,24 @@ pub async fn get_project_stash(req: Request<State>) -> highnoon::Result<impl Res
     let db = req.get_pool();
 
     let proj_id = req.param("id")?.parse::<Uuid>()?;
+    let task_id = get_jwt_subject(&req)?.parse::<Uuid>()?;
     let key = req.param("key")?;
+
+    info!("task requested project stash", {
+        project_id: proj_id.to_string(),
+        task_id: task_id.to_string(),
+        key: key,
+    });
 
     let row = sqlx::query_as::<_, StashData>(
         "SELECT data
         FROM project_stash
         WHERE project_id = $1
-        AND name = $2",
+        AND (SELECT TRUE FROM task WHERE id = $2 AND project_id = $1)
+        AND name = $3",
     )
     .bind(&proj_id)
+    .bind(&task_id)
     .bind(&key)
     .fetch_optional(&db)
     .await?;
@@ -177,4 +195,17 @@ pub async fn delete_project_stash(req: Request<State>) -> highnoon::Result<impl 
     });
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+fn get_jwt_subject(req: &Request<State>) -> highnoon::Result<String> {
+    let jwt = req.header::<Authorization<Bearer>>()
+        .ok_or_else(|| Error::http(StatusCode::UNAUTHORIZED))?;
+
+    let subject = stash::validate_jtw(jwt.0.token())
+        .map_err(|err| {
+            log::warn!("error validating JWT: {}", err);
+            Error::http(StatusCode::UNAUTHORIZED)
+        })?;
+
+    Ok(subject)
 }

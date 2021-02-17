@@ -8,12 +8,15 @@ mod execute;
 mod heartbeat;
 mod progress;
 pub mod status;
+pub mod stash;
 pub mod tokens;
 mod trigger_time;
 mod triggers;
 
 pub async fn run_server() -> Result<()> {
     postoffice::open()?;
+
+    stash::load_rsa_keys()?;
 
     db::create_pool().await?;
     amqp::amqp_connect().await?;
