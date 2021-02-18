@@ -18,7 +18,8 @@ Features
 * [x] keep history of jobs runs, record task attempts
     * need to consider the data model to get this right    
 * [ ] built in task retries - you can do this currently with cyclic graphs ;)
-* [ ] task value stash
+* [ ] job concurrency - limit backfills from flooding the queue
+* [x] task value stash
     * to replace Airflow's xcom, variables and connections
     * most likely needs to be an HTTP API exposed to each container
 * [ ] task routing - send tasks to specific workers to support workers running on "privileged" hardware

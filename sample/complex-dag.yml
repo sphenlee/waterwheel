@@ -1,0 +1,113 @@
+uuid: '1a054cf0-fe77-44e7-a55e-ff34458bea3d'
+
+project: test_project
+name: complex dag
+description: a sample job with a complex dag
+
+triggers:
+  - name: daily
+    start: '2021-01-01T00:00:00Z'
+    period: '1d'
+
+tasks:
+  - name: stepA
+    docker:
+      image: waterwheel_random:1
+      args: []
+    depends:
+      - trigger/daily
+
+  - name: stepB1
+    docker:
+      image: waterwheel_random:1
+      args: []
+    depends:
+      - task/stepA
+
+  - name: stepB2
+    docker:
+      image: waterwheel_random:1
+      args: []
+    depends:
+      - task/stepA
+
+  - name: stepB3
+    docker:
+      image: waterwheel_random:1
+      args: []
+    depends:
+      - task/stepA
+
+  - name: stepB4
+    docker:
+      image: waterwheel_random:1
+      args: []
+    depends:
+      - task/stepA
+
+  - name: stepB5
+    docker:
+      image: waterwheel_random:1
+      args: []
+    depends:
+      - task/stepA
+
+  - name: stepC1
+    docker:
+      image: waterwheel_random:1
+      args: []
+    depends:
+      - task/stepB1
+      - task/stepB2
+      - task/stepB3
+      - task/stepB4
+
+  - name: stepC2
+    docker:
+      image: waterwheel_random:1
+      args: []
+    depends:
+      - task/stepB4
+      - task/stepB5
+
+  - name: stepD
+    docker:
+      image: waterwheel_random:1
+      args: []
+    depends:
+      - task/stepC1
+      - task/stepC2
+
+  - name: stepE
+    docker:
+      image: waterwheel_random:1
+      args: []
+    depends:
+      - task/stepB4
+      - task/stepC1
+
+  - name: z1_failure
+    depends_failure:
+      - task/stepA
+      - task/stepB1
+      - task/stepB2
+      - task/stepB3
+      - task/stepB4
+      - task/stepB5
+      - task/stepC1
+      - task/stepC2
+      - task/stepD
+
+  - name: z2_success
+    depends:
+      - task/stepD
+      - task/stepE
+
+  - name: z3_cleanup
+    docker:
+      image: bash
+      args: ['-c', 'echo cleanup']
+    depends:
+      - task/z1_failure
+      - task/z2_success
+    threshold: 1

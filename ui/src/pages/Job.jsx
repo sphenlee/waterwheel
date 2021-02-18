@@ -29,9 +29,6 @@ class Job extends Component {
 
     async fetchJob(id) {
         try {
-            this.setState({
-                loading: true,
-            });
             let resp = await axios.get(`/api/jobs/${id}`);
             this.setState({
                 job: resp.data,

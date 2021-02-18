@@ -1,7 +1,7 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
-import { Table, Select, notification, Popconfirm } from 'antd';
-import { geekblue, lime, red, grey, yellow, orange } from '@ant-design/colors';
+import { Table, Select, notification, Popconfirm, Row, Button } from 'antd';
+import { geekblue, lime, red, grey, orange } from '@ant-design/colors';
 import axios from 'axios';
 import styled from 'styled-components';
 
@@ -9,35 +9,32 @@ import {
   CheckCircleOutlined,
   SyncOutlined,
   CloseSquareOutlined,
-  ExclamationCircleOutlined,
   ClockCircleOutlined,
-  MinusCircleOutlined,
+  MinusOutlined,
   WarningOutlined,
   QuestionCircleOutlined,
+  LeftOutlined,
+  DoubleRightOutlined,
 } from '@ant-design/icons';
 
-
-import State from '../../components/State.jsx';
-
-const { Option } = Select;
 
 const HeaderCell = styled.td`
     writing-mode: vertical-rl;
 `;
 
-const Cell = styled.td`
+const TCell = styled.td`
     border-bottom: 1px solid #ddd;
     padding-right: 15px;
 `;
 
-const Row = styled.tr`
+const TRow = styled.tr`
     padding-bottom: 15px;
 `;
 
 
 function iconForState(task) {
     if (task === undefined) {
-        return '';
+        return <MinusOutlined style={{color: grey[0]}} />;
     }
 
     let state = task.state;
@@ -55,7 +52,7 @@ function iconForState(task) {
     } else if (state == 'error') {
         return <WarningOutlined style={{color: orange[5]}}/>;
     } else {
-        return '';
+        return 'invalid state?';
     }
 }
 
@@ -72,7 +69,7 @@ function makeCell(task, tok) {
     let this_task = tok.task_states[task];
 
     return (
-        <Cell key={task}>
+        <TCell key={task}>
             <Popconfirm
                 key="1"
                 title={'Activate this task?'}
@@ -85,7 +82,7 @@ function makeCell(task, tok) {
             >
                 {iconForState(this_task)}    
             </Popconfirm>
-        </Cell>
+        </TCell>
     );
 }
 
@@ -103,17 +100,17 @@ function parseData(job_id, data) {
 
 
     let rows = tokens.map(tok => (
-        <Row key={tok.trigger_datetime}>{
+        <TRow key={tok.trigger_datetime}>{
             [
-                <Cell key="trigger_datetime">
+                <TCell key="trigger_datetime">
                     <Link to={`/jobs/${job_id}/tokens/${tok.trigger_datetime}`}>
                         {tok.trigger_datetime}
                     </Link>
-                </Cell>
+                </TCell>
             ].concat(tasks.map(task => (
                 makeCell(task, tok)
             )))
-        }</Row>
+        }</TRow>
     ));
 
 
@@ -126,39 +123,43 @@ class TaskGrid extends Component {
         super(props);
 
         this.state = {
-            loading: false,
-            rows: [],
-            columns: [],
+            data: null,
+            limit: 25,
+            before: null,
         }
+    }
+
+    previous() {
+        this.setState((state) => ({
+            before: state.last,
+        }));
+    }
+
+    current() {
+        this.setState({
+            before: null,
+        });
     }
 
     async fetchTokens() {
         const { id } = this.props;
+        const { limit, before } = this.state;
 
-        try {
-            this.setState({
-                loading: true
-            });
-            let resp = await axios.get(`/api/jobs/${id}/tokens-overview?limit=25`);
+        let params = {
+            limit: limit,
+            before: before,
+        };
 
-            let {rows, columns} = parseData(id, resp.data);
+        let resp = await axios.get(`/api/jobs/${id}/tokens-overview`, {
+                params: params
+        });
 
-            this.setState({
-                rows: rows,
-                columns: columns,
-                loading: false,
-            });
-        } catch(e) {
-            this.setState({
-                loading: false,
-            });
-
-            notification.error({
-                message: 'Error fetching Tokens',
-                description: e,
-                placement: 'bottomLeft',
-            });
-        }
+        let last = resp.data.tokens[resp.data.tokens.length - 1].trigger_datetime;
+        
+        this.setState({
+            data: resp.data,
+            last: last,
+        });
     }
 
     componentDidMount() {
@@ -174,19 +175,35 @@ class TaskGrid extends Component {
     }
 
     render() {
-        const { id } = this.props;
-        const { rows, columns, loading } = this.state;
+        const { id }  = this.props;
+        const { data } = this.state;
+
+        if(!data) {
+            return null;
+        }
+
+        const {rows, columns} = parseData(id, data);
 
         return (
             <Fragment>
-                <table>
-                    <thead>
-                        {columns}
-                    </thead>
-                    <tbody>
-                        {rows}
-                    </tbody>
-                </table>
+                <Row>
+                    <Button>
+                        <LeftOutlined onClick={() => this.previous()}/>
+                    </Button>
+                    <Button>
+                        <DoubleRightOutlined onClick={() => this.current()}/>
+                    </Button>
+                </Row>
+                <Row>
+                    <table>
+                        <thead>
+                            {columns}
+                        </thead>
+                        <tbody>
+                            {rows}
+                        </tbody>
+                    </table>
+                </Row>
             </Fragment>
         );
     }

@@ -1,5 +1,10 @@
-build:
+build-custom:
     docker build -t waterwheel_custom:1 ./custom
+
+build-random:
+    docker build -t waterwheel_random:1 ./random
+
+build: build-custom build-random
 
 deploy: build
     python3 deploy.py
