@@ -61,11 +61,11 @@ pub async fn serve() -> Result<()> {
 
     // project stash
     app.at("/api/projects/:id/stash")
-        .get(stash::list_project_stash);
+        .get(stash::project::list);
     app.at("/api/projects/:id/stash/:key")
-        .put(stash::create_project_stash)
-        .get(stash::get_project_stash)
-        .delete(stash::delete_project_stash);
+        .put(stash::project::create)
+        .get(stash::project::get)
+        .delete(stash::project::delete);
 
     // job
     app.at("/api/jobs")
@@ -94,6 +94,14 @@ pub async fn serve() -> Result<()> {
     app.at("/api/jobs/:job_id/triggers/:id")
         .get(job::get_trigger);
 
+    // job stash
+    app.at("/api/jpbs/:id/stash/:trigger_datetime/")
+        .get(stash::job::list);
+    app.at("/api/jobs/:id/stash/:trigger_datetime/:key")
+        .put(stash::job::create)
+        .get(stash::job::get)
+        .delete(stash::job::delete);
+
     // task tokens
     app.at("/api/tasks/:id/tokens/:trigger_datetime")
         .put(task::create_token);
@@ -106,11 +114,11 @@ pub async fn serve() -> Result<()> {
     app.at("/api/workers/:id").get(workers::tasks);
 
     // stash
-    app.at("/api/stash").get(stash::list_global_stash);
+    app.at("/api/stash").get(stash::global::list);
     app.at("/api/stash/:key")
-        .put(stash::create_global_stash)
-        .get(stash::get_global_stash)
-        .delete(stash::delete_global_stash);
+        .put(stash::global::create)
+        .get(stash::global::get)
+        .delete(stash::global::delete);
 
     // web UI
 

@@ -7,15 +7,22 @@ description: a sample job for testing custom docker images
 triggers:
   - name: daily
     start: '2021-01-01T00:00:00Z'
-    period: '10m'
+    period: '1d'
 
 tasks:
-  - name: step1
+  - name: step0
     docker:
       image: waterwheel_custom:1
       args: []
     depends:
       - trigger/daily
+
+  - name: step1
+    docker:
+      image: waterwheel_custom:1
+      args: []
+    depends:
+      - task/step0
 
   - name: failure
     depends_failure:

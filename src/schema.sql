@@ -83,3 +83,10 @@ CREATE TABLE IF NOT EXISTS project_stash (
     UNIQUE(project_id, name)
 );
 
+CREATE TABLE IF NOT EXISTS job_stash (
+    job_id UUID NOT NULL REFERENCES job(id),
+    trigger_datetime TIMESTAMP WITH TIME ZONE NOT NULL,
+    name VARCHAR NOT NULL,
+    data BYTEA,
+    UNIQUE(job_id, trigger_datetime, name)
+);
