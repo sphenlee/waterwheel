@@ -12,7 +12,7 @@ requests.post(WATERWHEEL_HOST + '/api/projects', json={
 
 template = {
     "uuid": None,
-    "project": "autogen_project",
+    "project": project,
     "name": None,
     "description": "a generated job",
     "triggers": [

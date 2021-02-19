@@ -8,6 +8,7 @@ use uuid::Uuid;
 
 #[derive(Deserialize)]
 struct NewProject {
+    pub uuid: Option<Uuid>,
     pub name: String,
     pub description: String,
 }
@@ -15,11 +16,15 @@ struct NewProject {
 pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
     let proj: NewProject = req.body_json().await?;
 
-    let id = uuid::Uuid::new_v4();
+    let id = proj.uuid.unwrap_or_else(uuid::Uuid::new_v4);
 
     let res = sqlx::query(
         "INSERT INTO project(id, name, description)
-        VALUES($1, $2, $3)",
+        VALUES($1, $2, $3)
+        ON CONFLICT(id)
+        DO UPDATE
+        SET name = $2,
+            description = $3",
     )
     .bind(&id)
     .bind(&proj.name)
