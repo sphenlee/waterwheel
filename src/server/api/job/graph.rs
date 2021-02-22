@@ -10,6 +10,7 @@ struct Node {
     id: Uuid,
     kind: String,
     name: String,
+    job_id: Uuid,
     state: Option<String>,
 }
 
@@ -41,6 +42,7 @@ pub async fn get_graph(req: Request<State>) -> highnoon::Result<impl Responder> 
             t.id AS id,
             'task' AS kind,
             t.name AS name,
+            t.job_id AS job_id,
             (
                 SELECT k.state
                 FROM token k
@@ -54,6 +56,7 @@ pub async fn get_graph(req: Request<State>) -> highnoon::Result<impl Responder> 
             g.id AS id,
             'trigger' AS kind,
             g.name AS name,
+            g.job_id AS job_id,
             NULL AS state
         FROM trigger g
         WHERE g.job_id = $1",
@@ -87,8 +90,9 @@ pub async fn get_graph(req: Request<State>) -> highnoon::Result<impl Responder> 
     let extra_nodes = sqlx::query_as::<_, Node>(
         "SELECT
             t.id AS id,
-            'xtask' AS kind,
+            'task' AS kind,
             t.name AS name,
+            t.job_id AS job_id,
             (
                 SELECT k.state
                 FROM token k
@@ -103,8 +107,9 @@ pub async fn get_graph(req: Request<State>) -> highnoon::Result<impl Responder> 
         UNION ALL
         SELECT
             g.id AS id,
-            'xtrigger' AS kind,
+            'trigger' AS kind,
             g.name AS name,
+            g.job_id AS job_id,
             NULL AS state
         FROM trigger g
         JOIN trigger_edge ge ON g.id = ge.trigger_id

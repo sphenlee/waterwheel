@@ -17,6 +17,8 @@ mod server;
 pub mod util;
 mod worker;
 
+/// execute a future and retry it when it fails, using a circuit breaker
+/// to abort if the future fails too often too quickly (5 times in 1 minute)
 pub fn spawn_retry<F, Fut>(name: impl Into<String>, func: F)
 where
     F: Fn() -> Fut + Send + Sync + 'static,

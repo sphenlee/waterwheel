@@ -34,7 +34,7 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
 
     match pg_error(res)? {
         Ok(_done) => {
-            info!("created project {} -> {}", proj.name, id);
+            info!("updated project {} -> {}", id, proj.name);
             let proj = Project {
                 id,
                 name: proj.name,
@@ -43,43 +43,12 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
             Ok(Response::status(StatusCode::CREATED).json(proj)?)
         }
         Err(err) => {
-            warn!("error creating project: {}", err);
+            warn!("error updating project: {}", err);
             if is_pg_integrity_error(&err) {
-                Ok(Response::status(StatusCode::CONFLICT))
+                Ok(Response::status(StatusCode::CONFLICT)
+                    .body("a project with this name already exists"))
             } else {
                 Ok(Response::status(StatusCode::INTERNAL_SERVER_ERROR))
-            }
-        }
-    }
-}
-
-pub async fn update(mut req: Request<State>) -> highnoon::Result<StatusCode> {
-    let proj: NewProject = req.body_json().await?;
-    let id = req.param("id")?.parse::<Uuid>()?;
-
-    let res = sqlx::query(
-        "UPDATE project
-        SET name = $2,
-            description = $3
-        WHERE id = $1",
-    )
-    .bind(&id)
-    .bind(&proj.name)
-    .bind(&proj.description)
-    .execute(&req.get_pool())
-    .await;
-
-    match pg_error(res)? {
-        Ok(_done) => {
-            info!("updated project {} -> {}", proj.name, id);
-            Ok(StatusCode::CREATED)
-        }
-        Err(err) => {
-            warn!("error creating project: {}", err);
-            if is_pg_integrity_error(&err) {
-                Ok(StatusCode::CONFLICT)
-            } else {
-                Ok(StatusCode::INTERNAL_SERVER_ERROR)
             }
         }
     }

@@ -41,16 +41,28 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
             SET name = $2,
                 project_id = (SELECT id FROM project WHERE name = $3),
                 description = $4,
-                paused = $5,
+                paused = COALESCE($5, paused),
                 raw_definition = $6
             WHERE id = $1",
         )
     } else {
         sqlx::query(
-            "INSERT INTO job(id, name, project_id, description, paused, raw_definition)
-            VALUES($1, $2,
+            "INSERT INTO job(
+                id,
+                name,
+                project_id,
+                description,
+                paused,
+                raw_definition
+            )
+            VALUES(
+                $1,
+                $2,
                 (SELECT id FROM project WHERE name = $3),
-                $4, $5, $6)",
+                $4,
+                COALESCE($5, FALSE),
+                $6
+            )",
         )
     };
 

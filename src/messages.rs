@@ -2,22 +2,22 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-// state of a token
+/// state of a token
 // TODO - strings are still hardcoded, use the enum!
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "lowercase")]
 pub enum TokenState {
-    // waiting for the count to reach the threshold
+    /// waiting for the count to reach the threshold
     Waiting,
-    // task has been sent to the message broker to be started
+    /// task has been sent to the message broker to be started
     Active,
-    // running the task
+    /// running the task
     Running,
-    // task completed successfully
+    /// task completed successfully
     Success,
-    // task failed
+    /// task failed
     Failure,
-    // an error occurred (ie. task did not succeed or fail)
+    /// an error occurred (ie. task did not succeed or fail)
     Error,
 }
 

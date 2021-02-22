@@ -40,22 +40,34 @@ class JobGraph extends Component {
         }
     }
 
-    createGraph(data) {
+    createGraph(data, id) {
+        const nodeLabel = (n) => {
+            if (n.job_id === id) {
+                return `${n.name}`;
+            } else {
+                return `(${n.name})`
+            }
+        }
+
+        const nodeTitle = (n) => {
+            if (n.job_id === id) {
+                return `task ${n.name}`;
+            } else {
+                return `task ${n.name} from job <a href="/">${n.job_id}</a>`
+            }   
+        }
+
         return {
             nodes: data.nodes.map(n => ({
                 id: n.id,
-                label: `${n.kind}/${n.name}`,
+                label: nodeLabel(n),
+                title: nodeTitle(n),
                 shape: 'box',
-                color: (n.kind == 'trigger' ? yellow[3] : stateColor(n.state)),
-                shapeProperties: {
-                    borderDashes: (n.kind.startsWith('x'))
-                }
+                color: (n.kind === 'trigger' ? yellow[3] : stateColor(n.state))
             })),
             edges: data.edges.map(e => ({
                 to: e.to,
                 "from": e.from,
-                //color: (e.kind == 'failure' ? red[6] : (e.kind == 'trigger' ? yellow[6] : null)),
-                //width: 2,
                 arrows: {
                     middle: {
                         enabled: (e.kind == 'failure'),
@@ -89,7 +101,7 @@ class JobGraph extends Component {
             let resp = await axios.get(url);
 
             this.setState({
-                graph: this.createGraph(resp.data),
+                graph: this.createGraph(resp.data, id),
                 loading: false,
             });
         } catch(e) {

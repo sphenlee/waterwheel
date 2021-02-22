@@ -396,6 +396,10 @@ version = "0.14.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "784ad0fbab4f3e9cef09f20e0aea6000ae08d2cb98ac4c0abc53df18803d702f"
 dependencies = [
+ "base64 0.12.3",
+ "hmac",
+ "rand 0.7.3",
+ "sha2",
  "time 0.2.25",
  "version_check",
 ]
@@ -928,6 +932,7 @@ dependencies = [
  "tokio",
  "tokio-tungstenite",
  "tokio-util",
+ "uuid",
 ]
 
 [[package]]
