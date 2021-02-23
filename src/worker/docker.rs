@@ -6,7 +6,6 @@ use futures::TryStreamExt;
 use kv_log_macro::{info, trace};
 use serde::Serialize;
 use std::collections::HashMap;
-use tokio::io::AsyncWriteExt;
 
 #[derive(Serialize)]
 struct LogMeta<'a> {
@@ -112,9 +111,6 @@ pub async fn run_docker(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
         }),
     );
 
-    let vector_addr = std::env::var("WATERWHEEL_VECTOR_ADDR")?;
-    let mut vector = tokio::net::TcpStream::connect(&vector_addr).await?;
-
     let log_meta = LogMeta {
         project_id: &task_def.project_id.to_string(),
         job_id: &task_def.job_id.to_string(),
@@ -123,22 +119,19 @@ pub async fn run_docker(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
     };
 
     while let Some(line) = logs.try_next().await? {
-        vector
-            .write(&serde_json::to_vec(&LogMessage {
-                meta: &log_meta,
-                msg: &format!("{}", line),
-            })?)
-            .await?;
-        vector.write(b"\n").await?;
+        info!(target: "task", "{}", line, {
+            project_id: log_meta.project_id,
+            job_id: log_meta.job_id,
+            task_id: log_meta.task_id,
+            trigger_datetime: log_meta.trigger_datetime,
+        });
     }
-
-    vector.shutdown().await?;
 
     let mut waiter = docker.wait_container(&container.id, None::<WaitContainerOptions<String>>);
 
     let mut exit = 0;
     while let Some(x) = waiter.try_next().await? {
-        info!("container exit code: {}", x.status_code);
+        trace!("container exit code: {}", x.status_code, { id: container.id});
         exit = x.status_code;
     }
 

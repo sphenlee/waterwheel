@@ -13,3 +13,7 @@ down:
 # connect to the database interactively
 psql:
     psql postgres://postgres:${POSTGRES_PASSWORD}@localhost/
+
+# cross compile to musl
+compile-musl +ARGS:
+    docker run --rm -it -v "$(pwd)":/home/rust/src ekidd/rust-musl-builder:nightly-2021-02-13 {{ARGS}}

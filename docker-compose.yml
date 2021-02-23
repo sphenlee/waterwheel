@@ -12,12 +12,3 @@ services:
       - POSTGRES_PASSWORD
     ports:
       - "5432:5432"
-
-  vector:
-    image: timberio/vector:latest-alpine
-    ports:
-      - "9000:9000"
-    volumes:
-      - "$PWD/vector.toml:/etc/vector/vector.toml:ro"
-      - "$PWD/logs/:/var/log/waterwheel/"
-
