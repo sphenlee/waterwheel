@@ -152,7 +152,7 @@ pub async fn get_by_name(req: Request<State>) -> highnoon::Result<impl Responder
     .fetch_optional(&req.get_pool())
     .await?;
 
-    Ok(Json(job))
+    Ok(job.map(Json))
 }
 
 #[derive(Serialize, sqlx::FromRow)]

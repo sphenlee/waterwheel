@@ -1,6 +1,6 @@
 use crate::amqp::get_amqp_channel;
 use crate::messages::{TaskDef, TaskProgress, TokenState};
-use crate::worker::docker;
+use crate::worker::{docker, kube};
 use crate::server::stash;
 use anyhow::Result;
 
@@ -16,6 +16,24 @@ use lapin::{BasicProperties, ExchangeKind};
 use super::{RUNNING_TASKS, TOTAL_TASKS, WORKER_ID};
 use chrono::{DateTime, Utc};
 use std::sync::atomic::Ordering;
+use std::str::FromStr;
+
+enum TaskEngine {
+    Docker,
+    Kubernetes,
+}
+
+impl FromStr for TaskEngine {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "docker" => Ok(TaskEngine::Docker),
+            "kubernetes" => Ok(TaskEngine::Kubernetes),
+            _ => Err(anyhow::Error::msg("invalid engine, valid options: docker, kubernetes")),
+        }
+    }
+}
 
 // TODO - queues should be configurable for task routing
 const TASK_QUEUE: &str = "waterwheel.tasks";
@@ -82,6 +100,8 @@ pub async fn process_work() -> Result<!> {
         )
         .await?;
 
+    let engine = std::env::var("WATERWHEEL_TASK_ENGINE")?.parse::<TaskEngine>()?;
+
     while let Some((chan, msg)) = consumer.try_next().await? {
         let task_def: TaskDef = serde_json::from_slice(&msg.data)?;
 
@@ -109,7 +129,12 @@ pub async fn process_work() -> Result<!> {
 
             let stash_jwt = stash::generate_jwt(&task_def.task_id.to_string())?;
 
-            match docker::run_docker(task_def.clone(), stash_jwt).await {
+            let res = match engine {
+                TaskEngine::Docker => docker::run_docker(task_def.clone(), stash_jwt).await,
+                TaskEngine::Kubernetes => kube::run_kube(task_def.clone(), stash_jwt).await,
+            };
+
+            match res {
                 Ok(true) => TokenState::Success,
                 Ok(false) => TokenState::Failure,
                 Err(err) => {

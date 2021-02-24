@@ -14,6 +14,12 @@ down:
 psql:
     psql postgres://postgres:${POSTGRES_PASSWORD}@localhost/
 
-# cross compile to musl
-compile-musl +ARGS:
-    docker run --rm -it -v "$(pwd)":/home/rust/src ekidd/rust-musl-builder:nightly-2021-02-13 {{ARGS}}
+# run a cargo command in a musl environment
+musl +ARGS:
+    docker run \
+        -v $PWD/.musl-cargo-cache:/root/.cargo/registry \
+        -v "$PWD:/volume" \
+        --rm \
+        -it \
+        clux/muslrust:nightly \
+        cargo {{ARGS}}

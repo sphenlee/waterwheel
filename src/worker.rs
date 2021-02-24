@@ -9,7 +9,9 @@ use std::sync::atomic::AtomicU64;
 use uuid::Uuid;
 
 mod docker;
+pub mod env;
 mod heartbeat;
+mod kube;
 mod work;
 
 static WORKER_ID: Lazy<Uuid> = Lazy::new(Uuid::new_v4);

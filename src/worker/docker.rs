@@ -1,4 +1,5 @@
 use crate::messages::TaskDef;
+use crate::worker::env;
 use anyhow::Result;
 use bollard::container::{Config, CreateContainerOptions, LogsOptions, RemoveContainerOptions, StartContainerOptions, WaitContainerOptions};
 use bollard::image::{CreateImageOptions, ListImagesOptions};
@@ -22,30 +23,16 @@ struct LogMessage<'a> {
 }
 
 pub async fn run_docker(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
-    // TODO - return actual error messages from Docker
-    let image = task_def.image.unwrap();
-    let args = task_def.args;
-    let mut env = task_def.env.unwrap_or_default();
-
-    let server_addr = std::env::var("WATERWHEEL_SERVER_ADDR")?;
-
-    env.push(format!(
-        "WATERWHEEL_TRIGGER_DATETIME={}",
-        task_def
-            .trigger_datetime
-            .to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
-    ));
-    env.push(format!("WATERWHEEL_TASK_NAME={}", task_def.task_name));
-    env.push(format!("WATERWHEEL_TASK_ID={}", task_def.task_id));
-    env.push(format!("WATERWHEEL_JOB_NAME={}", task_def.job_name));
-    env.push(format!("WATERWHEEL_JOB_ID={}", task_def.job_id));
-    env.push(format!("WATERWHEEL_PROJECT_NAME={}", task_def.project_name));
-    env.push(format!("WATERWHEEL_PROJECT_ID={}", task_def.project_id));
-    env.push(format!("WATERWHEEL_JWT={}", stash_jwt));
-    env.push(format!("WATERWHEEL_SERVER_ADDR={}", server_addr));
-
     let docker = bollard::Docker::connect_with_local_defaults()?;
 
+    let env = env::get_env_string(&task_def, stash_jwt)?;
+
+    // task_def is partially move from here down
+    let image = task_def.image.unwrap();
+    let args = task_def.args;
+
+    // ____________________________________________________
+    // search for the image locally
     let mut filters = HashMap::new();
     filters.insert("reference", vec![&*image]);
 
@@ -60,6 +47,8 @@ pub async fn run_docker(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
 
     trace!("got {} images", list.len());
 
+    // ____________________________________________________
+    // pull the image if we didn't find it
     if list.is_empty() {
         let mut pull = docker.create_image(
             Some(CreateImageOptions::<&str> {
@@ -75,6 +64,8 @@ pub async fn run_docker(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
         }
     }
 
+    // ____________________________________________________
+    // launch the container
     trace!("launching container", {
         image: &image,
         args: format!("{:?}", args),
@@ -95,12 +86,16 @@ pub async fn run_docker(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
 
     trace!("created container", { id: container.id });
 
+    // ____________________________________________________
+    // start the container
     docker
         .start_container(&container.id, None::<StartContainerOptions<String>>)
         .await?;
 
     trace!("started container", { id: container.id});
 
+    // ____________________________________________________
+    // streams the logs back
     let mut logs = docker.logs(
         &container.id,
         Some(LogsOptions::<&str> {
@@ -127,6 +122,8 @@ pub async fn run_docker(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
         });
     }
 
+    // ____________________________________________________
+    // wait for it to terminate
     let mut waiter = docker.wait_container(&container.id, None::<WaitContainerOptions<String>>);
 
     let mut exit = 0;
@@ -135,6 +132,8 @@ pub async fn run_docker(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
         exit = x.status_code;
     }
 
+    // ____________________________________________________
+    // remove the container
     docker
         .remove_container(&container.id, None::<RemoveContainerOptions>)
         .await?;
