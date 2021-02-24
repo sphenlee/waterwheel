@@ -1,0 +1,16 @@
+[Unit]
+Description=Waterwheel Worker
+After=network-online.target
+
+[Service]
+Type=simple
+User=ec2-user
+EnvironmentFile=/etc/default/waterwheel
+
+ExecStart=/usr/bin/waterwheel worker
+Restart=on-failure
+RestartSec=10
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target

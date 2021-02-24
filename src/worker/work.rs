@@ -5,7 +5,7 @@ use crate::server::stash;
 use anyhow::Result;
 
 use futures::TryStreamExt;
-use kv_log_macro::{debug, error, info};
+use kv_log_macro::{debug as kvdebug, error as kverror, info as kvinfo};
 use lapin::options::{
     BasicAckOptions, BasicConsumeOptions, BasicPublishOptions, BasicQosOptions,
     ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
@@ -109,7 +109,7 @@ pub async fn process_work() -> Result<!> {
 
         RUNNING_TASKS.fetch_add(1, Ordering::Relaxed);
 
-        info!("received task", {
+        kvinfo!("received task", {
             task_id: task_def.task_id.to_string(),
             trigger_datetime: task_def.trigger_datetime.to_rfc3339(),
             started_datetime: started_datetime.to_rfc3339(),
@@ -138,7 +138,7 @@ pub async fn process_work() -> Result<!> {
                 Ok(true) => TokenState::Success,
                 Ok(false) => TokenState::Failure,
                 Err(err) => {
-                    error!("failed to run task: {}", err, {
+                    kverror!("failed to run task: {}", err, {
                         task_id: task_def.task_id.to_string(),
                         trigger_datetime: task_def.trigger_datetime.to_rfc3339(),
                     });
@@ -155,7 +155,7 @@ pub async fn process_work() -> Result<!> {
         RUNNING_TASKS.fetch_sub(1, Ordering::Relaxed);
         TOTAL_TASKS.fetch_add(1, Ordering::Relaxed);
 
-        info!("task completed", {
+        kvinfo!("task completed", {
             result: result.to_string(),
             task_id: task_def.task_id.to_string(),
             trigger_datetime: task_def.trigger_datetime.to_rfc3339(),
@@ -173,7 +173,7 @@ pub async fn process_work() -> Result<!> {
 
         chan.basic_ack(msg.delivery_tag, BasicAckOptions::default())
             .await?;
-        debug!("task acked");
+        kvdebug!("task acked");
     }
 
     unreachable!("consumer stopped consuming")

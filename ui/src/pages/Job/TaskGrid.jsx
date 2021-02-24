@@ -29,6 +29,12 @@ const TCell = styled.td`
 
 const TRow = styled.tr`
     padding-bottom: 15px;
+    transition: background 0.3s;
+    &:hover {
+        > td {
+            background-color: #f8f8f8;
+        }
+    }
 `;
 
 

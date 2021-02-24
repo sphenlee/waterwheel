@@ -4,8 +4,9 @@ use futures::{StreamExt, TryStreamExt};
 use kube::api::{Api, ListParams, PostParams, WatchEvent, DeleteParams};
 use kube::Client;
 use k8s_openapi::api::core::v1::Pod;
-use kv_log_macro::{trace, warn};
+use kv_log_macro::{trace as kvtrace, warn as kvwarn};
 use crate::worker::env;
+use crate::worker::WORKER_ID;
 
 pub async fn run_kube(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
     let client = Client::try_default().await?;
@@ -13,7 +14,7 @@ pub async fn run_kube(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
     let ns = std::env::var("WATERWHEEL_KUBE_NAMESPACE").unwrap_or_else(|_| "default".to_owned());
     let pods: Api<Pod> = Api::namespaced(client, &ns);
 
-    trace!("connected to Kubernetes namespace {}", ns);
+    kvtrace!("connected to Kubernetes namespace {}", ns);
 
     let env = env::get_env(&task_def, stash_jwt)?;
 
@@ -24,7 +25,16 @@ pub async fn run_kube(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
         "apiVersion": "v1",
         "kind": "Pod",
         "metadata": {
-            "name": name
+            "name": name,
+            "labels": {
+                "worker_id": *WORKER_ID,
+                "task_id": task_def.task_id,
+                "job_id": task_def.job_id,
+                "project_id": task_def.project_id,
+            },
+            "annotations": {
+                "atlassian.com/business_unit": "Data Platform"
+            }
         },
         "spec": {
             "containers": [
@@ -38,7 +48,7 @@ pub async fn run_kube(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
             "restartPolicy": "Never",
         }
     });
-    trace!("pod json: {:#}", pod_json);
+    kvtrace!("pod json: {:#}", pod_json);
 
     let pod = serde_json::from_value(pod_json)?;
 
@@ -56,7 +66,7 @@ pub async fn run_kube(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
             WatchEvent::Modified(pod) => {
                 let status = pod.status.as_ref().expect("status exists on pod");
                 let phase = status.phase.clone().unwrap_or_default();
-                trace!("pod modified, phase is '{}'", phase, {
+                kvtrace!("pod modified, phase is '{}'", phase, {
                     pod_name: name,
                 });
 
@@ -70,7 +80,7 @@ pub async fn run_kube(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
             }
             //WatchEvent::Deleted(o) => println!("Deleted {}", Meta::name(&o)),
             WatchEvent::Error(e) => {
-                warn!("error from Kubernetes {:?}", e, {
+                kvwarn!("error from Kubernetes {:?}", e, {
                     pod_name: name
                 });
                 return Err(e.into());
@@ -79,7 +89,7 @@ pub async fn run_kube(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
         }
     };
 
-    trace!("deleting pod", {pod_name: name});
+    kvtrace!("deleting pod", {pod_name: name});
     let _ = pods.delete(&name, &DeleteParams::default()).await?;
 
     Ok(result)

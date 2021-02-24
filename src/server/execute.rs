@@ -3,7 +3,7 @@ use crate::messages::{TaskDef, TaskPriority, Token};
 use crate::{db, postoffice};
 use anyhow::Result;
 use chrono::Utc;
-use kv_log_macro::{debug, info};
+use kv_log_macro::{debug as kvdebug, info as kvinfo};
 use lapin::options::{
     BasicPublishOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
 };
@@ -77,7 +77,7 @@ pub async fn process_executions() -> Result<!> {
 
     while let Some(msg) = execute_rx.recv().await {
         let ExecuteToken(token, priority) = msg;
-        debug!("enqueueing", {
+        kvdebug!("enqueueing", {
             task_id: token.task_id.to_string(),
             trigger_datetime: token.trigger_datetime.to_rfc3339(),
             priority: log::kv::Value::from_debug(&priority),
@@ -162,7 +162,7 @@ pub async fn process_executions() -> Result<!> {
 
         txn.commit().await?;
 
-        info!("task enqueued", {
+        kvinfo!("task enqueued", {
             task_id: token.task_id.to_string(),
             project_name: task_def.project_name,
             job_name: task_def.job_name,
