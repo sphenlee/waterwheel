@@ -7,7 +7,6 @@ use anyhow::Result;
 use binary_heap_plus::{BinaryHeap, MinComparator};
 use chrono::{DateTime, Duration, Utc};
 use cron::Schedule;
-use futures::future::{self, Either};
 use futures::TryStreamExt;
 use kv_log_macro::{debug, info, trace, warn};
 use postage::prelude::*;
@@ -127,13 +126,9 @@ pub async fn process_triggers() -> Result<!> {
                 trigger_id: next_triggertime.trigger_id.to_string()
             });
 
-            let sleep = Box::pin(time::sleep(delay.to_std()?));
-            let recv = Box::pin(trigger_rx.recv());
-
-            match future::select(recv, sleep).await {
-                Either::Left((recv, _)) => {
+            tokio::select!{
+                Some(TriggerUpdate(uuid)) = trigger_rx.recv() => {
                     trace!("received a trigger update while sleeping");
-                    let TriggerUpdate(uuid) = recv.expect("TriggerUpdate channel was closed!");
 
                     // put the trigger we slept on back in the queue
                     // update trigger might delete it, or we might select it as the next trigger
@@ -141,12 +136,12 @@ pub async fn process_triggers() -> Result<!> {
 
                     update_trigger(&uuid, &mut queue).await?;
                 }
-                Either::Right((_, _)) => {
+                _ = time::sleep(delay.to_std()?) => {
                     trace!("sleep completed, no updates");
                     requeue_next_triggertime(&next_triggertime, &mut queue).await?;
                     activate_trigger(next_triggertime, TaskPriority::Normal).await?;
                 }
-            };
+            }
         } else {
             warn!("overslept trigger: {}", delay);
             requeue_next_triggertime(&next_triggertime, &mut queue).await?;
