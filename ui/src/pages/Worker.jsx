@@ -1,7 +1,9 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
-import { Table, Layout, Breadcrumb, PageHeader, Row, Col, Statistic } from 'antd';
+import { Table, Layout, Breadcrumb, PageHeader, Row, Col, Statistic, Descriptions, Button } from 'antd';
 import { geekblue } from '@ant-design/colors';
+import { RightOutlined, DownOutlined } from "@ant-design/icons";
+
 
 
 import axios from 'axios';
@@ -28,23 +30,57 @@ function makeColumns() {
             dataIndex: 'trigger_datetime',
             render: text => <RelDate>{text}</RelDate>,
         },{
-            title: 'Queued Time',
-            dataIndex: 'queued_datetime',
-            render: text => <RelDate>{text}</RelDate>,
-        },{
-            title: 'Started Time',
-            dataIndex: 'started_datetime',
-            render: text => <RelDate>{text}</RelDate>,
-        },{
-            title: 'Finished Time',
-            dataIndex: 'finish_datetime',
-            render: text => (text && <RelDate>{text}</RelDate>),
-        },{
             title: 'State',
             dataIndex: 'state',
             render: text => <State state={text} />,
         }
     ];
+}
+
+
+function expandedRowRender(record) {
+    return (
+        <Descriptions
+                size="small"
+                bordered
+                column={2}
+                labelStyle={{
+                    fontWeight: "bold"
+                }}
+                contentStyle={{
+                    background: "#fff"
+                }}>
+            <Descriptions.Item label="Project">
+                <Link to={`/projects/${record.project_id}`}>
+                    {record.project_name}
+                </Link>
+            </Descriptions.Item>
+            <Descriptions.Item label="Job">
+                <Link to={`/jobs/${record.job_id}`}>
+                    {record.job_name}
+                </Link>
+            </Descriptions.Item>
+            <Descriptions.Item label="Queued Time" span={2}>
+                <RelDate>{record.queued_datetime}</RelDate>
+            </Descriptions.Item>
+            <Descriptions.Item label="Start Time">
+                <RelDate>{record.started_datetime}</RelDate>
+            </Descriptions.Item>
+            <Descriptions.Item label="Start Delay">
+                <Moment duration={record.queued_datetime} date={record.started_datetime} />
+            </Descriptions.Item>
+            <Descriptions.Item label="Finished Time">
+                {record.finish_datetime &&
+                    <RelDate>{record.finish_datetime}</RelDate>
+                }
+            </Descriptions.Item>
+            <Descriptions.Item label="Running Duration">
+                {record.finish_datetime &&
+                    <Moment duration={record.started_datetime} date={record.finish_datetime} />
+                }
+            </Descriptions.Item>
+        </Descriptions>
+    );
 }
 
 
@@ -56,7 +92,6 @@ class Worker extends Component {
 
         this.state = {
             tasks: [],
-
         }
     }
 
@@ -78,11 +113,6 @@ class Worker extends Component {
         const { id } = this.props.match.params;
 
         this.fetchWorker(id);
-        this.interval = setInterval(() => this.fetchWorker(id), 5000);
-    }
-
-    componentWillUnmount() {
-        clearInterval(this.interval);
     }
 
 
@@ -101,9 +131,14 @@ class Worker extends Component {
                     </Breadcrumb>
                     <Body>
                         <PageHeader
-                            onBack={() => history.back()}
+                            onBack={() => history.goBack()}
                             title={`Worker ${id}`}
                             subTitle={'A worker'}
+                            extra={
+                                <Button onClick={() => this.fetchWorker(id)}>
+                                    Refresh
+                                </Button>
+                            }
                         />
                         <Row gutter={[16, 32]}>
                             <Col span={6}>
@@ -124,7 +159,21 @@ class Worker extends Component {
                             </Col>
                             <Col span={24} />
                         </Row>
-                        <Table key="1" columns={this.columns} dataSource={tasks} />
+                        <Table key="1"
+                            rowKey="task_run_id"
+                            columns={this.columns}
+                            dataSource={tasks}
+                            expandable={{
+                                expandedRowRender: record => expandedRowRender(record),
+                                expandRowByClick: true,
+                                expandIcon: ({ expanded, onExpand, record }) =>
+                                    expanded ? (
+                                      <DownOutlined onClick={e => onExpand(record, e)} />
+                                    ) : (
+                                      <RightOutlined onClick={e => onExpand(record, e)} />
+                                    )
+                            }}
+                            />
                     </Body>
                 </Content>
             </Layout>

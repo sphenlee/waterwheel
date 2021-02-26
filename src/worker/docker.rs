@@ -114,7 +114,8 @@ pub async fn run_docker(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
     };
 
     while let Some(line) = logs.try_next().await? {
-        kvinfo!(target: "task", "{}", line, {
+        // TODO - direct these to a different log stream
+        kvinfo!("{}", line, {
             project_id: log_meta.project_id,
             job_id: log_meta.job_id,
             task_id: log_meta.task_id,

@@ -4,6 +4,13 @@
   	[
   		"@babel/transform-runtime",
   		{ "regenerator": true }
+  	],
+	[
+		"import",
+		{
+		  "libraryName": "antd",
+		  "style": "css",
+		}
   	]
   ]
 }
