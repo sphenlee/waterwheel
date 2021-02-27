@@ -67,7 +67,7 @@ async function activateToken(trigger_datetime, task_id) {
     notification.success({
         message: 'Task Activated',
         description: 'The task has been activated and will run shortly.',
-        placement: 'bottomLeft',
+        placement: 'bottomRight',
     })
 }
 

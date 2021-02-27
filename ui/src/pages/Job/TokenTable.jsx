@@ -51,27 +51,18 @@ class TokenTable extends Component {
 
         this.state = {
             filter: ['active', 'running'],
-            loading: false,
-            tokens: []
+            tokens: null
         }
     }
 
     async fetchTokens(id) {
         try {
             let filter = this.state.filter.concat(',');
-            this.setState({
-                loading: true
-            });
             let resp = await axios.get(`/api/jobs/${id}/tokens?state=${filter}`);
             this.setState({
                 tokens: resp.data,
-                loading: false,
             });
         } catch(e) {
-            this.setState({
-                loading: false,
-            });
-
             notification.error({
                 message: 'Error fetching Tokens',
                 description: e,
@@ -94,7 +85,7 @@ class TokenTable extends Component {
 
     render() {
         const { id } = this.props;
-        const { tokens, loading } = this.state;
+        const { tokens } = this.state;
 
         return (
             <Fragment>
@@ -117,7 +108,12 @@ class TokenTable extends Component {
                     <Option value="waiting">Waiting</Option>
                 </Select>
 
-                <Table columns={this.columns} dataSource={tokens} loading={loading} pagination={{position: ['bottomLeft']}}/>
+                <Table rowKey={record => record.trigger_datetime + record.task_name}
+                    columns={this.columns}
+                    dataSource={tokens}
+                    loading={tokens === null}
+                    pagination={{position: ['bottomLeft']}}
+                    />
             </Fragment>
         );
     }
