@@ -1,14 +1,15 @@
-use anyhow::Result;
 use crate::messages::TaskDef;
-use k8s_openapi::api::core::v1::EnvVar;
+use anyhow::Result;
 use itertools::Itertools;
+use k8s_openapi::api::core::v1::EnvVar;
 
 pub fn get_env_string(task_def: &TaskDef, stash_jwt: String) -> Result<Vec<String>> {
     let env = get_env(task_def, stash_jwt)?;
 
-    Ok(env.iter()
-           .map(|ev| format!("{}={}", ev.name, ev.value.as_ref().unwrap()))
-           .collect())
+    Ok(env
+        .iter()
+        .map(|ev| format!("{}={}", ev.name, ev.value.as_ref().unwrap()))
+        .collect())
 }
 
 fn envvar(name: &str, val: impl std::fmt::Display) -> EnvVar {
@@ -20,9 +21,7 @@ fn envvar(name: &str, val: impl std::fmt::Display) -> EnvVar {
 }
 
 pub fn get_env(task_def: &TaskDef, stash_jwt: String) -> Result<Vec<EnvVar>> {
-    let provided_env = task_def.env
-        .clone()
-        .unwrap_or_default();
+    let provided_env = task_def.env.clone().unwrap_or_default();
 
     let mut env = vec![];
 
@@ -30,13 +29,16 @@ pub fn get_env(task_def: &TaskDef, stash_jwt: String) -> Result<Vec<EnvVar>> {
         if let Some((k, v)) = kv.splitn(2, "=").collect_tuple() {
             env.push(envvar(k, v));
         } else {
-            return Err(anyhow::Error::msg("invalid environment variable (only KEY=VALUE syntax is supported)"));
+            return Err(anyhow::Error::msg(
+                "invalid environment variable (only KEY=VALUE syntax is supported)",
+            ));
         }
     }
 
     let server_addr = std::env::var("WATERWHEEL_SERVER_ADDR")?;
 
-    env.push(envvar("WATERWHEEL_TRIGGER_DATETIME",
+    env.push(envvar(
+        "WATERWHEEL_TRIGGER_DATETIME",
         task_def
             .trigger_datetime
             .to_rfc3339_opts(chrono::SecondsFormat::Secs, true),

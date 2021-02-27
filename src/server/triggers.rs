@@ -126,7 +126,7 @@ pub async fn process_triggers() -> Result<!> {
                 trigger_id: next_triggertime.trigger_id.to_string()
             });
 
-            tokio::select!{
+            tokio::select! {
                 Some(TriggerUpdate(uuid)) = trigger_rx.recv() => {
                     trace!("received a trigger update while sleeping");
 

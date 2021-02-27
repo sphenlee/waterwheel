@@ -1,7 +1,10 @@
 use crate::messages::TaskDef;
 use crate::worker::env;
 use anyhow::Result;
-use bollard::container::{Config, CreateContainerOptions, LogsOptions, RemoveContainerOptions, StartContainerOptions, WaitContainerOptions};
+use bollard::container::{
+    Config, CreateContainerOptions, LogsOptions, RemoveContainerOptions, StartContainerOptions,
+    WaitContainerOptions,
+};
 use bollard::image::{CreateImageOptions, ListImagesOptions};
 use futures::TryStreamExt;
 use kv_log_macro::{info as kvinfo, trace as kvtrace};

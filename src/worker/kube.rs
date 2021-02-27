@@ -1,12 +1,12 @@
-use anyhow::Result;
 use crate::messages::TaskDef;
-use futures::{StreamExt, TryStreamExt};
-use kube::api::{Api, ListParams, PostParams, WatchEvent, DeleteParams, LogParams, Meta};
-use kube::Client;
-use k8s_openapi::api::core::v1::Pod;
-use kv_log_macro::{trace as kvtrace, warn as kvwarn, info as kvinfo, debug as kvdebug};
 use crate::worker::env;
 use crate::worker::WORKER_ID;
+use anyhow::Result;
+use futures::{StreamExt, TryStreamExt};
+use k8s_openapi::api::core::v1::Pod;
+use kube::api::{Api, DeleteParams, ListParams, LogParams, Meta, PostParams, WatchEvent};
+use kube::Client;
+use kv_log_macro::{debug as kvdebug, info as kvinfo, trace as kvtrace, warn as kvwarn};
 
 pub async fn run_kube(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
     let client = Client::try_default().await?;
@@ -66,7 +66,7 @@ pub async fn run_kube(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
                 kvdebug!("pod created", {
                     pod_name: Meta::name(&pod),
                 });
-            },
+            }
             WatchEvent::Modified(pod) => {
                 let status = pod.status.as_ref().expect("status exists on pod");
                 let phase = status.phase.clone().unwrap_or_default();
@@ -74,7 +74,7 @@ pub async fn run_kube(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
                     pod_name: Meta::name(&pod),
                 });
 
-                if phase == "Succeeded"{
+                if phase == "Succeeded" {
                     result = true;
                     break;
                 }
@@ -84,20 +84,23 @@ pub async fn run_kube(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
             }
             //WatchEvent::Deleted(o) => println!("Deleted {}", Meta::name(&o)),
             WatchEvent::Error(e) => {
-                kvwarn!("error from Kubernetes {:?}", e, {
-                    pod_name: name
-                });
+                kvwarn!("error from Kubernetes {:?}", e, { pod_name: name });
                 return Err(e.into());
-            },
+            }
             _ => {}
         }
-    };
+    }
 
-    let mut logs = pods.log_stream(&name, &LogParams {
-        //previous: true,
-        follow: true,
-        ..LogParams::default()
-    }).await?;
+    let mut logs = pods
+        .log_stream(
+            &name,
+            &LogParams {
+                //previous: true,
+                follow: true,
+                ..LogParams::default()
+            },
+        )
+        .await?;
 
     while let Some(log) = logs.try_next().await? {
         // TODO - direct these to a different log stream
@@ -106,7 +109,7 @@ pub async fn run_kube(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
         kvinfo!("{}", line.trim_end());
     }
 
-    kvtrace!("deleting pod", {pod_name: name});
+    kvtrace!("deleting pod", { pod_name: name });
     let _ = pods.delete(&name, &DeleteParams::default()).await?;
 
     Ok(result)

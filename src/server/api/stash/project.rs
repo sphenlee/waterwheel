@@ -1,9 +1,9 @@
-use crate::server::api::{State, request_ext::RequestExt};
+use crate::server::api::{request_ext::RequestExt, State};
 use highnoon::{Json, Request, Responder, StatusCode};
 use kv_log_macro::info;
 use uuid::Uuid;
 
-use super::{StashName, StashData, get_jwt_subject};
+use super::{get_jwt_subject, StashData, StashName};
 
 pub async fn create(mut req: Request<State>) -> highnoon::Result<impl Responder> {
     let data = req.body_bytes().await?;
@@ -20,11 +20,11 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<impl Responder>
         DO UPDATE
         SET data = $3",
     )
-        .bind(&proj_id)
-        .bind(&key)
-        .bind(&data)
-        .execute(&db)
-        .await?;
+    .bind(&proj_id)
+    .bind(&key)
+    .bind(&data)
+    .execute(&db)
+    .await?;
 
     info!("created project stash item", {
         project_id: proj_id.to_string(),
@@ -44,9 +44,9 @@ pub async fn list(req: Request<State>) -> highnoon::Result<impl Responder> {
         FROM project_stash
         WHERE project_id = $1",
     )
-        .bind(&proj_id)
-        .fetch_all(&db)
-        .await?;
+    .bind(&proj_id)
+    .fetch_all(&db)
+    .await?;
 
     Ok(Json(rows))
 }
@@ -76,11 +76,11 @@ pub async fn get(req: Request<State>) -> highnoon::Result<impl Responder> {
         )
         AND name = $3",
     )
-        .bind(&proj_id)
-        .bind(&task_id)
-        .bind(&key)
-        .fetch_optional(&db)
-        .await?;
+    .bind(&proj_id)
+    .bind(&task_id)
+    .bind(&key)
+    .fetch_optional(&db)
+    .await?;
 
     Ok(row)
 }
@@ -97,10 +97,10 @@ pub async fn delete(req: Request<State>) -> highnoon::Result<impl Responder> {
         WHERE project_id = $1
         AND name = $2",
     )
-        .bind(&proj_id)
-        .bind(&key)
-        .execute(&db)
-        .await?;
+    .bind(&proj_id)
+    .bind(&key)
+    .execute(&db)
+    .await?;
 
     info!("deleted project stash item", {
         project_id: proj_id.to_string(),

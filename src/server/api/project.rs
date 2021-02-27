@@ -1,6 +1,6 @@
 use super::request_ext::RequestExt;
 use super::State;
-use crate::util::{pg_error, is_pg_integrity_error};
+use crate::util::{is_pg_integrity_error, pg_error};
 use highnoon::{Json, Request, Responder, Response, StatusCode};
 use log::{info, warn};
 use serde::{Deserialize, Serialize};

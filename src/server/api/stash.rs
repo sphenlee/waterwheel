@@ -1,11 +1,11 @@
 use super::State;
 use crate::server::stash;
-use highnoon::{Request, Responder, StatusCode, Error};
-use highnoon::headers::{Authorization, authorization::Bearer};
+use highnoon::headers::{authorization::Bearer, Authorization};
+use highnoon::{Error, Request, Responder, StatusCode};
 
 pub mod global;
-pub mod project;
 pub mod job;
+pub mod project;
 
 #[derive(sqlx::FromRow, serde::Serialize)]
 struct StashName(String);
@@ -20,14 +20,14 @@ impl Responder for StashData {
 }
 
 pub fn get_jwt_subject(req: &Request<State>) -> highnoon::Result<String> {
-    let jwt = req.header::<Authorization<Bearer>>()
+    let jwt = req
+        .header::<Authorization<Bearer>>()
         .ok_or_else(|| Error::http(StatusCode::UNAUTHORIZED))?;
 
-    let subject = stash::validate_jtw(jwt.0.token())
-        .map_err(|err| {
-            log::warn!("error validating JWT: {}", err);
-            Error::http(StatusCode::UNAUTHORIZED)
-        })?;
+    let subject = stash::validate_jtw(jwt.0.token()).map_err(|err| {
+        log::warn!("error validating JWT: {}", err);
+        Error::http(StatusCode::UNAUTHORIZED)
+    })?;
 
     Ok(subject)
 }

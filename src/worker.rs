@@ -1,6 +1,6 @@
 use crate::postoffice;
-use crate::{amqp, spawn_retry};
 use crate::server::stash;
+use crate::{amqp, spawn_retry};
 use anyhow::Result;
 
 use kv_log_macro::info;

@@ -1,4 +1,3 @@
-
 pub fn setup() {
     if std::env::var("WATERWHEEL_JSON_LOG").is_ok() {
         env_logger::builder().format(json_format::format).init();
@@ -24,7 +23,7 @@ mod env_log_format {
             key: log::kv::Key<'kvs>,
             val: log::kv::Value<'kvs>,
         ) -> Result<(), log::kv::Error> {
-            writeln!(self.fmt, "    {}: {}", key.to_string().cyan(), val, ).unwrap();
+            writeln!(self.fmt, "    {}: {}", key.to_string().cyan(), val).unwrap();
             Ok(())
         }
     }
@@ -63,8 +62,8 @@ mod env_log_format {
 
 mod json_format {
     use env_logger::fmt::Formatter;
-    use std::io::Write;
     use std::collections::HashMap;
+    use std::io::Write;
 
     #[derive(serde::Serialize)]
     struct JsonRecord<'a> {
@@ -99,10 +98,12 @@ mod json_format {
             extra: HashMap::new(),
         };
 
-        let mut visitor = Visitor { extra: &mut json.extra };
+        let mut visitor = Visitor {
+            extra: &mut json.extra,
+        };
         record.key_values().visit(&mut visitor).unwrap();
 
-        serde_json::to_writer(&mut*fmt, &json)?;
+        serde_json::to_writer(&mut *fmt, &json)?;
         fmt.write(b"\n")?;
 
         Ok(())

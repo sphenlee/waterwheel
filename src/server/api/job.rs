@@ -3,7 +3,7 @@ use super::types::Job;
 use super::State;
 use crate::postoffice;
 use crate::server::triggers::TriggerUpdate;
-use crate::util::{pg_error, is_pg_integrity_error};
+use crate::util::{is_pg_integrity_error, pg_error};
 use highnoon::{Json, Request, Responder, Response, StatusCode};
 use log::{info, warn};
 use postage::prelude::*;

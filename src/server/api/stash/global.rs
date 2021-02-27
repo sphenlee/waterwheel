@@ -1,8 +1,8 @@
-use crate::server::api::{State, request_ext::RequestExt};
+use crate::server::api::{request_ext::RequestExt, State};
 use highnoon::{Json, Request, Responder, StatusCode};
 use kv_log_macro::info;
 
-use super::{StashName, StashData, get_jwt_subject};
+use super::{get_jwt_subject, StashData, StashName};
 
 pub async fn create(mut req: Request<State>) -> highnoon::Result<impl Responder> {
     let data = req.body_bytes().await?;
@@ -17,10 +17,10 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<impl Responder>
         DO UPDATE
         SET data = $2",
     )
-        .bind(&key)
-        .bind(&data)
-        .execute(&db)
-        .await?;
+    .bind(&key)
+    .bind(&data)
+    .execute(&db)
+    .await?;
 
     info!("created global stash item", { key: key });
 
@@ -34,8 +34,8 @@ pub async fn list(req: Request<State>) -> highnoon::Result<impl Responder> {
         "SELECT name
         FROM global_stash",
     )
-        .fetch_all(&db)
-        .await?;
+    .fetch_all(&db)
+    .await?;
 
     Ok(Json(rows))
 }
@@ -56,9 +56,9 @@ pub async fn get(req: Request<State>) -> highnoon::Result<impl Responder> {
         FROM global_stash
         WHERE name = $1",
     )
-        .bind(&key)
-        .fetch_optional(&db)
-        .await?;
+    .bind(&key)
+    .fetch_optional(&db)
+    .await?;
 
     Ok(row)
 }
@@ -73,9 +73,9 @@ pub async fn delete(req: Request<State>) -> highnoon::Result<impl Responder> {
         FROM global_stash
         WHERE name = $1",
     )
-        .bind(&key)
-        .execute(&db)
-        .await?;
+    .bind(&key)
+    .execute(&db)
+    .await?;
 
     info!("deleted global stash item", { key: key });
 

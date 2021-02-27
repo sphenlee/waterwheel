@@ -1,7 +1,7 @@
 use crate::amqp::get_amqp_channel;
 use crate::messages::{TaskDef, TaskProgress, TokenState};
-use crate::worker::{docker, kube};
 use crate::server::stash;
+use crate::worker::{docker, kube};
 use anyhow::Result;
 
 use futures::TryStreamExt;
@@ -15,8 +15,8 @@ use lapin::{BasicProperties, ExchangeKind};
 
 use super::{RUNNING_TASKS, TOTAL_TASKS, WORKER_ID};
 use chrono::{DateTime, Utc};
-use std::sync::atomic::Ordering;
 use std::str::FromStr;
+use std::sync::atomic::Ordering;
 
 enum TaskEngine {
     Docker,
@@ -30,7 +30,9 @@ impl FromStr for TaskEngine {
         match s {
             "docker" => Ok(TaskEngine::Docker),
             "kubernetes" => Ok(TaskEngine::Kubernetes),
-            _ => Err(anyhow::Error::msg("invalid engine, valid options: docker, kubernetes")),
+            _ => Err(anyhow::Error::msg(
+                "invalid engine, valid options: docker, kubernetes",
+            )),
         }
     }
 }
@@ -126,7 +128,6 @@ pub async fn process_work() -> Result<!> {
         .await?;
 
         let result = if task_def.image.is_some() {
-
             let stash_jwt = stash::generate_jwt(&task_def.task_id.to_string())?;
 
             let res = match engine {
