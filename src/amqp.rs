@@ -11,7 +11,7 @@ pub async fn amqp_connect() -> Result<()> {
     let addr = std::env::var("WATERWHEEL_AMQP_ADDR")
         .unwrap_or_else(|_| "amqp://127.0.0.1:5672/%2f".into());
 
-    let amqp_uri = addr.parse().map_err(|msg| anyhow::Error::msg(msg))?;
+    let amqp_uri = addr.parse().map_err(anyhow::Error::msg)?;
 
     let conn =
         Connection::connect_uri(amqp_uri, ConnectionProperties::default().with_tokio()).await?;

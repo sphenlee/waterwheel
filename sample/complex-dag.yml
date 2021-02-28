@@ -3,6 +3,7 @@ uuid: '1a054cf0-fe77-44e7-a55e-ff34458bea3d'
 project: test_project
 name: complex dag
 description: a sample job with a complex dag
+paused: true
 
 triggers:
   - name: daily

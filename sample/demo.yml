@@ -3,11 +3,16 @@ uuid: '65a09aa1-f923-4bf6-99f3-2cee7888e159'
 project: test_project
 name: sample job
 description: a sample job for testing custom docker images
+paused: false
 
 triggers:
   - name: daily
-    start: '2021-01-01T00:00:00Z'
+    start: '2021-02-26T00:00:00Z'
     period: '1d'
+
+  - name: every_minute
+    start: '2021-02-26T00:00:00Z'
+    period: '1m'
 
 tasks:
   - name: step0
@@ -24,10 +29,22 @@ tasks:
     depends:
       - task/step0
 
+  - name: step2
+    docker:
+      image: bash
+      args:
+        - "-c"
+        - "echo $WATERWHEEL_TASK_NAME"
+    depends:
+      - trigger/every_minute
+
   - name: failure
     depends_failure:
       - task/step1
+      - task/step2
 
   - name: success
     depends:
       - task/step1
+      - task/step2
+    threshold: 1

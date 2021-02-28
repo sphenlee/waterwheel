@@ -26,7 +26,7 @@ pub fn get_env(task_def: &TaskDef, stash_jwt: String) -> Result<Vec<EnvVar>> {
     let mut env = vec![];
 
     for kv in provided_env {
-        if let Some((k, v)) = kv.splitn(2, "=").collect_tuple() {
+        if let Some((k, v)) = kv.splitn(2, '=').collect_tuple() {
             env.push(envvar(k, v));
         } else {
             return Err(anyhow::Error::msg(

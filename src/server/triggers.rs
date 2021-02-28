@@ -15,6 +15,7 @@ use sqlx::types::Uuid;
 use sqlx::Connection;
 use std::str::FromStr;
 use tokio::time;
+use crate::util::format_duration_approx;
 
 type Queue = BinaryHeap<TriggerTime, MinComparator>;
 
@@ -122,7 +123,7 @@ pub async fn process_triggers() -> Result<!> {
 
         let delay = next_triggertime.trigger_datetime - Utc::now();
         if delay > Duration::zero() {
-            debug!("sleeping {} until next trigger", delay, {
+            info!("sleeping {} until next trigger", format_duration_approx(delay), {
                 trigger_id: next_triggertime.trigger_id.to_string()
             });
 

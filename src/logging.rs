@@ -104,7 +104,7 @@ mod json_format {
         record.key_values().visit(&mut visitor).unwrap();
 
         serde_json::to_writer(&mut *fmt, &json)?;
-        fmt.write(b"\n")?;
+        fmt.write_all(b"\n")?;
 
         Ok(())
     }
