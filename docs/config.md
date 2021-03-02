@@ -13,10 +13,14 @@ The address of the postgres database. *(Mandatory)*
 
     WATERWHEEL_DB_URL=postgres://<user>:<password>@<host>/
 
+No default is provided as a Postgres password is required.
+
 ### WATERWHEEL_AMQP_ADDR
-The address of the RabbitMQ broker. *(Mandatory)*
+The address of the RabbitMQ broker.
 
     WATERWHEEL_AMQP_ADDR=amqp://<user>:<password>@<host>/<virtual host>
+
+Default: `amqp://127.0.0.1:5672/%2f`
 
 # Network settings
 
@@ -46,7 +50,7 @@ Defaults:
 ### WATERWHEEL_MAX_TASKS
 The number of tasks for each worker to run in parallel
     
-    WATERWHEEL_MAX_TASKS=8
+    WATERWHEEL_MAX_TASKS=<number>
 
 Default is `8`
 
@@ -71,6 +75,16 @@ from workers to the server. *(Mandatory)*
     WATERWHEEL_PRIVATE_KEY=private.pem
 
 # Logging and debugging
+
+### WATERWHEEL_JSON_LOG
+Enable json logging output instead of the default formatted logs.
+
+    WATERWHEEL_JSON_LOG=true
+
+Default is `false`
+
+### RUST_LOG, RUST_BACKTRACE
+
 Control log output and capturing backtraces. You shouldn't need to change 
 these except when debugging Waterwheel. Defaults as shown below.
 
@@ -85,7 +99,6 @@ these except when debugging Waterwheel. Defaults as shown below.
 Minimal:
 
     WATERWHEEL_DB_URL=postgres://postgres:${POSTGRES_PASSWORD}@localhost/
-    WATERWHEEL_AMQP_ADDR=amqp://localhost//
     
     WATERWHEEL_SERVER_ADDR=http://localhost:8080/
     

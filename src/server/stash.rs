@@ -1,3 +1,4 @@
+use crate::config;
 use anyhow::Result;
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use once_cell::sync::OnceCell;
@@ -20,13 +21,13 @@ pub struct Claims {
 }
 
 pub fn load_rsa_keys() -> Result<()> {
-    let pub_key_file = std::env::var("WATERWHEEL_PUBLIC_KEY")?;
+    let pub_key_file: String = config::get("WATERWHEEL_PUBLIC_KEY")?;
     let pub_key = fs::read(pub_key_file)?;
     RSA_PUBLIC_KEY
         .set(DecodingKey::from_rsa_pem(&pub_key)?.into_static())
         .expect("public key already set??");
 
-    let priv_key_file = std::env::var("WATERWHEEL_PRIVATE_KEY")?;
+    let priv_key_file: String = config::get("WATERWHEEL_PRIVATE_KEY")?;
     let priv_key = fs::read(priv_key_file)?;
     RSA_PRIVATE_KEY
         .set(EncodingKey::from_rsa_pem(&priv_key)?)

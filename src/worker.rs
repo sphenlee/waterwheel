@@ -6,6 +6,7 @@ use once_cell::sync::Lazy;
 use uuid::Uuid;
 
 use crate::amqp;
+use crate::config;
 use crate::postoffice;
 use crate::server::stash;
 use crate::util::spawn_retry;
@@ -29,7 +30,7 @@ pub async fn run_worker() -> Result<()> {
     amqp::amqp_connect().await?;
     postoffice::open()?;
 
-    let max_tasks = std::env::var("WATERWHEEL_MAX_TASKS")?.parse::<u32>()?;
+    let max_tasks: u32 = config::get_or("WATERWHEEL_MAX_TASKS", DEFAULT_MAX_TASKS);
 
     for i in 0..max_tasks {
         spawn_retry(&format!("worker-{}", i), work::process_work);
@@ -42,7 +43,7 @@ pub async fn run_worker() -> Result<()> {
     // healthcheck to see if the worker is up
     app.at("/healthcheck").get(|_req| async { Ok("OK") });
 
-    let host = std::env::var("WATERWHEEL_WORKER_BIND").unwrap_or_else(|_| "127.0.0.1:0".to_owned());
+    let host: String = config::get_or("WATERWHEEL_WORKER_BIND", "127.0.0.1:0");
 
     info!("worker id {}", *WORKER_ID);
 

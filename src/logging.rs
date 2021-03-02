@@ -1,5 +1,7 @@
+use crate::config;
+
 pub fn setup() {
-    if std::env::var("WATERWHEEL_JSON_LOG").is_ok() {
+    if config::get_or::<bool, _>("WATERWHEEL_JSON_LOG",false) {
         env_logger::builder().format(json_format::format).init();
     } else {
         env_logger::builder().format(env_log_format::format).init();

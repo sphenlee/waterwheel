@@ -4,6 +4,7 @@ use anyhow::Result;
 
 mod amqp;
 pub mod circuit_breaker;
+pub mod config;
 mod db;
 mod logging;
 pub mod messages;

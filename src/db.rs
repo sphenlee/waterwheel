@@ -1,3 +1,4 @@
+use crate::config;
 use log::{debug, info, trace};
 use sqlx::{Executor, PgPool};
 
@@ -8,7 +9,7 @@ static DB_POOL: once_cell::sync::OnceCell<PgPool> = once_cell::sync::OnceCell::n
 pub async fn create_pool() -> anyhow::Result<()> {
     info!("connecting to database...");
 
-    let url = std::env::var("WATERWHEEL_DB_URL").expect("database URL not set");
+    let url: String = config::get("WATERWHEEL_DB_URL")?;
     let pool = PgPool::connect(&url).await?;
 
     let mut conn = pool.acquire().await?;

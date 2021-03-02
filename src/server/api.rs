@@ -1,3 +1,4 @@
+use crate::config;
 use super::status::SERVER_STATUS;
 use anyhow::Result;
 use highnoon::{Request, Responder};
@@ -136,8 +137,7 @@ pub async fn serve() -> Result<()> {
             .get(get_file!("../../ui/dist/index.html" => "text/html;charset=utf-8"));
     }
 
-    let host =
-        std::env::var("WATERWHEEL_SERVER_BIND").unwrap_or_else(|_| "127.0.0.1:8080".to_owned());
+    let host: String = config::get_or("WATERWHEEL_SERVER_BIND", "127.0.0.1:8080");
 
     app.listen(host).await?;
 
