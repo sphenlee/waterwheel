@@ -1,5 +1,5 @@
 use crate::postoffice;
-use crate::spawn_retry;
+use crate::util::spawn_retry;
 use crate::{amqp, db};
 use anyhow::Result;
 

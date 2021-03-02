@@ -1,12 +1,14 @@
-use crate::postoffice;
-use crate::server::stash;
-use crate::{amqp, spawn_retry};
-use anyhow::Result;
+use std::sync::atomic::AtomicU64;
 
+use anyhow::Result;
 use kv_log_macro::info;
 use once_cell::sync::Lazy;
-use std::sync::atomic::AtomicU64;
 use uuid::Uuid;
+
+use crate::amqp;
+use crate::postoffice;
+use crate::server::stash;
+use crate::util::spawn_retry;
 
 mod docker;
 pub mod env;
@@ -18,6 +20,8 @@ static WORKER_ID: Lazy<Uuid> = Lazy::new(Uuid::new_v4);
 
 pub static RUNNING_TASKS: AtomicU64 = AtomicU64::new(0);
 pub static TOTAL_TASKS: AtomicU64 = AtomicU64::new(0);
+
+const DEFAULT_MAX_TASKS: u32 = 8;
 
 pub async fn run_worker() -> Result<()> {
     stash::load_rsa_keys()?;

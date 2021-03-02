@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 anyhow = "1.0.32"
 binary-heap-plus = "0.3.0"
-bollard = { git = "https://github.com/fussybeaver/bollard", rev = "ND-tokio-1-named-pipes" }
+bollard = "0.10"
 chrono = "0.4.15"
 clap = "2.33.3"
 colored = "2.0.0"

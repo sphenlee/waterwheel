@@ -19,7 +19,12 @@ use std::str::FromStr;
 use std::sync::atomic::Ordering;
 
 enum TaskEngine {
+    /// Null engine always returns success - disabled in release builds
+    #[cfg(debug_assertions)]
+    Null,
+    /// Use a local docker instance (TODO - allow remote docker)
     Docker,
+    /// Use a remote Kubernetes cluster
     Kubernetes,
 }
 
@@ -28,6 +33,8 @@ impl FromStr for TaskEngine {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
+            #[cfg(debug_assertions)]
+            "null" => Ok(TaskEngine::Null),
             "docker" => Ok(TaskEngine::Docker),
             "kubernetes" => Ok(TaskEngine::Kubernetes),
             _ => Err(anyhow::Error::msg(
@@ -131,6 +138,8 @@ pub async fn process_work() -> Result<!> {
             let stash_jwt = stash::generate_jwt(&task_def.task_id.to_string())?;
 
             let res = match engine {
+                #[cfg(debug_assertions)]
+                TaskEngine::Null => Ok(true),
                 TaskEngine::Docker => docker::run_docker(task_def.clone(), stash_jwt).await,
                 TaskEngine::Kubernetes => kube::run_kube(task_def.clone(), stash_jwt).await,
             };

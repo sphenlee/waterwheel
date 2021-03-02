@@ -19,92 +19,21 @@ template = {
     "triggers": [
         {
             "name": "hourly",
-            "start": "2021-02-22T00:00:00Z",
+            "start": "2021-03-01T00:00:00Z",
             "period": "1h",
         }
     ],
     "tasks": [
         {
             "name": "step0",
-            "docker": {
-                "image": "python:3-alpine",
-                "args": ["python", "-c", "import random, sys; sys.exit(random.randint(0, 1))"],
-            },
             "depends": [
                 "trigger/hourly"
             ],
-        },
-        {
-            "name": "step1",
-            "docker": {
-                "image": "bash",
-                "args": ["echo", "step1"],
-            },
-            "depends": [
-                "task/step0"
-            ],
-        },
-        {
-            "name": "step2a",
-            "docker": {
-                "image": "bash",
-                "args": ["echo", "step2a"],
-            },
-            "depends": [
-                "task/step1"
-            ],
-        },
-        {
-            "name": "step2b",
-            "docker": {
-                "image": "bash",
-                "args": ["echo", "step2b"],
-            },
-            "depends": [
-                "task/step1"
-            ],
-        },
-        {
-            "name": "step3",
-            "docker": {
-                "image": "bash",
-                "args": ["echo", "step3"],
-            },
-            "depends": [
-                "task/step1",
-                "task/step2b"
-            ],
-        },
-        {
-            "name": "y_failure",
-            "depends_failure": [
-                "task/step0",
-                "task/step1",
-                "task/step2a",
-                "task/step2b",
-                "task/step3"
-            ],
-            "threshold": 1,
-        },
-        {
-            "name": "x_success",
-            "depends": [
-                "task/step2b",
-                "task/step3",
-            ],
-        },
-        {
-            "name": "z_cleanup",
-            "depends": [
-                "task/y_failure",
-                "task/x_success",
-            ],
-            "threshold": 1,
         }
     ]
 }
 
-for i in range(10):
+for i in range(100):
 
     name = f'job {i}'
     resp = requests.get(WATERWHEEL_HOST + '/api/jobs', params={'name': name, 'project': project})

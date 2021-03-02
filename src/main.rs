@@ -1,11 +1,6 @@
 #![feature(never_type)]
 
 use anyhow::Result;
-use chrono::Duration;
-use circuit_breaker::CircuitBreaker;
-use futures::Future;
-use log::error;
-use tokio::task;
 
 mod amqp;
 pub mod circuit_breaker;
@@ -16,28 +11,6 @@ pub mod postoffice;
 mod server;
 pub mod util;
 mod worker;
-
-/// execute a future and retry it when it fails, using a circuit breaker
-/// to abort if the future fails too often too quickly (5 times in 1 minute)
-pub fn spawn_retry<F, Fut>(name: impl Into<String>, func: F)
-where
-    F: Fn() -> Fut + Send + Sync + 'static,
-    Fut: Future<Output = Result<!>> + Send + 'static,
-{
-    let name = name.into();
-
-    let _ = task::spawn(async move {
-        let mut cb = CircuitBreaker::new(5, Duration::minutes(1));
-        while cb.retry() {
-            match func().await {
-                Ok(_) => unreachable!("func never returns"),
-                Err(err) => error!("task {} failed: {:?}", name, err),
-            }
-        }
-        error!("task {} failed too many times, aborting!", name);
-        std::process::exit(1);
-    });
-}
 
 #[tokio::main]
 async fn main() -> Result<()> {

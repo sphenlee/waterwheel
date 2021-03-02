@@ -20,7 +20,7 @@ the database, and does a catchup for any that would have fired while it
 wasn't running. It holds the triggers in a priority queue, sorted by the 
 next trigger time.  It then enters the scheduler loop:
 
-1. First check if any *Trigger Updates* messages are pending.
+1. First check if any *Trigger Update* messages are pending.
    If there is an update it removes that trigger from the queue, reloads 
    the trigger's configuration from the database and then puts it back into the 
    queue. There may be multiple updates pending, and they are all processed 
@@ -58,4 +58,81 @@ the Token Processor for each token.
 
 ### Token Processor
 
-The **Token Processor** holds a map of Tokens to 
+The **Token Processor** holds a map of Tokens to counts. This counter is also
+stored in the database, but the in memory cache is maintained for simplicity.
+The map is populated from the database when the **Token Processor** starts.
+
+The **Token Processor** waits to receive messages from the *Process Token* 
+channel. These messages either increment a token, or clear the count back to 
+zero.
+
+After incrementing a token if the threshold is reached then a message is 
+sent to the *Execute Token* channel, and the threshold is deduced from the 
+counter.
+
+After either message the cache is scanned for any tokens that have a count 
+of zero: these are discarded.
+
+> Note: the **Token Processor's** cache is basically redundant since the 
+> data is stored in the database and when the cache is updated a database 
+> query is needed to get the token's threshold anyway.
+
+
+### Execution Processor
+
+The **Execution Processor** listens for messages from the *Execute Token* 
+channel. It gets the task definition from the database, sends it to RabbitMQ 
+to be executed by a worker and then updates the token's counter in the 
+database and creates a task run entry.
+
+This process is only separate from the *Token Processor* to keep the logic 
+simpler.
+
+
+### Progress Processor
+
+The **Progress Processor** listens to progress messages from RabbitMQ to 
+update the status of running tasks. If the status is *final* (i.e. success, 
+failure or error) then the **Progress Processor** activates the downstream 
+tasks. This involves checking for task edges in the database and sending an 
+increment message to the **Token Processor**. For all status updates it also 
+updates the token and the task run entry in the database.
+
+
+### Heartbeat Processor
+
+The **Heartbeat Processor** listens for the heartbeat messages from workers 
+and updates the worker status in the server.
+
+
+### API Server
+
+The **API Server** listens via HTTP for all API interactions and well as 
+serving the Web interface.
+
+The API has methods to get and update all the various objects that 
+Waterwheel manages.
+
+The only thing to note is that when a Job is updated the API will send a 
+*Trigger Update* message to the **Trigger Processor** which will wake up any 
+sleep and allow the potentially modified triggers to be applied immediately.
+
+## Worker
+
+The worker is much simpler than the server and only runs two distinct tasks.
+
+### Work Processor
+
+The **Work Processor** listens to RabbitMQ for task definitions to execute. 
+It then uses either Docker or Kubernetes to execue the task and send the 
+results back over RabbitMQ.  This process is created multiple times 
+determined by the `WATERWHEEL_MAX_TASKS` variable.
+
+### Heartbeat
+
+Heartbeats sre sent to RabbitMQ every five seconds with the worker's current 
+status.
+
+> The heartbeat mechanism may eventually switch to HTTP. This would also 
+> allow the worker to detect if the server is down.
+
