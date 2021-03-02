@@ -2,6 +2,7 @@ use crate::messages::{TaskPriority, Token};
 use crate::server::status::SERVER_STATUS;
 use crate::server::tokens::{increment_token, ProcessToken};
 use crate::server::trigger_time::TriggerTime;
+use crate::util::format_duration_approx;
 use crate::{db, postoffice};
 use anyhow::Result;
 use binary_heap_plus::{BinaryHeap, MinComparator};
@@ -15,7 +16,6 @@ use sqlx::types::Uuid;
 use sqlx::Connection;
 use std::str::FromStr;
 use tokio::time;
-use crate::util::format_duration_approx;
 
 type Queue = BinaryHeap<TriggerTime, MinComparator>;
 

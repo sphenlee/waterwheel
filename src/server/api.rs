@@ -17,7 +17,7 @@ pub struct State {
 
 impl highnoon::State for State {
     type Context = ();
-    fn new_context(&self) { }
+    fn new_context(&self) {}
 }
 
 #[allow(unused)]
