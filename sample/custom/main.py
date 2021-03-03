@@ -35,13 +35,13 @@ def step1():
     print('step 1!')
 
     secret = get_secret('stash/test-key')
-    print(f'global secret is "{secret}"')
+    print(f'global secret is "{secret!r}"')
 
     secret = get_secret(f'projects/{WW_PROJECT}/stash/test-key')
-    print(f'project secret is "{secret}"')
+    print(f'project secret is "{secret!r}"')
 
     secret = get_secret(f'jobs/{WW_JOB}/stash/{WW_TRIGGER}/current-time')
-    print(f'job secret is "{secret}"')
+    print(f'job secret is "{secret!r}"')
     assert secret == WW_TRIGGER
 
 

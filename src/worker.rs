@@ -25,7 +25,7 @@ pub static TOTAL_TASKS: AtomicU64 = AtomicU64::new(0);
 const DEFAULT_MAX_TASKS: u32 = 8;
 
 pub async fn run_worker() -> Result<()> {
-    stash::load_rsa_keys()?;
+    stash::load_keys()?;
 
     amqp::amqp_connect().await?;
     postoffice::open()?;

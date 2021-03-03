@@ -2,6 +2,7 @@ use crate::amqp::get_amqp_channel;
 use crate::messages::{TaskDef, TaskProgress, TokenState};
 use crate::server::stash;
 use crate::worker::{docker, kube};
+use crate::config;
 use anyhow::Result;
 
 use futures::TryStreamExt;
@@ -109,7 +110,7 @@ pub async fn process_work() -> Result<!> {
         )
         .await?;
 
-    let engine = std::env::var("WATERWHEEL_TASK_ENGINE")?.parse::<TaskEngine>()?;
+    let engine: TaskEngine = config::get_or("WATERWHEEL_TASK_ENGINE", TaskEngine::Docker);
 
     while let Some((chan, msg)) = consumer.try_next().await? {
         let task_def: TaskDef = serde_json::from_slice(&msg.data)?;

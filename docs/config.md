@@ -61,15 +61,36 @@ The task engine to use
 
 Default is `docker`
 
+When using the `kubernetes` engine Waterwheel expects a `kubeconfig` file in 
+the usual location: either the file specified by the `KUBECONFIG` 
+environment variable or `$HOME/.kube/config` otherwise.
+
+### WATERWHEEL_KUBE_NAMESPACE
+When using the `kubernetes` engine this will set the namespace for all API 
+requests.
+
+    WATERWHEEL_KUBE_NAMESPACE=my-ns
+
+Default is `default`
+
+> The `kube` crate used by Waterwheel does not honour the default namespace 
+> set in the `kubeconfig` file. This environment variable can be removed 
+> once there is support for it. 
+
 # Security Settings
+
+### WATERWHEEL_HMAC_SECRET
+The secret to be used for HMAC signing the Stash requests sent from workers 
+to the server. Either this must be set, or both the public and private keys 
+used for RSA signing must be set.
+
+    WATERWHEEL_HMAC_SECRET=<shared secret value>
 
 ### WATERWHEEL_PUBLIC_KEY, WATERWHEEL_PRIVATE_KEY
 
 Paths containing an RSA key pair used for signing the Stash requests sent 
-from workers to the server. *(Mandatory)*
-
-> TODO: These should not be mandatory for local testing, and only required in 
-> a real deployment.
+from workers to the server. Either both public and private key must be 
+provided, or an HMAC secret must be provided.
 
     WATERWHEEL_PUBLIC_KEY=public.pem
     WATERWHEEL_PRIVATE_KEY=private.pem
@@ -99,9 +120,5 @@ these except when debugging Waterwheel. Defaults as shown below.
 Minimal:
 
     WATERWHEEL_DB_URL=postgres://postgres:${POSTGRES_PASSWORD}@localhost/
-    
     WATERWHEEL_SERVER_ADDR=http://localhost:8080/
-    
-    WATERWHEEL_PUBLIC_KEY=public.pem
-    WATERWHEEL_PRIVATE_KEY=private.pem
-
+    WATERWHEEL_HMAC_SECRET=${SECRET_DATA}

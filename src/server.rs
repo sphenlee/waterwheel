@@ -16,7 +16,7 @@ mod triggers;
 pub async fn run_server() -> Result<()> {
     postoffice::open()?;
 
-    stash::load_rsa_keys()?;
+    stash::load_keys()?;
 
     db::create_pool().await?;
     amqp::amqp_connect().await?;

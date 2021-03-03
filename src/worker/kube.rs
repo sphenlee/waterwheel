@@ -1,6 +1,7 @@
 use crate::messages::TaskDef;
 use crate::worker::env;
 use crate::worker::WORKER_ID;
+use crate::config;
 use anyhow::Result;
 use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::core::v1::Pod;
@@ -11,7 +12,7 @@ use kv_log_macro::{debug as kvdebug, info as kvinfo, trace as kvtrace, warn as k
 pub async fn run_kube(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
     let client = Client::try_default().await?;
 
-    let ns = std::env::var("WATERWHEEL_KUBE_NAMESPACE").unwrap_or_else(|_| "default".to_owned());
+    let ns: String = config::get_or("WATERWHEEL_KUBE_NAMESPACE", "default");
     let pods: Api<Pod> = Api::namespaced(client, &ns);
 
     kvtrace!("connected to Kubernetes namespace {}", ns);

@@ -16,6 +16,7 @@ template = {
     "project": project,
     "name": None,
     "description": "a generated job",
+    "paused": True,
     "triggers": [
         {
             "name": "hourly",

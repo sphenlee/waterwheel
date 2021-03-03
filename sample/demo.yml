@@ -20,7 +20,7 @@ tasks:
       image: waterwheel_custom:1
       args: []
     depends:
-      - trigger/daily
+      - trigger/every_minute
 
   - name: step1
     docker:
