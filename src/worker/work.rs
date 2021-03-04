@@ -1,8 +1,8 @@
 use crate::amqp::get_amqp_channel;
+use crate::config;
 use crate::messages::{TaskDef, TaskProgress, TokenState};
 use crate::server::stash;
 use crate::worker::{docker, kube};
-use crate::config;
 use anyhow::Result;
 
 use futures::TryStreamExt;

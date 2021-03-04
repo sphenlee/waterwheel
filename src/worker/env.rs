@@ -1,8 +1,8 @@
+use crate::config;
 use crate::messages::TaskDef;
 use anyhow::Result;
 use itertools::Itertools;
 use k8s_openapi::api::core::v1::EnvVar;
-use crate::config;
 
 pub fn get_env_string(task_def: &TaskDef, stash_jwt: String) -> Result<Vec<String>> {
     let env = get_env(task_def, stash_jwt)?;

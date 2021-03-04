@@ -1,5 +1,5 @@
-use crate::config;
 use super::status::SERVER_STATUS;
+use crate::config;
 use anyhow::Result;
 use highnoon::{Request, Responder};
 use sqlx::PgPool;

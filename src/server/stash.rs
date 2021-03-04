@@ -1,11 +1,11 @@
 use crate::config;
 use anyhow::Result;
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation};
+use log::debug;
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::time::{Duration, SystemTime};
-use log::debug;
 
 const WATERWHEEL_ISSUER: &str = "waterwheel";
 const STASH_AUDIENCE: &str = "stash";
@@ -30,7 +30,7 @@ pub fn load_keys() -> Result<()> {
         Ok(pub_key_file) => {
             let priv_key_file = config::get("WATERWHEEL_PRIVATE_KEY")?;
             load_rsa_keys(pub_key_file, priv_key_file)
-        },
+        }
         Err(_) => {
             let secret = config::get("WATERWHEEL_HMAC_SECRET")?;
             load_hmac_secret(secret)
@@ -51,7 +51,9 @@ fn load_rsa_keys(pub_key_file: String, priv_key_file: String) -> Result<()> {
         .set(EncodingKey::from_rsa_pem(&priv_key)?)
         .expect("private key already set??");
 
-    ALGORITHM.set(Algorithm::RS256).expect("algorithm already set??");
+    ALGORITHM
+        .set(Algorithm::RS256)
+        .expect("algorithm already set??");
 
     Ok(())
 }
@@ -67,7 +69,9 @@ fn load_hmac_secret(secret: String) -> Result<()> {
         .set(EncodingKey::from_secret(secret.as_bytes()))
         .expect("secret already set??");
 
-    ALGORITHM.set(Algorithm::HS256).expect("algorithm already set??");
+    ALGORITHM
+        .set(Algorithm::HS256)
+        .expect("algorithm already set??");
 
     Ok(())
 }
@@ -98,4 +102,3 @@ pub fn validate_jtw(jwt: &str) -> Result<String> {
 
     Ok(token.claims.sub)
 }
-

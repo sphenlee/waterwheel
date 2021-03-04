@@ -1,7 +1,7 @@
+use crate::config;
 use crate::messages::TaskDef;
 use crate::worker::env;
 use crate::worker::WORKER_ID;
-use crate::config;
 use anyhow::Result;
 use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::core::v1::Pod;
