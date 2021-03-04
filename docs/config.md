@@ -44,6 +44,9 @@ Defaults:
     WATERWHEEL_SERVER_BIND=127.0.0.1:8080
     WATERWHEEL_WORKER_BIND=127.0.0.1:0
 
+> Note that the default value for the server bind will not allow docker 
+> containers or kubernetes pods to access the stash. You should specify the 
+> specific to bind to depending on your networking setup.
 
 # Task settings
 

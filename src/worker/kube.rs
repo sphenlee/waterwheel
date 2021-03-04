@@ -14,47 +14,13 @@ pub async fn run_kube(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
 
     let ns: String = config::get_or("WATERWHEEL_KUBE_NAMESPACE", "default");
     let pods: Api<Pod> = Api::namespaced(client, &ns);
-
     kvtrace!("connected to Kubernetes namespace {}", ns);
 
-    let env = env::get_env(&task_def, stash_jwt)?;
-
-    let name = task_def.task_run_id.to_string();
-
-    // Create a pod from JSON
-    let pod_json = serde_json::json!({
-        "apiVersion": "v1",
-        "kind": "Pod",
-        "metadata": {
-            "name": name,
-            "labels": {
-                "worker_id": *WORKER_ID,
-                "task_id": task_def.task_id,
-                "job_id": task_def.job_id,
-                "project_id": task_def.project_id,
-            },
-            "annotations": {
-                "atlassian.com/business_unit": "Data Platform"
-            }
-        },
-        "spec": {
-            "containers": [
-                {
-                    "name": name,
-                    "image": task_def.image.unwrap(),
-                    "args": task_def.args,
-                    "env": env,
-                },
-            ],
-            "restartPolicy": "Never",
-        }
-    });
-    kvtrace!("pod json: {:#}", pod_json);
-
-    let pod = serde_json::from_value(pod_json)?;
+    let pod = make_pod(task_def, stash_jwt)?;
 
     // Create the pod
-    let _pod = pods.create(&PostParams::default(), &pod).await?;
+    let pod = pods.create(&PostParams::default(), &pod).await?;
+    let name = Meta::name(&pod);
 
     // Start a watch call for pods matching our name
     let lp = ListParams::default().fields(&format!("metadata.name={}", name));
@@ -114,4 +80,42 @@ pub async fn run_kube(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
     let _ = pods.delete(&name, &DeleteParams::default()).await?;
 
     Ok(result)
+}
+
+fn make_pod(task_def: TaskDef, stash_jwt: String) -> Result<Pod> {
+    let env = env::get_env(&task_def, stash_jwt)?;
+    let name = task_def.task_run_id.to_string();
+
+    // Create a pod from JSON
+    let pod_json = serde_json::json!({
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "metadata": {
+            "name": name,
+            "labels": {
+                "worker_id": *WORKER_ID,
+                "task_id": task_def.task_id,
+                "job_id": task_def.job_id,
+                "project_id": task_def.project_id,
+            },
+            "annotations": {
+                "atlassian.com/business_unit": "Data Platform"
+            }
+        },
+        "spec": {
+            "containers": [
+                {
+                    "name": name,
+                    "image": task_def.image.unwrap(),
+                    "args": task_def.args,
+                    "env": env,
+                },
+            ],
+            "restartPolicy": "Never",
+        }
+    });
+    kvtrace!("pod json: {:#}", pod_json);
+
+    let pod = serde_json::from_value(pod_json)?;
+    Ok(pod)
 }

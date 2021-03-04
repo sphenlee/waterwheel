@@ -93,7 +93,7 @@ pub async fn serve() -> Result<()> {
         .get(job::get_trigger);
 
     // job stash
-    app.at("/api/jpbs/:id/stash/:trigger_datetime/")
+    app.at("/api/jobs/:id/stash/:trigger_datetime/")
         .get(stash::job::list);
     app.at("/api/jobs/:id/stash/:trigger_datetime/:key")
         .put(stash::job::create)
