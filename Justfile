@@ -10,6 +10,22 @@ up:
 down:
     docker-compose rm --stop -v --force
 
+# install node dependencies for building the UI
+ui-install:
+    cd ui && npm install
+
+# build the UI in watch mode (recompile on file changes)
+ui-watch:
+    cd ui && npm run watch
+
+# build the UI for a release
+ui-build:
+    cd ui && npm run build
+
+# do a full release build
+build: ui-build
+    cargo build --release
+
 # connect to the database interactively
 psql:
     psql postgres://postgres:${POSTGRES_PASSWORD}@localhost/
