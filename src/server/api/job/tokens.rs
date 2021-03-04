@@ -36,7 +36,7 @@ async fn get_tokens_common(req: Request<State>) -> highnoon::Result<Vec<GetToken
         .state
         .map(|s| s.split(',').map(|s| s.to_owned()).collect());
 
-    let tokens = sqlx::query_as::<_, GetToken>(
+    let tokens: Vec<GetToken> = sqlx::query_as(
         "WITH these_tokens AS (
             SELECT
                 t.id AS task_id,
@@ -152,7 +152,7 @@ pub async fn get_tokens_trigger_datetime(req: Request<State>) -> highnoon::Resul
     let job_id = req.param("id")?.parse::<Uuid>()?;
     let trigger_datetime = req.param("trigger_datetime")?.parse::<DateTime<Utc>>()?;
 
-    let tokens = sqlx::query_as::<_, GetToken>(
+    let tokens: Vec<GetToken> = sqlx::query_as(
         "SELECT
             t.id AS task_id,
             t.name AS task_name,

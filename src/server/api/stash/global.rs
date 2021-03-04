@@ -30,7 +30,7 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<impl Responder>
 pub async fn list(req: Request<State>) -> highnoon::Result<impl Responder> {
     let db = req.get_pool();
 
-    let rows = sqlx::query_as::<_, StashName>(
+    let rows: Vec<StashName> = sqlx::query_as(
         "SELECT name
         FROM global_stash",
     )
@@ -51,7 +51,7 @@ pub async fn get(req: Request<State>) -> highnoon::Result<impl Responder> {
         key: key,
     });
 
-    let row = sqlx::query_as::<_, StashData>(
+    let row: Option<StashData> = sqlx::query_as(
         "SELECT data
         FROM global_stash
         WHERE name = $1",

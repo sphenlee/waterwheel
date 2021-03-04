@@ -41,7 +41,7 @@ struct GetWorkerTask {
 pub async fn tasks(req: Request<State>) -> highnoon::Result<Response> {
     let id = req.param("id")?.parse::<Uuid>()?;
 
-    let tasks = sqlx::query_as::<_, GetWorkerTask>(
+    let tasks: Vec<GetWorkerTask> = sqlx::query_as(
         "SELECT
             j.name AS job_name,
             j.id AS job_id,

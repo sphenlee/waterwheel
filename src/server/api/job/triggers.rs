@@ -121,7 +121,7 @@ pub struct GetTriggerByJob {
 pub async fn get_triggers_by_job(req: Request<State>) -> highnoon::Result<impl Responder> {
     let job_id = req.param("id")?.parse::<Uuid>()?;
 
-    let triggers = sqlx::query_as::<_, GetTriggerByJob>(
+    let triggers: Vec<GetTriggerByJob> = sqlx::query_as(
         "SELECT
             id AS trigger_id,
             name AS trigger_name,
@@ -156,7 +156,7 @@ pub struct GetTrigger {
 pub async fn get_trigger(req: Request<State>) -> highnoon::Result<impl Responder> {
     let trigger_id = req.param("id")?.parse::<Uuid>()?;
 
-    let triggers = sqlx::query_as::<_, GetTrigger>(
+    let triggers: Option<GetTrigger> = sqlx::query_as(
         "SELECT
             g.id AS trigger_id,
             g.name AS trigger_name,
@@ -189,7 +189,7 @@ pub struct GetTriggerTimes {
 pub async fn get_trigger_times(req: Request<State>) -> highnoon::Result<impl Responder> {
     let trigger_id = req.param("id")?.parse::<Uuid>()?;
 
-    let triggers = sqlx::query_as::<_, GetTriggerTimes>(
+    let triggers: Vec<GetTriggerTimes> = sqlx::query_as(
         "WITH these_triggers AS (
             SELECT
                 k.trigger_datetime AS trigger_datetime,

@@ -27,7 +27,7 @@ impl fmt::Display for Token {
 }
 
 async fn get_threshold(pool: &PgPool, token: &Token) -> Result<i32> {
-    let (threshold,) = sqlx::query_as::<_, (i32,)>(
+    let (threshold,) = sqlx::query_as(
         "SELECT threshold
         FROM task
         WHERE id = $1",

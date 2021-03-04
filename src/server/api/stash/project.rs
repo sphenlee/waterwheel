@@ -39,7 +39,7 @@ pub async fn list(req: Request<State>) -> highnoon::Result<impl Responder> {
 
     let proj_id = req.param("id")?.parse::<Uuid>()?;
 
-    let rows = sqlx::query_as::<_, StashName>(
+    let rows: Vec<StashName> = sqlx::query_as(
         "SELECT name
         FROM project_stash
         WHERE project_id = $1",
@@ -64,7 +64,7 @@ pub async fn get(req: Request<State>) -> highnoon::Result<impl Responder> {
         key: key,
     });
 
-    let row = sqlx::query_as::<_, StashData>(
+    let row: Option<StashData> = sqlx::query_as(
         "SELECT data
         FROM project_stash
         WHERE project_id = $1

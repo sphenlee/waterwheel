@@ -67,7 +67,7 @@ struct Project {
 }
 
 pub async fn list(req: Request<State>) -> highnoon::Result<Response> {
-    let projs = sqlx::query_as::<_, Project>(
+    let projs: Vec<Project> = sqlx::query_as(
         "SELECT id, name, description
         FROM project",
     )
@@ -81,7 +81,7 @@ pub async fn get_by_name(req: Request<State>) -> impl Responder {
     let q = req.query::<QueryProject>()?;
 
     if let Some(name) = q.name {
-        let row = sqlx::query_as::<_, Project>(
+        let row: Option<Project> = sqlx::query_as(
             "SELECT id, name, description
             FROM project
             WHERE name = $1",
@@ -114,7 +114,7 @@ pub async fn get_by_id(req: Request<State>) -> highnoon::Result<Response> {
     let id_str = req.param("id")?;
     let id = Uuid::parse_str(&id_str)?;
 
-    let row = sqlx::query_as::<_, ProjectExtra>(
+    let row: Option<ProjectExtra> = sqlx::query_as(
         "SELECT
             id,
             name,
@@ -203,7 +203,7 @@ pub async fn list_jobs(req: Request<State>) -> highnoon::Result<impl Responder> 
     let id_str = req.param("id")?;
     let id = Uuid::parse_str(&id_str)?;
 
-    let jobs = sqlx::query_as::<_, ListJob>(
+    let jobs: Vec<ListJob> = sqlx::query_as(
         "SELECT
             id AS job_id,
             name,

@@ -8,7 +8,7 @@ use kv_log_macro::{debug, info};
 use lapin::options::{BasicAckOptions, BasicConsumeOptions, QueueDeclareOptions};
 use lapin::types::FieldTable;
 use postage::prelude::*;
-use sqlx::{types::Uuid, Connection, Postgres, Transaction};
+use sqlx::{Connection, Postgres, Transaction};
 
 const RESULT_QUEUE: &str = "waterwheel.results";
 
@@ -83,7 +83,7 @@ pub async fn advance_tokens(
 ) -> Result<Vec<Token>> {
     let pool = db::get_pool();
 
-    let mut cursor = sqlx::query_as::<_, (Uuid,)>(
+    let mut cursor = sqlx::query_as(
         "SELECT child_task_id
             FROM task_edge
             WHERE parent_task_id = $1

@@ -135,7 +135,7 @@ struct GetJob {
 pub async fn get_by_name(req: Request<State>) -> highnoon::Result<impl Responder> {
     let q = req.query::<QueryJob>()?;
 
-    let job = sqlx::query_as::<_, GetJob>(
+    let job: Option<GetJob> = sqlx::query_as(
         "SELECT
             j.id AS id,
             j.name AS name,
@@ -172,7 +172,7 @@ struct GetJobExtra {
 pub async fn get_by_id(req: Request<State>) -> highnoon::Result<impl Responder> {
     let id = req.param("id")?.parse::<Uuid>()?;
 
-    let job = sqlx::query_as::<_, GetJobExtra>(
+    let job: Option<GetJobExtra> = sqlx::query_as(
         "SELECT
             j.id AS id,
             j.name AS name,
@@ -248,7 +248,7 @@ pub async fn delete(req: Request<State>) -> highnoon::Result<StatusCode> {
 pub async fn get_paused(req: Request<State>) -> highnoon::Result<impl Responder> {
     let id = req.param("id")?.parse::<Uuid>()?;
 
-    let row = sqlx::query_as::<_, (bool,)>(
+    let row: Option<(bool,)> = sqlx::query_as(
         "SELECT paused
         FROM job
         WHERE id = $1",
@@ -305,7 +305,7 @@ pub async fn set_paused(mut req: Request<State>) -> impl Responder {
     // send trigger updates for the whole job to notify the scheduler
     let mut trigger_tx = postoffice::post_mail::<TriggerUpdate>().await?;
 
-    let triggers_to_tx = sqlx::query_as::<_, (Uuid,)>(
+    let triggers_to_tx = sqlx::query_as(
         "SELECT id
         FROM trigger
         WHERE job_id = $1",

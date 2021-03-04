@@ -161,7 +161,7 @@ async fn activate_trigger(trigger_time: TriggerTime, priority: TaskPriority) -> 
         trigger_datetime: trigger_time.trigger_datetime.to_rfc3339(),
     });
 
-    let mut cursor = sqlx::query_as::<_, (Uuid,)>(
+    let mut cursor = sqlx::query_as(
         "SELECT
             te.task_id
         FROM trigger_edge te
@@ -315,7 +315,7 @@ async fn restore_triggers(queue: &mut Queue) -> Result<()> {
     info!("restoring triggers from database...");
 
     // first load all unpaused triggers from the DB
-    let mut cursor = sqlx::query_as::<_, Trigger>(
+    let mut cursor = sqlx::query_as(
         "SELECT
             t.id AS id,
             start_datetime,

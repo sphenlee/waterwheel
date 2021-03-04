@@ -44,7 +44,7 @@ pub async fn list(req: Request<State>) -> highnoon::Result<impl Responder> {
     let job_id = req.param("id")?.parse::<Uuid>()?;
     let trigger_datetime = req.param("trigger_datetime")?.parse::<DateTime<Utc>>()?;
 
-    let rows = sqlx::query_as::<_, StashName>(
+    let rows: Vec<StashName> = sqlx::query_as(
         "SELECT name
         FROM job_stash
         WHERE job_id = $1
@@ -73,7 +73,7 @@ pub async fn get(req: Request<State>) -> highnoon::Result<impl Responder> {
         key: key,
     });
 
-    let row = sqlx::query_as::<_, StashData>(
+    let row: Option<StashData> = sqlx::query_as(
         "SELECT js.data
         FROM job_stash js
         WHERE js.job_id = $1

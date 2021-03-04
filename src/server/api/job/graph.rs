@@ -37,7 +37,7 @@ pub async fn get_graph(req: Request<State>) -> highnoon::Result<impl Responder> 
 
     let q: QueryGraph = req.query()?;
 
-    let mut nodes = sqlx::query_as::<_, Node>(
+    let mut nodes: Vec<Node> = sqlx::query_as(
         "SELECT
             t.id AS id,
             'task' AS kind,
@@ -66,7 +66,7 @@ pub async fn get_graph(req: Request<State>) -> highnoon::Result<impl Responder> 
     .fetch_all(&req.get_pool())
     .await?;
 
-    let edges = sqlx::query_as::<_, Edge>(
+    let edges: Vec<Edge> = sqlx::query_as(
         "SELECT DISTINCT
             te.parent_task_id AS \"from\",
             te.child_task_id AS to,
@@ -87,7 +87,7 @@ pub async fn get_graph(req: Request<State>) -> highnoon::Result<impl Responder> 
     .fetch_all(&req.get_pool())
     .await?;
 
-    let extra_nodes = sqlx::query_as::<_, Node>(
+    let extra_nodes: Vec<Node> = sqlx::query_as(
         "SELECT
             t.id AS id,
             'task' AS kind,
