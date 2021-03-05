@@ -5,7 +5,6 @@ use anyhow::Result;
 
 mod api;
 mod execute;
-mod heartbeat;
 mod progress;
 pub mod stash;
 pub mod status;
@@ -25,7 +24,6 @@ pub async fn run_server() -> Result<()> {
     spawn_retry("tokens", tokens::process_tokens);
     spawn_retry("executions", execute::process_executions);
     spawn_retry("progress", progress::process_progress);
-    spawn_retry("heartbeat", heartbeat::process_heartbeats);
 
     api::serve().await?;
 

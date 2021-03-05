@@ -1,6 +1,6 @@
 use crate::server::api::request_ext::RequestExt;
 use crate::server::api::State;
-use crate::server::heartbeat::WORKER_STATUS;
+use crate::server::api::heartbeat::WORKER_STATUS;
 use chrono::{DateTime, Utc};
 use highnoon::{Json, Request, Responder, Response, StatusCode};
 use serde::Serialize;

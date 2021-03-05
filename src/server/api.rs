@@ -4,6 +4,7 @@ use anyhow::Result;
 use highnoon::{Request, Responder, Json};
 use sqlx::PgPool;
 
+mod heartbeat;
 mod job;
 mod project;
 pub mod request_ext;
@@ -47,6 +48,9 @@ pub async fn serve() -> Result<()> {
     app.at("/healthcheck").get(|_req| async { Ok("OK") });
 
     app.at("/api/status").get(status);
+
+    // worker heartbeats
+    app.at("/api/heartbeat").post(heartbeat::post);
 
     // project
     app.at("/api/projects")
