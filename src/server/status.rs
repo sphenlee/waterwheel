@@ -2,7 +2,7 @@ use once_cell::sync::Lazy;
 use serde::Serialize;
 use tokio::sync::Mutex;
 
-#[derive(Default, Serialize)]
+#[derive(Clone, Default, Serialize)]
 pub struct ServerStatus {
     pub queued_triggers: usize,
     pub num_workers: usize,

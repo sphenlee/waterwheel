@@ -1,7 +1,7 @@
 use super::status::SERVER_STATUS;
 use crate::config;
 use anyhow::Result;
-use highnoon::{Request, Responder};
+use highnoon::{Request, Responder, Json};
 use sqlx::PgPool;
 
 mod job;
@@ -147,7 +147,5 @@ pub async fn serve() -> Result<()> {
 async fn status(_req: Request<State>) -> highnoon::Result<impl Responder> {
     let status = SERVER_STATUS.lock().await;
 
-    let json = serde_json::to_string(&*status)?;
-
-    Ok(json)
+    Ok(Json(status.clone()))
 }

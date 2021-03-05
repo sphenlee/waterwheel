@@ -67,17 +67,19 @@ struct Project {
 }
 
 pub async fn list(req: Request<State>) -> highnoon::Result<Response> {
-    let projs: Vec<Project> = sqlx::query_as(
+    let projects: Vec<Project> = sqlx::query_as(
         "SELECT id, name, description
-        FROM project",
+        FROM project
+        ORDER BY name
+        LIMIT 100",
     )
     .fetch_all(&req.get_pool())
     .await?;
 
-    Ok(Response::ok().json(projs)?)
+    Json(projects).into_response()
 }
 
-pub async fn get_by_name(req: Request<State>) -> impl Responder {
+pub async fn get_by_name(req: Request<State>) -> highnoon::Result<Response> {
     let q = req.query::<QueryProject>()?;
 
     if let Some(name) = q.name {
@@ -209,7 +211,9 @@ pub async fn list_jobs(req: Request<State>) -> highnoon::Result<impl Responder> 
             name,
             description
         FROM job
-        WHERE project_id = $1",
+        WHERE project_id = $1
+        ORDER BY name
+        LIMIT 200",
     )
     .bind(&id)
     .fetch_all(&req.get_pool())
