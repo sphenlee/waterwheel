@@ -57,8 +57,11 @@ class TokenTable extends Component {
 
     async fetchTokens(id) {
         try {
-            let filter = this.state.filter.concat(',');
-            let resp = await axios.get(`/api/jobs/${id}/tokens?state=${filter}`);
+            let resp = await axios.get(`/api/jobs/${id}/tokens`, {
+                params: {
+                    state: this.state.filter.join(',')
+                }
+            });
             this.setState({
                 tokens: resp.data,
             });

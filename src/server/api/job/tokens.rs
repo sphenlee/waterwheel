@@ -34,7 +34,8 @@ async fn get_tokens_common(req: Request<State>) -> highnoon::Result<Vec<GetToken
 
     let states: Option<Vec<_>> = q
         .state
-        .map(|s| s.split(',').map(|s| s.to_owned()).collect());
+        .as_ref()
+        .map(|s| s.split(',').collect());
 
     let tokens: Vec<GetToken> = sqlx::query_as(
         "WITH these_tokens AS (

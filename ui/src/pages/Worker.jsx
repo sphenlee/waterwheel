@@ -1,10 +1,12 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
-import { Table, Layout, Breadcrumb, PageHeader, Row, Col, Statistic, Descriptions, Button } from 'antd';
+import { Table, Layout, Breadcrumb, PageHeader, Row, Col, Statistic,
+    Descriptions, Button, Select } from 'antd';
 import { geekblue } from '@ant-design/colors';
 import { RightOutlined, DownOutlined } from "@ant-design/icons";
 
 
+const { Option } = Select;
 
 import axios from 'axios';
 import Moment from 'react-moment';
@@ -14,6 +16,8 @@ import State from '../components/State.jsx';
 import RelDate from '../components/Date.jsx';
 
 const { Content } = Layout;
+
+const defaultFilter = ["active", "running", "success", "failure"];
 
 function makeColumns() {
     return [
@@ -92,12 +96,17 @@ class Worker extends Component {
 
         this.state = {
             tasks: [],
+            filter: defaultFilter,
         }
     }
 
     async fetchWorker(id, trigger_datetime) {
         try {
-            let resp = await axios.get(`/api/workers/${id}`);
+            let resp = await axios.get(`/api/workers/${id}`, {
+                params: {
+                    state: this.state.filter.join(',')
+                }
+            });
             this.setState({
                 tasks: resp.data.tasks,
                 last_seen_datetime: resp.data.last_seen_datetime,
@@ -159,6 +168,23 @@ class Worker extends Component {
                             </Col>
                             <Col span={24} />
                         </Row>
+                        <Select
+                          mode="multiple"
+                          defaultValue={defaultFilter}
+                          style={{ width: 350 }}
+                          onChange={(value) => {
+                            this.setState({
+                                filter: value
+                            }, () => {
+                                this.fetchWorker(id);    
+                            });
+                          }}
+                        >
+                            <Option value="active">Active</Option>
+                            <Option value="running">Running</Option>
+                            <Option value="success">Success</Option>
+                            <Option value="failure">Failure</Option>
+                        </Select>
                         <Table key="1"
                             rowKey="task_run_id"
                             columns={this.columns}

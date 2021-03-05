@@ -3,7 +3,7 @@ use crate::server::api::State;
 use crate::server::api::heartbeat::WORKER_STATUS;
 use chrono::{DateTime, Utc};
 use highnoon::{Json, Request, Responder, Response, StatusCode};
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use uuid::Uuid;
 
 pub async fn list(_req: Request<State>) -> impl Responder {
@@ -12,6 +12,11 @@ pub async fn list(_req: Request<State>) -> impl Responder {
     let workers: Vec<_> = status.values().cloned().collect();
 
     Json(workers)
+}
+
+#[derive(Deserialize)]
+struct QueryWorker {
+    state: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -41,6 +46,13 @@ struct GetWorkerTask {
 pub async fn tasks(req: Request<State>) -> highnoon::Result<Response> {
     let id = req.param("id")?.parse::<Uuid>()?;
 
+    let q = req.query::<QueryWorker>()?;
+
+    let states: Option<Vec<_>> = q
+        .state
+        .as_ref()
+        .map(|s| s.split(',').collect());
+
     let tasks: Vec<GetWorkerTask> = sqlx::query_as(
         "SELECT
             j.name AS job_name,
@@ -60,10 +72,12 @@ pub async fn tasks(req: Request<State>) -> highnoon::Result<Response> {
         JOIN job j ON j.id = t.job_id
         JOIN project p ON p.id = j.project_id
         WHERE r.worker_id = $1
+        AND ($2 IS NULL OR r.state = ANY($2))
         ORDER BY r.started_datetime DESC
         LIMIT 100",
     )
     .bind(&id)
+    .bind(&states)
     .fetch_all(&req.get_pool())
     .await?;
 
