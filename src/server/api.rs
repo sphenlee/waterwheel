@@ -24,13 +24,12 @@ impl highnoon::State for State {
 
 #[allow(unused)]
 macro_rules! get_file {
-    ($file:expr => $mime:expr) => {
+    ($data:expr ; $mime:expr) => {
         |_req| async {
             use highnoon::{headers::ContentType, Mime, Response};
 
-            let body = include_str!($file);
             Response::ok()
-                .body(body)
+                .body($data)
                 .header(ContentType::from($mime.parse::<Mime>().unwrap()))
         }
     };
@@ -126,19 +125,26 @@ pub async fn serve() -> Result<()> {
 
     #[cfg(debug_assertions)]
     {
-        app.at("/static/*").static_files("ui/dist/");
-        app.at("/**").get(|_req| async {
+        let index = |_req| async {
             let body = highnoon::Response::ok().path("ui/dist/index.html").await?;
             Ok(body)
-        });
+        };
+        app.at("/static/*").static_files("ui/dist/");
+        app.at("/**").get(index);
+        app.at("/").get(index);
     }
 
     #[cfg(not(debug_assertions))]
     {
+        static JS: &str = include_str!("../../ui/dist/main.js");
+        static HTML: &str = include_str!("../../ui/dist/index.html");
+
         app.at("/static/main.js")
-            .get(get_file!("../../ui/dist/main.js" => "text/javascript"));
+            .get(get_file!(JS; "text/javascript"));
+        app.at("/")
+            .get(get_file!(HTML; "text/html;charset=utf-8"));
         app.at("/**")
-            .get(get_file!("../../ui/dist/index.html" => "text/html;charset=utf-8"));
+            .get(get_file!(HTML; "text/html;charset=utf-8"));
     }
 
     let host: String = config::get_or("WATERWHEEL_SERVER_BIND", "127.0.0.1:8080");
