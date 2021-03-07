@@ -21,13 +21,15 @@ async fn main() -> Result<()> {
     let app = clap::App::new("waterwheel")
         .author("Steve Lee <sphen.lee@gmail.com>")
         .setting(clap::AppSettings::SubcommandRequiredElseHelp)
-        .subcommand(clap::App::new("server"))
+        .subcommand(clap::App::new("scheduler"))
+        .subcommand(clap::App::new("api"))
         .subcommand(clap::App::new("worker"));
 
     let args = app.get_matches();
 
     match args.subcommand() {
-        ("server", Some(_args)) => server::run_server().await,
+        ("scheduler", Some(_args)) => server::run_scheduler().await,
+        ("api", Some(_args)) => server::run_api().await,
         ("worker", Some(_args)) => worker::run_worker().await,
         _ => unreachable!("clap should have already checked the subcommands"),
     }

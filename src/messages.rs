@@ -1,6 +1,8 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use crate::server::tokens::ProcessToken;
+use crate::server::triggers::TriggerUpdate;
 
 /// state of a token
 // TODO - strings are still hardcoded, use the enum!
@@ -54,7 +56,7 @@ impl TokenState {
 }
 
 // TODO - move this out into general code
-#[derive(PartialEq, Hash, Eq, Clone, Debug)]
+#[derive(PartialEq, Hash, Eq, Clone, Debug, Serialize, Deserialize)]
 pub struct Token {
     pub task_id: Uuid,
     pub trigger_datetime: DateTime<Utc>,
@@ -120,4 +122,11 @@ pub struct WorkerHeartbeat {
     pub last_seen_datetime: DateTime<Utc>,
     pub running_tasks: u64,
     pub total_tasks: u64,
+}
+
+/// message sent from the API to the scheduler
+#[derive(Serialize, Deserialize, Debug)]
+pub enum SchedulerUpdate {
+    TriggerUpdate(TriggerUpdate),
+    ProcessToken(ProcessToken)
 }

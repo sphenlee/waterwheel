@@ -3,6 +3,7 @@ use crate::config;
 use anyhow::Result;
 use highnoon::{Request, Responder, Json};
 use sqlx::PgPool;
+use lapin::Channel;
 
 mod heartbeat;
 mod job;
@@ -12,9 +13,11 @@ mod stash;
 mod task;
 pub mod types;
 mod workers;
+mod updates;
 
 pub struct State {
     pool: PgPool,
+    channel: Channel,
 }
 
 impl highnoon::State for State {
@@ -38,7 +41,10 @@ macro_rules! get_file {
 pub async fn serve() -> Result<()> {
     let state = State {
         pool: crate::db::get_pool(),
+        channel: crate::amqp::get_amqp_channel().await?
     };
+
+    updates::setup(&state.channel).await?;
 
     let mut app = highnoon::App::new(state);
     app.with(highnoon::filter::Log);

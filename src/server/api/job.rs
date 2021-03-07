@@ -1,12 +1,10 @@
 use super::request_ext::RequestExt;
 use super::types::Job;
 use super::State;
-use crate::postoffice;
-use crate::server::triggers::TriggerUpdate;
+use super::updates;
 use crate::util::{is_pg_integrity_error, pg_error};
 use highnoon::{Json, Request, Responder, Response, StatusCode};
 use log::{info, warn};
-use postage::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -20,11 +18,11 @@ pub use tokens::{
     clear_tokens_trigger_datetime, get_tokens, get_tokens_overview, get_tokens_trigger_datetime,
 };
 pub use triggers::{get_trigger, get_trigger_times, get_triggers_by_job};
+use crate::messages::SchedulerUpdate;
+use crate::server::triggers::TriggerUpdate;
 
 pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
     let job: Job = req.body_json().await?;
-
-    let mut trigger_tx = postoffice::post_mail::<TriggerUpdate>().await?;
 
     let pool = req.get_pool();
     let mut txn = pool.begin().await?;
@@ -111,7 +109,7 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
     txn.commit().await?;
 
     for id in triggers_to_tx {
-        trigger_tx.send(TriggerUpdate(id)).await?;
+        updates::send(req.get_channel(), SchedulerUpdate::TriggerUpdate(TriggerUpdate(id))).await?;
     }
 
     StatusCode::CREATED.into_response()
@@ -303,8 +301,6 @@ pub async fn set_paused(mut req: Request<State>) -> impl Responder {
     }
 
     // send trigger updates for the whole job to notify the scheduler
-    let mut trigger_tx = postoffice::post_mail::<TriggerUpdate>().await?;
-
     let triggers_to_tx = sqlx::query_as(
         "SELECT id
         FROM trigger
@@ -315,7 +311,7 @@ pub async fn set_paused(mut req: Request<State>) -> impl Responder {
     .await?;
 
     for (id,) in triggers_to_tx {
-        trigger_tx.send(TriggerUpdate(id)).await?;
+        updates::send(req.get_channel(), SchedulerUpdate::TriggerUpdate(TriggerUpdate(id))).await?;
     }
 
     Ok(StatusCode::NO_CONTENT)

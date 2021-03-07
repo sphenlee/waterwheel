@@ -1,11 +1,9 @@
-use crate::messages::Token;
-use crate::postoffice;
+use crate::messages::{Token, SchedulerUpdate};
 use crate::server::api::request_ext::RequestExt;
-use crate::server::api::State;
+use crate::server::api::{State, updates};
 use crate::server::tokens::ProcessToken;
 use chrono::{DateTime, Utc};
 use highnoon::{Json, Request, Responder};
-use postage::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
 use std::collections::BTreeMap;
@@ -201,13 +199,13 @@ pub async fn clear_tokens_trigger_datetime(
     .fetch_all(&req.get_pool())
     .await?;
 
-    let mut tokens_tx = postoffice::post_mail::<ProcessToken>().await?;
     for &(id,) in &task_ids {
         let token = Token {
             task_id: id,
             trigger_datetime,
         };
-        tokens_tx.send(ProcessToken::Clear(token)).await?;
+        updates::send(req.get_channel(),
+                      SchedulerUpdate::ProcessToken(ProcessToken::Clear(token))).await?;
     }
 
     let body = ClearTokens {

@@ -8,8 +8,9 @@ use postage::prelude::*;
 use sqlx::{PgPool, Postgres, Transaction};
 use std::collections::HashMap;
 use std::fmt;
+use serde::{Serialize, Deserialize};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ProcessToken {
     Increment(Token, TaskPriority),
     Clear(Token),

@@ -10,12 +10,11 @@ pub mod stash;
 pub mod status;
 pub mod tokens;
 mod trigger_time;
-mod triggers;
+pub mod triggers;
+mod updates;
 
-pub async fn run_server() -> Result<()> {
+pub async fn run_scheduler() -> Result<()> {
     postoffice::open()?;
-
-    stash::load_keys()?;
 
     db::create_pool().await?;
     amqp::amqp_connect().await?;
@@ -24,6 +23,18 @@ pub async fn run_server() -> Result<()> {
     spawn_retry("tokens", tokens::process_tokens);
     spawn_retry("executions", execute::process_executions);
     spawn_retry("progress", progress::process_progress);
+    spawn_retry("updates", updates::process_updates);
+
+    let () = futures::future::pending().await; // wait forever
+
+    Ok(())
+}
+
+pub async fn run_api() -> Result<()> {
+    stash::load_keys()?;
+
+    db::create_pool().await?;
+    amqp::amqp_connect().await?;
 
     api::serve().await?;
 

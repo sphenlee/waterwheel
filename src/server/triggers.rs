@@ -12,6 +12,7 @@ use futures::TryStreamExt;
 use kv_log_macro::{debug, info, trace, warn};
 use postage::prelude::*;
 use postage::stream::TryRecvError;
+use serde::{Serialize, Deserialize};
 use sqlx::types::Uuid;
 use sqlx::Connection;
 use std::str::FromStr;
@@ -19,7 +20,7 @@ use tokio::time;
 
 type Queue = BinaryHeap<TriggerTime, MinComparator>;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TriggerUpdate(pub Uuid);
 
 #[derive(sqlx::FromRow, Debug)]
