@@ -1,21 +1,7 @@
-version: '3.4'
+# this file launch just the services needed to run waterwheel locally
+# launch this using `just up` to develop and debug without having to build the Docker image
 
-x-definitions:
-  waterwheel: &waterwheel
-    build: .
-    depends_on:
-      - db
-      - amqp
-    links:
-      - db
-      - amqp
-    environment:
-      - WATERWHEEL_DB_URL=postgres://postgres:$POSTGRES_PASSWORD@db/
-      - WATERWHEEL_AMQP_ADDR=amqp://amqp//
-      - WATERWHEEL_HMAC_SECRET=wwsharedsecret
-      - WATERWHEEL_SERVER_ADDR=http://172.17.0.1/
-      - WATERWHEEL_SERVER_BIND=0.0.0.0:8080
-    restart: on-failure
+version: '2.0'
 
 services:
   amqp:
@@ -23,8 +9,6 @@ services:
     ports:
       - "5672:5672"
       - "8055:15672"
-    logging:
-      driver: none
 
   db:
     image: postgres:alpine
@@ -32,35 +16,3 @@ services:
       - POSTGRES_PASSWORD
     ports:
       - "5432:5432"
-    logging:
-      driver: none
-
-  ww-scheduler:
-    <<: *waterwheel
-    command: ["scheduler"]
-
-  ww-worker:
-    <<: *waterwheel
-    command: [ "worker" ]
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-
-  ww-api:
-    <<: *waterwheel
-    command: ["api"]
-    ports:
-      - "8080"
-    deploy:
-      mode: replicated
-      replicas: 2
-
-  lb:
-    image: dockercloud/haproxy
-    links:
-      - ww-api
-    ports:
-      - '80:80'
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    logging:
-      driver: none

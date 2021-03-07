@@ -23,8 +23,16 @@ ui-build:
     cd ui && npm run build
 
 # do a full release build
-build: ui-build
+build:
+    @# (don't depend on ui-build because webpack writes the output files even
+    @# if there are no changes. This causes cargo to have to rebuild the binary,
+    @# even if no Rust code has changed either)
     cargo build --release
+
+# deploy waterwheel using docker stack
+deploy-stack: build
+    docker build . -t waterwheel:local
+    docker stack deploy -c docker-stack.yml waterwheel-stack
 
 # connect to the database interactively
 psql:

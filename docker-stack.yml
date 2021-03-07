@@ -1,0 +1,52 @@
+# This file deploys a full Waterwheel environment using docker stack.
+# To deploy use `just deploy-stack`
+
+version: '3.4'
+
+x-definitions:
+  waterwheel: &waterwheel
+    image: waterwheel:local
+    environment:
+      - WATERWHEEL_DB_URL=postgres://postgres:$POSTGRES_PASSWORD@db/
+      - WATERWHEEL_AMQP_ADDR=amqp://amqp//
+      - WATERWHEEL_HMAC_SECRET=wwsharedsecret
+      - WATERWHEEL_SERVER_ADDR=http://172.19.0.1/
+      - WATERWHEEL_SERVER_BIND=0.0.0.0:8080
+    restart: on-failure
+
+services:
+  amqp:
+    image: rabbitmq:management-alpine
+    ports:
+      - "5672:5672"
+      - "8055:15672"
+    logging:
+      driver: none
+
+  db:
+    image: postgres:alpine
+    environment:
+      - POSTGRES_PASSWORD
+    ports:
+      - "5432:5432"
+    logging:
+      driver: none
+
+  ww-scheduler:
+    <<: *waterwheel
+    command: ["scheduler"]
+
+  ww-worker:
+    <<: *waterwheel
+    command: [ "worker" ]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  ww-api:
+    <<: *waterwheel
+    command: ["api"]
+    ports:
+      - "80:8080"
+    deploy:
+      mode: replicated
+      replicas: 2
