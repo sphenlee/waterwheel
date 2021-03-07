@@ -1,8 +1,8 @@
+use crate::server::tokens::ProcessToken;
+use crate::server::triggers::TriggerUpdate;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use crate::server::tokens::ProcessToken;
-use crate::server::triggers::TriggerUpdate;
 
 /// state of a token
 // TODO - strings are still hardcoded, use the enum!
@@ -128,5 +128,5 @@ pub struct WorkerHeartbeat {
 #[derive(Serialize, Deserialize, Debug)]
 pub enum SchedulerUpdate {
     TriggerUpdate(TriggerUpdate),
-    ProcessToken(ProcessToken)
+    ProcessToken(ProcessToken),
 }

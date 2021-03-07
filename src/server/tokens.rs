@@ -5,10 +5,10 @@ use anyhow::Result;
 use futures::TryStreamExt;
 use kv_log_macro::{info, trace};
 use postage::prelude::*;
+use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Postgres, Transaction};
 use std::collections::HashMap;
 use std::fmt;
-use serde::{Serialize, Deserialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ProcessToken {

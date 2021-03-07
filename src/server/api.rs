@@ -1,9 +1,9 @@
 use super::status::SERVER_STATUS;
 use crate::config;
 use anyhow::Result;
-use highnoon::{Request, Responder, Json};
-use sqlx::PgPool;
+use highnoon::{Json, Request, Responder};
 use lapin::Channel;
+use sqlx::PgPool;
 
 mod heartbeat;
 mod job;
@@ -12,8 +12,8 @@ pub mod request_ext;
 mod stash;
 mod task;
 pub mod types;
-mod workers;
 mod updates;
+mod workers;
 
 pub struct State {
     pool: PgPool,
@@ -41,7 +41,7 @@ macro_rules! get_file {
 pub async fn serve() -> Result<()> {
     let state = State {
         pool: crate::db::get_pool(),
-        channel: crate::amqp::get_amqp_channel().await?
+        channel: crate::amqp::get_amqp_channel().await?,
     };
 
     updates::setup(&state.channel).await?;
@@ -147,8 +147,7 @@ pub async fn serve() -> Result<()> {
 
         app.at("/static/main.js")
             .get(get_file!(JS; "text/javascript"));
-        app.at("/")
-            .get(get_file!(HTML; "text/html;charset=utf-8"));
+        app.at("/").get(get_file!(HTML; "text/html;charset=utf-8"));
         app.at("/**")
             .get(get_file!(HTML; "text/html;charset=utf-8"));
     }

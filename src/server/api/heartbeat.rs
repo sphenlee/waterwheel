@@ -1,12 +1,12 @@
 use crate::messages::WorkerHeartbeat;
+use crate::server::api::State;
 use crate::server::status::SERVER_STATUS;
+use highnoon::{Request, Responder, StatusCode};
 use kv_log_macro::trace;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use tokio::sync::Mutex;
 use uuid::Uuid;
-use highnoon::{Request, Responder, StatusCode};
-use crate::server::api::State;
 
 pub static WORKER_STATUS: Lazy<Mutex<HashMap<Uuid, WorkerHeartbeat>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));

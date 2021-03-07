@@ -1,6 +1,6 @@
-use crate::messages::{TaskPriority, Token, SchedulerUpdate};
+use crate::messages::{SchedulerUpdate, TaskPriority, Token};
 use crate::server::api::request_ext::RequestExt;
-use crate::server::api::{State, updates};
+use crate::server::api::{updates, State};
 use crate::server::tokens::{increment_token, ProcessToken};
 use chrono::{DateTime, Utc};
 use highnoon::{Request, Responder, StatusCode};
@@ -20,8 +20,11 @@ pub async fn create_token(req: Request<State>) -> highnoon::Result<impl Responde
     increment_token(&mut txn, &token).await?;
     txn.commit().await?;
 
-    updates::send(req.get_channel(),
-                  SchedulerUpdate::ProcessToken(ProcessToken::Increment(token, TaskPriority::High))).await?;
+    updates::send(
+        req.get_channel(),
+        SchedulerUpdate::ProcessToken(ProcessToken::Increment(token, TaskPriority::High)),
+    )
+    .await?;
 
     Ok(StatusCode::CREATED)
 }

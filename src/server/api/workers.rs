@@ -1,9 +1,9 @@
+use crate::server::api::heartbeat::WORKER_STATUS;
 use crate::server::api::request_ext::RequestExt;
 use crate::server::api::State;
-use crate::server::api::heartbeat::WORKER_STATUS;
 use chrono::{DateTime, Utc};
 use highnoon::{Json, Request, Responder, Response, StatusCode};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 pub async fn list(_req: Request<State>) -> impl Responder {
@@ -48,10 +48,7 @@ pub async fn tasks(req: Request<State>) -> highnoon::Result<Response> {
 
     let q = req.query::<QueryWorker>()?;
 
-    let states: Option<Vec<_>> = q
-        .state
-        .as_ref()
-        .map(|s| s.split(',').collect());
+    let states: Option<Vec<_>> = q.state.as_ref().map(|s| s.split(',').collect());
 
     let tasks: Vec<GetWorkerTask> = sqlx::query_as(
         "SELECT

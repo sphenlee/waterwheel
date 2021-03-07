@@ -1,8 +1,10 @@
-use anyhow::Result;
-use lapin::{Channel, ExchangeKind, BasicProperties};
-use lapin::options::{QueueDeclareOptions, ExchangeDeclareOptions, QueueBindOptions, BasicPublishOptions};
-use lapin::types::FieldTable;
 use crate::messages::SchedulerUpdate;
+use anyhow::Result;
+use lapin::options::{
+    BasicPublishOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
+};
+use lapin::types::FieldTable;
+use lapin::{BasicProperties, Channel, ExchangeKind};
 
 const UPDATES_EXCHANGE: &str = "waterwheel.updates";
 const UPDATES_QUEUE: &str = "waterwheel.updates";
@@ -18,7 +20,7 @@ pub async fn setup(chan: &Channel) -> Result<()> {
         },
         FieldTable::default(),
     )
-        .await?;
+    .await?;
 
     chan.queue_declare(
         UPDATES_QUEUE,
@@ -28,7 +30,7 @@ pub async fn setup(chan: &Channel) -> Result<()> {
         },
         FieldTable::default(),
     )
-        .await?;
+    .await?;
 
     chan.queue_bind(
         UPDATES_QUEUE,
@@ -37,20 +39,20 @@ pub async fn setup(chan: &Channel) -> Result<()> {
         QueueBindOptions::default(),
         FieldTable::default(),
     )
-        .await?;
+    .await?;
 
     Ok(())
 }
 
 pub async fn send(chan: &Channel, update: SchedulerUpdate) -> Result<()> {
-        chan.basic_publish(
-            UPDATES_EXCHANGE,
-            "",
-            BasicPublishOptions::default(),
-            serde_json::to_vec(&update)?,
-            BasicProperties::default(),
-        )
-        .await?;
+    chan.basic_publish(
+        UPDATES_EXCHANGE,
+        "",
+        BasicPublishOptions::default(),
+        serde_json::to_vec(&update)?,
+        BasicProperties::default(),
+    )
+    .await?;
 
-        Ok(())
+    Ok(())
 }

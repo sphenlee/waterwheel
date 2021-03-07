@@ -1,6 +1,6 @@
-use crate::messages::{Token, SchedulerUpdate};
+use crate::messages::{SchedulerUpdate, Token};
 use crate::server::api::request_ext::RequestExt;
-use crate::server::api::{State, updates};
+use crate::server::api::{updates, State};
 use crate::server::tokens::ProcessToken;
 use chrono::{DateTime, Utc};
 use highnoon::{Json, Request, Responder};
@@ -30,10 +30,7 @@ async fn get_tokens_common(req: Request<State>) -> highnoon::Result<Vec<GetToken
     let job_id = req.param("id")?.parse::<Uuid>()?;
     let q = req.query::<QueryToken>()?;
 
-    let states: Option<Vec<_>> = q
-        .state
-        .as_ref()
-        .map(|s| s.split(',').collect());
+    let states: Option<Vec<_>> = q.state.as_ref().map(|s| s.split(',').collect());
 
     let tokens: Vec<GetToken> = sqlx::query_as(
         "WITH these_tokens AS (
@@ -204,8 +201,11 @@ pub async fn clear_tokens_trigger_datetime(
             task_id: id,
             trigger_datetime,
         };
-        updates::send(req.get_channel(),
-                      SchedulerUpdate::ProcessToken(ProcessToken::Clear(token))).await?;
+        updates::send(
+            req.get_channel(),
+            SchedulerUpdate::ProcessToken(ProcessToken::Clear(token)),
+        )
+        .await?;
     }
 
     let body = ClearTokens {

@@ -12,7 +12,7 @@ use futures::TryStreamExt;
 use kv_log_macro::{debug, info, trace, warn};
 use postage::prelude::*;
 use postage::stream::TryRecvError;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use sqlx::types::Uuid;
 use sqlx::Connection;
 use std::str::FromStr;

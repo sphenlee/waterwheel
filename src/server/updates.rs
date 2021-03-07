@@ -1,13 +1,13 @@
+use crate::messages::SchedulerUpdate;
+use crate::server::tokens::ProcessToken;
+use crate::server::triggers::TriggerUpdate;
 use crate::{amqp, postoffice};
 use anyhow::Result;
 use futures::TryStreamExt;
-use kv_log_macro::{trace as kvtrace};
+use kv_log_macro::trace as kvtrace;
 use lapin::options::{BasicAckOptions, BasicConsumeOptions, QueueDeclareOptions};
 use lapin::types::FieldTable;
 use postage::prelude::*;
-use crate::server::triggers::TriggerUpdate;
-use crate::server::tokens::ProcessToken;
-use crate::messages::SchedulerUpdate;
 
 const UPDATE_QUEUE: &str = "waterwheel.updates";
 
@@ -26,7 +26,7 @@ pub async fn process_updates() -> Result<!> {
         },
         FieldTable::default(),
     )
-        .await?;
+    .await?;
 
     let mut consumer = chan
         .basic_consume(
@@ -38,13 +38,12 @@ pub async fn process_updates() -> Result<!> {
         .await?;
 
     while let Some((chan, msg)) = consumer.try_next().await? {
-
         let update: SchedulerUpdate = serde_json::from_slice(&msg.data)?;
 
         kvtrace!(
-            "received scheduler update message", {
-                update: log::kv::value::Value::from_debug(&update),
-            });
+        "received scheduler update message", {
+            update: log::kv::value::Value::from_debug(&update),
+        });
 
         match update {
             SchedulerUpdate::TriggerUpdate(tu) => trigger_tx.send(tu).await?,

@@ -1,7 +1,7 @@
 use super::request_ext::RequestExt;
 use super::types::Job;
-use super::State;
 use super::updates;
+use super::State;
 use crate::util::{is_pg_integrity_error, pg_error};
 use highnoon::{Json, Request, Responder, Response, StatusCode};
 use log::{info, warn};
@@ -13,13 +13,13 @@ mod tasks;
 mod tokens;
 mod triggers;
 
+use crate::messages::SchedulerUpdate;
+use crate::server::triggers::TriggerUpdate;
 pub use graph::get_graph;
 pub use tokens::{
     clear_tokens_trigger_datetime, get_tokens, get_tokens_overview, get_tokens_trigger_datetime,
 };
 pub use triggers::{get_trigger, get_trigger_times, get_triggers_by_job};
-use crate::messages::SchedulerUpdate;
-use crate::server::triggers::TriggerUpdate;
 
 pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
     let job: Job = req.body_json().await?;
@@ -109,7 +109,11 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
     txn.commit().await?;
 
     for id in triggers_to_tx {
-        updates::send(req.get_channel(), SchedulerUpdate::TriggerUpdate(TriggerUpdate(id))).await?;
+        updates::send(
+            req.get_channel(),
+            SchedulerUpdate::TriggerUpdate(TriggerUpdate(id)),
+        )
+        .await?;
     }
 
     StatusCode::CREATED.into_response()
@@ -311,7 +315,11 @@ pub async fn set_paused(mut req: Request<State>) -> impl Responder {
     .await?;
 
     for (id,) in triggers_to_tx {
-        updates::send(req.get_channel(), SchedulerUpdate::TriggerUpdate(TriggerUpdate(id))).await?;
+        updates::send(
+            req.get_channel(),
+            SchedulerUpdate::TriggerUpdate(TriggerUpdate(id)),
+        )
+        .await?;
     }
 
     Ok(StatusCode::NO_CONTENT)

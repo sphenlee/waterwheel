@@ -1,7 +1,7 @@
 use super::State;
 use highnoon::Request;
-use sqlx::PgPool;
 use lapin::Channel;
+use sqlx::PgPool;
 
 // extension methods for State
 pub trait RequestExt {
