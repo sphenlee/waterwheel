@@ -29,6 +29,9 @@ URL that tasks can contact the server on.  *(Mandatory)*
 
 > TODO: there may be a way to autodetect this, and allow it to be optional
 
+> TODO: may need a different address for Worker -> API (for heartbeats) and 
+> for Task -> API (for accessing stash variables)
+
     WATERWHEEL_SERVER_ADDR=<server's public URL>
 
 ### WATERWHEEL_SERVER_BIND, WATERWHEEL_WORKER_BIND
@@ -107,13 +110,13 @@ Enable json logging output instead of the default formatted logs.
 
 Default is `false`
 
-### RUST_LOG, RUST_BACKTRACE
+### WATERWHEEL_LOG, RUST_BACKTRACE
 
 Control log output and capturing backtraces. You shouldn't need to change 
 these except when debugging Waterwheel. Defaults as shown below.
 
     # Rust logging settings
-    RUST_LOG="waterwheel=info,sqlx=warn,highnoon=warn"
+    WATERWHEEL_LOG="waterwheel=info,sqlx=warn,highnoon=warn"
     # Enable backtraces on unhandled errors
     RUST_BACKTRACE=0
 
@@ -125,3 +128,20 @@ Minimal:
     WATERWHEEL_DB_URL=postgres://postgres:${POSTGRES_PASSWORD}@localhost/
     WATERWHEEL_SERVER_ADDR=http://localhost:8080/
     WATERWHEEL_HMAC_SECRET=${SECRET_DATA}
+
+Everything:
+
+> Uses Kubernetes with an RSA keypair for Stash access
+
+    WATERWHEEL_DB_URL=postgres://postgres:${POSTGRES_PASSWORD}@localhost/
+    WATERWHEEL_SERVER_ADDR=http://localhost:8080/
+    WATERWHEEL_SERVER_BIND=127.0.0.1:8080
+    WATERWHEEL_WORKER_BIND=127.0.0.1:0
+    WATERWHEEL_MAX_TASKS=8
+    WATERWHEEL_TASK_ENGINE=kubernetes
+    WATERWHEEL_KUBE_NAMESPACE=my-ns
+    WATERWHEEL_PUBLIC_KEY=public.pem
+    WATERWHEEL_PRIVATE_KEY=private.pem
+    WATERWHEEL_JSON_LOG=true
+    WATERWHEEL_LOG="waterwheel=info,sqlx=warn,highnoon=warn"
+    RUST_BACKTRACE=0

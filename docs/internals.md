@@ -1,14 +1,19 @@
 Waterwheel Internals
 ====================
 
-Waterwheel is composed of two separate processes - the server and worker.
-These communicate via the message queue (RabbitMQ) only. The server process 
-accesses the database (PostgreSQL) to store state, but the worker has no 
-access to this.
+Waterwheel is composed of three separate processes - the scheduler, worker and API.
+These communicate via the message queue (RabbitMQ) and HTTP only. The
+scheduler and API access the database (PostgreSQL) to store state, but the
+worker has no access to this.
 
-## Server
+> Originally the scheduler and API were a single process called the server.
+> There may still be some accidental references to this in various places.
+> The server was split to enable scaling - the scheduler must be a singleton 
+> process, whereas the API can be replicated.
 
-The Server itself is composed of several interacting tasks. These 
+## Scheduler
+
+The scheduler itself is composed of several interacting tasks. These 
 communicate via channels, and do not share any memory structures.
 The tasks use `async` and are executed by the `tokio` multi-threaded runtime.
 
@@ -99,15 +104,9 @@ increment message to the **Token Processor**. For all status updates it also
 updates the token and the task run entry in the database.
 
 
-### Heartbeat Processor
+## API
 
-The **Heartbeat Processor** listens for the heartbeat messages from workers 
-and updates the worker status in the server.
-
-
-### API Server
-
-The **API Server** listens via HTTP for all API interactions and well as 
+The **API** listens via HTTP for all API interactions and well as 
 serving the Web interface.
 
 The API has methods to get and update all the various objects that 
@@ -117,9 +116,17 @@ The only thing to note is that when a Job is updated the API will send a
 *Trigger Update* message to the **Trigger Processor** which will wake up any 
 sleep and allow the potentially modified triggers to be applied immediately.
 
+> TODO: API also send messages to the **Token Processor**
+
+> TODO: Messages now go over a RabbitMQ queue and get routed by a new 
+> process in the scheduler
+
+> TODO: API receives heartbeats from the workers - these should get stored 
+> in the database for consistency when scaling up the API
+
 ## Worker
 
-The worker is much simpler than the server and only runs two distinct tasks.
+The worker is much simpler than the scheduler and only runs two distinct tasks.
 
 ### Work Processor
 
@@ -130,9 +137,6 @@ determined by the `WATERWHEEL_MAX_TASKS` variable.
 
 ### Heartbeat
 
-Heartbeats sre sent to RabbitMQ every five seconds with the worker's current 
-status.
-
-> The heartbeat mechanism may eventually switch to HTTP. This would also 
-> allow the worker to detect if the server is down.
-
+Heartbeats sre sent to the API via HTTP every five seconds with the worker's 
+current status. If the API does not respond the worker currently logs a 
+warning and continues; it is not a fatal error.
