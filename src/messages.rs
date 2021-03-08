@@ -115,13 +115,13 @@ impl Default for TaskPriority {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct WorkerHeartbeat {
     pub uuid: Uuid,
     pub addr: String,
     pub last_seen_datetime: DateTime<Utc>,
-    pub running_tasks: u64,
-    pub total_tasks: u64,
+    pub running_tasks: i32,
+    pub total_tasks: i32,
 }
 
 /// message sent from the API to the scheduler

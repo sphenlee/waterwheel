@@ -1,5 +1,4 @@
 use crate::messages::{TaskPriority, Token};
-use crate::server::status::SERVER_STATUS;
 use crate::server::tokens::{increment_token, ProcessToken};
 use crate::server::trigger_time::TriggerTime;
 use crate::util::format_duration_approx;
@@ -92,7 +91,8 @@ pub async fn process_triggers() -> Result<!> {
 
         // rather than update this every place we edit the queue just do it
         // once per loop - it's for monitoring purposes anyway
-        SERVER_STATUS.lock().await.queued_triggers = queue.len();
+        // TODO - how can we get this value to the API?
+        //SERVER_STATUS.lock().await.queued_triggers = queue.len();
 
         if queue.is_empty() {
             debug!("no triggers queued, waiting for a trigger update");

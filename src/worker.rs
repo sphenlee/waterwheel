@@ -1,4 +1,4 @@
-use std::sync::atomic::AtomicU64;
+use std::sync::atomic::AtomicI32;
 
 use anyhow::Result;
 use kv_log_macro::info;
@@ -19,8 +19,8 @@ mod work;
 
 static WORKER_ID: Lazy<Uuid> = Lazy::new(Uuid::new_v4);
 
-pub static RUNNING_TASKS: AtomicU64 = AtomicU64::new(0);
-pub static TOTAL_TASKS: AtomicU64 = AtomicU64::new(0);
+pub static RUNNING_TASKS: AtomicI32 = AtomicI32::new(0);
+pub static TOTAL_TASKS: AtomicI32 = AtomicI32::new(0);
 
 const DEFAULT_MAX_TASKS: u32 = 8;
 

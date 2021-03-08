@@ -35,8 +35,8 @@ Operational
 * [ ] emit metrics to statsd
 * [ ] better control over server and worker logs (send them to fluentd/Vector too?)
 * [ ] High Availability
-    * [ ] separate the server from the web interface
-        * complication is sending the "update triggers" message from the API to the server - use AMQP or REST perhaps?
+    * [x] separate the server from the web interface
+        * update messages are sent from the api to the scheduler over AMQP
     * [ ] server is stateless, but has in-memory caches, verify and test
     * [ ] HA mode for the server
         * initially active/passive mode, active/active in future?

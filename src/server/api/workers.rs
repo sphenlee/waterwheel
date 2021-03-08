@@ -1,17 +1,26 @@
-use crate::server::api::heartbeat::WORKER_STATUS;
 use crate::server::api::request_ext::RequestExt;
 use crate::server::api::State;
 use chrono::{DateTime, Utc};
 use highnoon::{Json, Request, Responder, Response, StatusCode};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use crate::messages::WorkerHeartbeat;
 
-pub async fn list(_req: Request<State>) -> impl Responder {
-    let status = WORKER_STATUS.lock().await;
+pub async fn list(req: Request<State>) -> highnoon::Result<impl Responder> {
+    let workers: Vec<WorkerHeartbeat> = sqlx::query_as(
+        "SELECT
+            id AS uuid,
+            addr,
+            last_seen_datetime,
+            running_tasks,
+            total_tasks
+        FROM worker w
+        ORDER BY last_seen_datetime DESC",
+    )
+    .fetch_all(&req.get_pool())
+    .await?;
 
-    let workers: Vec<_> = status.values().cloned().collect();
-
-    Json(workers)
+    Ok(Json(workers))
 }
 
 #[derive(Deserialize)]
@@ -22,8 +31,8 @@ struct QueryWorker {
 #[derive(Serialize)]
 struct GetWorker {
     last_seen_datetime: DateTime<Utc>,
-    running_tasks: u64,
-    total_tasks: u64,
+    running_tasks: i32,
+    total_tasks: i32,
     tasks: Vec<GetWorkerTask>,
 }
 
@@ -78,8 +87,21 @@ pub async fn tasks(req: Request<State>) -> highnoon::Result<Response> {
     .fetch_all(&req.get_pool())
     .await?;
 
-    let status = WORKER_STATUS.lock().await;
-    if let Some(worker) = status.get(&id) {
+    let status: Option<WorkerHeartbeat> = sqlx::query_as(
+        "SELECT
+            id AS uuid,
+            addr,
+            last_seen_datetime,
+            running_tasks,
+            total_tasks
+        FROM worker w
+        WHERE id = $1",
+    )
+    .bind(&id)
+    .fetch_optional(&req.get_pool())
+    .await?;
+
+    if let Some(worker) = status {
         Response::ok().json(GetWorker {
             last_seen_datetime: worker.last_seen_datetime,
             running_tasks: worker.running_tasks,

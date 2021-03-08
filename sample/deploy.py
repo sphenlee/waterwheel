@@ -8,8 +8,19 @@ import os.path as p
 WATERWHEEL_HOST = 'http://localhost:8080'
 
 print('create project')
-resp = requests.post(WATERWHEEL_HOST + '/api/projects', json=json.load(open('project.json')))
+project = json.load(open('project.json'))
+resp = requests.post(WATERWHEEL_HOST + '/api/projects', json=project)
 assert resp.status_code == codes.created
+
+# obviously you wouldn't deploy secrets like this in a real environment
+print('create secrets')
+resp = requests.put(WATERWHEEL_HOST + '/api/stash/test-key', data='test global stash')
+assert resp.status_code == codes.created
+
+resp = requests.put(WATERWHEEL_HOST + f'/api/projects/{project["uuid"]}/stash/test-key',
+                     data='test project stash')
+assert resp.status_code == codes.created
+
 
 for file in os.listdir('.'):
     if p.splitext(file)[1] == '.yml':
@@ -18,3 +29,4 @@ for file in os.listdir('.'):
         resp = requests.put(WATERWHEEL_HOST + '/api/jobs', json=job)
         if resp.status_code != codes.created:
             print(resp.text)
+

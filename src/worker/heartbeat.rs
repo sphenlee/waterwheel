@@ -3,10 +3,10 @@ use crate::messages::WorkerHeartbeat;
 use anyhow::Result;
 
 use chrono::Utc;
-use log::{trace, warn};
+use log::{trace, warn, debug};
 
 use super::{RUNNING_TASKS, TOTAL_TASKS, WORKER_ID};
-use reqwest::Url;
+use reqwest::{Url, StatusCode};
 use std::sync::atomic::Ordering;
 
 pub async fn heartbeat() -> Result<!> {
@@ -31,8 +31,12 @@ pub async fn heartbeat() -> Result<!> {
             .await;
 
         match res {
-            Ok(resp) => {
+            Ok(resp) if resp.status() == StatusCode::OK => {
                 trace!("heartbeat: {}", resp.status())
+            }
+            Ok(resp) => {
+                warn!("heartbeat: {}", resp.status());
+                debug!("heartbeat: {}", resp.text().await?);
             }
             Err(err) => {
                 warn!("failed to send heartbeat to the server: {}", err)

@@ -47,6 +47,14 @@ CREATE TABLE IF NOT EXISTS token (
     UNIQUE(task_id, trigger_datetime)
 );
 
+CREATE TABLE IF NOT EXISTS worker (
+    id UUID PRIMARY KEY,
+    addr VARCHAR,
+    last_seen_datetime TIMESTAMP WITH TIME ZONE NOT NULL,
+    running_tasks INT,
+    total_tasks INT
+);
+
 CREATE TABLE IF NOT EXISTS task_run (
     id UUID PRIMARY KEY,
     task_id UUID NOT NULL REFERENCES task(id),
@@ -54,7 +62,7 @@ CREATE TABLE IF NOT EXISTS task_run (
     queued_datetime TIMESTAMP WITH TIME ZONE NOT NULL,
     started_datetime TIMESTAMP WITH TIME ZONE,
     finish_datetime TIMESTAMP WITH TIME ZONE,
-    worker_id UUID,
+    worker_id UUID REFERENCES workers(id),
     state VARCHAR
 );
 

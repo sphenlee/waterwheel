@@ -1,7 +1,5 @@
-use super::status::SERVER_STATUS;
 use crate::config;
 use anyhow::Result;
-use highnoon::{Json, Request, Responder};
 use lapin::Channel;
 use sqlx::PgPool;
 
@@ -12,6 +10,7 @@ pub mod request_ext;
 mod stash;
 mod task;
 pub mod types;
+mod status;
 mod updates;
 mod workers;
 
@@ -52,7 +51,7 @@ pub async fn serve() -> Result<()> {
     // basic healthcheck to see if waterwheel is up
     app.at("/healthcheck").get(|_req| async { Ok("OK") });
 
-    app.at("/api/status").get(status);
+    app.at("/api/status").get(status::status);
 
     // worker heartbeats
     app.at("/api/heartbeat").post(heartbeat::post);
@@ -157,10 +156,4 @@ pub async fn serve() -> Result<()> {
     app.listen(host).await?;
 
     Ok(())
-}
-
-async fn status(_req: Request<State>) -> highnoon::Result<impl Responder> {
-    let status = SERVER_STATUS.lock().await;
-
-    Ok(Json(status.clone()))
 }
