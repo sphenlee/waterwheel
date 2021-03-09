@@ -3,6 +3,9 @@ use anyhow::Result;
 use sqlx::{Postgres, Transaction};
 use std::str::FromStr;
 use uuid::Uuid;
+use crate::util::{is_pg_integrity_error, pg_error};
+use log::debug;
+use std::fmt::{self, Display};
 
 #[derive(Debug)]
 enum ReferenceKind {
@@ -11,15 +14,26 @@ enum ReferenceKind {
 }
 
 impl FromStr for ReferenceKind {
-    type Err = anyhow::Error;
+    type Err = highnoon::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "trigger" => Ok(ReferenceKind::Trigger),
             "task" => Ok(ReferenceKind::Task),
-            _ => Err(anyhow::Error::msg(
-                "failed to parse reference kind (expected \"task\" or \"trigger\"",
-            )),
+            _ => Err(highnoon::Error::http((
+                highnoon::StatusCode::BAD_REQUEST,
+                format!("failed to parse reference kind (expected \"task\" \
+                         or \"trigger\", got \"{}\")", s),
+            ))),
+        }
+    }
+}
+
+impl Display for ReferenceKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ReferenceKind::Trigger => write!(f, "trigger"),
+            ReferenceKind::Task => write!(f, "task"),
         }
     }
 }
@@ -32,7 +46,19 @@ struct Reference {
     name: String,
 }
 
-fn parse_reference(reference: &str) -> Result<Reference> {
+impl Display for Reference {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(p) = &self.proj {
+            write!(f, "{}/", p)?;
+        }
+        if let Some(j) = &self.job {
+            write!(f, "{}/", j)?;
+        }
+        write!(f, "{}/{}", self.kind, self.name)
+    }
+}
+
+fn parse_reference(reference: &str) -> highnoon::Result<Reference> {
     let parts = reference.split('/').collect::<Vec<_>>();
 
     if parts.len() == 4 {
@@ -57,9 +83,10 @@ fn parse_reference(reference: &str) -> Result<Reference> {
             name: parts[1].to_owned(),
         })
     } else {
-        Err(anyhow::Error::msg(
+        Err(highnoon::Error::http((
+            highnoon::StatusCode::BAD_REQUEST,
             "invalid reference - expected 2, 3, or 4 slash separated parts",
-        ))
+        )))
     }
 }
 
@@ -79,18 +106,7 @@ pub async fn create_task(
     txn: &mut Transaction<'_, Postgres>,
     task: &Task,
     job: &Job,
-) -> Result<()> {
-    let task_id: Option<(Uuid,)> = sqlx::query_as(
-        "SELECT id
-            FROM task
-            WHERE name = $1
-            AND job_id = $2",
-    )
-    .bind(&task.name)
-    .bind(&job.uuid)
-    .fetch_optional(&mut *txn)
-    .await?;
-
+) -> highnoon::Result<()> {
     let threshold = task.threshold.unwrap_or_else(|| {
         if let Some(dep) = &task.depends {
             dep.len() as u32
@@ -99,43 +115,28 @@ pub async fn create_task(
         }
     });
 
-    let task_id = if let Some((id,)) = task_id {
-        sqlx::query(
-            "UPDATE task
-                SET threshold = $1,
-                    image = $2,
-                    args = $3,
-                    env = $4
-                WHERE id = $5",
-        )
-        .bind(threshold)
-        .bind(task.docker.as_ref().map(|d| &d.image))
-        .bind(task.docker.as_ref().map(|d| &d.args))
-        .bind(task.docker.as_ref().map(|d| &d.env))
-        .bind(&id)
-        .execute(&mut *txn)
-        .await?;
+    let new_id = Uuid::new_v4();
 
-        id
-    } else {
-        let new_id = Uuid::new_v4();
-
-        sqlx::query(
-            "INSERT INTO task(id, name, job_id, threshold, image, args, env)
-                VALUES ($1, $2, $3, $4, $5, $6, $7)",
-        )
-        .bind(&new_id)
-        .bind(&task.name)
-        .bind(&job.uuid)
-        .bind(threshold)
-        .bind(task.docker.as_ref().map(|d| &d.image))
-        .bind(task.docker.as_ref().map(|d| &d.args))
-        .bind(task.docker.as_ref().map(|d| &d.env))
-        .execute(&mut *txn)
-        .await?;
-
-        new_id
-    };
+    let (task_id,): (Uuid,) = sqlx::query_as(
+        "INSERT INTO task(id, name, job_id, threshold, image, args, env)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT(name, job_id)
+         DO UPDATE
+         SET threshold = $4,
+             image = $5,
+             args = $6,
+             env = $7
+         RETURNING id",
+    )
+    .bind(&new_id)
+    .bind(&task.name)
+    .bind(&job.uuid)
+    .bind(threshold)
+    .bind(task.docker.as_ref().map(|d| &d.image))
+    .bind(task.docker.as_ref().map(|d| &d.args))
+    .bind(task.docker.as_ref().map(|d| &d.env))
+    .fetch_one(&mut *txn)
+    .await?;
 
     // remove existing edges
     sqlx::query(
@@ -178,7 +179,10 @@ pub async fn create_task(
 
             match reference.kind {
                 ReferenceKind::Trigger => {
-                    create_trigger_edge(&mut *txn, &task_id, reference).await?
+                    return Err(highnoon::Error::http((
+                        highnoon::StatusCode::BAD_REQUEST,
+                        "depends_failure cannot reference a trigger since triggers can't fail"
+                        )));
                 }
                 ReferenceKind::Task => {
                     create_task_edge(&mut *txn, &task_id, reference, "failure").await?
@@ -194,8 +198,8 @@ async fn create_trigger_edge(
     txn: &mut Transaction<'_, Postgres>,
     task: &Uuid,
     reference: Reference,
-) -> Result<()> {
-    sqlx::query(
+) -> highnoon::Result<()> {
+    let res = sqlx::query(
         "INSERT INTO trigger_edge(trigger_id, task_id)
         VALUES(
             (
@@ -208,17 +212,28 @@ async fn create_trigger_edge(
                 AND t.name = $3
             ),
             $4
-        )
-        ON CONFLICT DO NOTHING",
+        )",
     )
-    .bind(reference.proj)
-    .bind(reference.job)
-    .bind(reference.name)
+    .bind(&reference.proj)
+    .bind(&reference.job)
+    .bind(&reference.name)
     .bind(task)
     .execute(txn)
-    .await?;
+    .await;
 
-    Ok(())
+    if let Err(e) = pg_error(res)? {
+        if is_pg_integrity_error(&e) {
+            debug!("pg integrity error: {}", e.message());
+            Err(highnoon::Error::http((
+                highnoon::StatusCode::BAD_REQUEST,
+                format!("invalid trigger reference (does this trigger exist?): {}", reference),
+            )))
+        } else {
+            Err(e.into())
+        }
+    } else {
+        Ok(())
+    }
 }
 
 async fn create_task_edge(
@@ -226,8 +241,8 @@ async fn create_task_edge(
     task: &Uuid,
     reference: Reference,
     kind: &str,
-) -> Result<()> {
-    sqlx::query(
+) -> highnoon::Result<()> {
+    let res = sqlx::query(
         "INSERT INTO task_edge(parent_task_id, child_task_id, kind)
         VALUES(
             (
@@ -241,16 +256,27 @@ async fn create_task_edge(
             ),
             $4,
             $5
-        )
-        ON CONFLICT DO NOTHING",
+        )",
     )
-    .bind(reference.proj)
-    .bind(reference.job)
-    .bind(reference.name)
+    .bind(&reference.proj)
+    .bind(&reference.job)
+    .bind(&reference.name)
     .bind(task)
     .bind(kind)
     .execute(txn)
-    .await?;
+    .await;
 
-    Ok(())
+    if let Err(e) = pg_error(res)? {
+        if is_pg_integrity_error(&e) {
+            debug!("pg integrity error: {}", e.message());
+            Err(highnoon::Error::http((
+                highnoon::StatusCode::BAD_REQUEST,
+                format!("invalid task reference (does this task exist?): {}", reference),
+            )))
+        } else {
+            Err(e.into())
+        }
+    } else {
+        Ok(())
+    }
 }

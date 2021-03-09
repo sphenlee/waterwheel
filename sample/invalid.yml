@@ -1,0 +1,21 @@
+uuid: '28475bfe-e56e-4e72-8196-c52321d18c49'
+
+project: test_project
+name: invalid job
+description: this job won't get created because it's invalid
+paused: true
+
+triggers:
+  - name: daily
+    start: '2021-03-01T00:00:00Z'
+    period: '1d'
+    #cron: '0 0 * * *'
+
+
+tasks:
+  - name: step0
+    docker:
+      image: bash
+      args: ['echo', 'error!']
+    depends:
+      - task/x

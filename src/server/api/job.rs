@@ -27,42 +27,24 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
     let pool = req.get_pool();
     let mut txn = pool.begin().await?;
 
-    let exists = sqlx::query("SELECT 1 FROM job WHERE id = $1")
-        .bind(&job.uuid)
-        .fetch_optional(&mut txn)
-        .await?
-        .is_some();
-
-    let query = if exists {
-        sqlx::query(
-            "UPDATE job
-            SET name = $2,
-                project_id = (SELECT id FROM project WHERE name = $3),
-                description = $4,
-                paused = COALESCE($5, paused),
-                raw_definition = $6
-            WHERE id = $1",
+    let query = sqlx::query(
+        "INSERT INTO job(
+            id, name, project_id, description, paused, raw_definition
+        ) VALUES (
+            $1, $2,
+            (SELECT id FROM project WHERE name = $3),
+            $4,
+            COALESCE($5, FALSE),
+            $6
         )
-    } else {
-        sqlx::query(
-            "INSERT INTO job(
-                id,
-                name,
-                project_id,
-                description,
-                paused,
-                raw_definition
-            )
-            VALUES(
-                $1,
-                $2,
-                (SELECT id FROM project WHERE name = $3),
-                $4,
-                COALESCE($5, FALSE),
-                $6
-            )",
-        )
-    };
+        ON CONFLICT(id)
+        DO UPDATE
+        SET name = $2,
+            project_id = (SELECT id FROM project WHERE name = $3),
+            description = $4,
+            paused = COALESCE($5, job.paused),
+            raw_definition = $6",
+    );
 
     let res = query
         .bind(&job.uuid)
@@ -92,14 +74,8 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
 
     // insert the triggers
     for trigger in &job.triggers {
-        match triggers::create_trigger(&mut txn, &job, trigger).await? {
-            Ok(id) => triggers_to_tx.push(id),
-            Err(err) => {
-                return Response::status(StatusCode::BAD_REQUEST)
-                    .body(err.to_string())
-                    .into_response()
-            }
-        }
+        let id = triggers::create_trigger(&mut txn, &job, trigger).await?;
+        triggers_to_tx.push(id);
     }
 
     for task in &job.tasks {

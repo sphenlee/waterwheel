@@ -1,9 +1,8 @@
 use crate::server::api::request_ext::RequestExt;
 use crate::server::api::types::{period_from_string, Job, Trigger};
 use crate::server::api::State;
-use anyhow::Result;
 use chrono::{DateTime, Utc};
-use highnoon::{Json, Request, Responder};
+use highnoon::{Json, Request, Responder, StatusCode};
 use serde::Serialize;
 use sqlx::{Postgres, Transaction};
 use std::str::FromStr;
@@ -22,87 +21,64 @@ pub enum TriggerError {
     InvalidPeriod(humantime::DurationError),
 }
 
+fn bad_req(err: TriggerError) -> highnoon::Result<()> {
+    Err(highnoon::Error::http((StatusCode::BAD_REQUEST, err.to_string())))
+}
+
 pub async fn create_trigger(
     txn: &mut Transaction<'_, Postgres>,
     job: &Job,
     trigger: &Trigger,
-) -> Result<Result<Uuid, TriggerError>> {
+) -> highnoon::Result<Uuid> {
     match (&trigger.period, &trigger.cron) {
-        (Some(_), Some(_)) => return Ok(Err(TriggerError::MultipleSchedule)),
+        (Some(_), Some(_)) => bad_req(TriggerError::MultipleSchedule)?,
         (Some(p), None) => {
             if let Err(e) = humantime::parse_duration(p) {
-                return Ok(Err(TriggerError::InvalidPeriod(e)));
+                bad_req(TriggerError::InvalidPeriod(e))?
             }
         }
         (None, Some(c)) => {
             if let Err(e) = cron::Schedule::from_str(c) {
-                return Ok(Err(TriggerError::InvalidCron(e)));
+                bad_req(TriggerError::InvalidCron(e))?
             }
         }
-        (None, None) => return Ok(Err(TriggerError::NoSchedule)),
-    }
+        (None, None) => bad_req(TriggerError::NoSchedule)?,
+    };
 
-    let trigger_id: Option<(Uuid,)> = sqlx::query_as(
-        "SELECT id
-        FROM trigger
-        WHERE name = $1
-        AND job_id = $2",
+    let new_id = Uuid::new_v4();
+
+    let (id,) = sqlx::query_as(
+        "INSERT INTO trigger(id, name, job_id,
+            start_datetime, end_datetime,
+            earliest_trigger_datetime, latest_trigger_datetime,
+            period, cron, trigger_offset)
+        VALUES ($1, $2, $3,
+            $4, $5,
+            NULL, NULL,
+            $6, $7, $8)
+        ON CONFLICT(name, job_id)
+        DO UPDATE
+        SET start_datetime = $4,
+            end_datetime = $5,
+            period = $6,
+            cron = $7,
+            trigger_offset = $8
+        RETURNING id",
     )
+    .bind(&new_id)
     .bind(&trigger.name)
     .bind(&job.uuid)
-    .fetch_optional(&mut *txn)
+    .bind(&trigger.start)
+    .bind(&trigger.end)
+    .bind(period_from_string(&trigger.period)?)
+    .bind(&trigger.cron)
+    .bind(period_from_string(&trigger.offset)?)
+    .fetch_one(&mut *txn)
     .await?;
-
-    let id = if let Some((id,)) = trigger_id {
-        sqlx::query(
-            "UPDATE trigger
-            SET start_datetime = $1,
-                end_datetime = $2,
-                period = $3,
-                cron = $4,
-                trigger_offset = $5
-            WHERE id = $6",
-        )
-        .bind(&trigger.start)
-        .bind(&trigger.end)
-        .bind(period_from_string(&trigger.period)?)
-        .bind(&trigger.cron)
-        .bind(period_from_string(&trigger.offset)?)
-        .bind(&id)
-        .execute(&mut *txn)
-        .await?;
-
-        id
-    } else {
-        let new_id = Uuid::new_v4();
-
-        sqlx::query(
-            "INSERT INTO trigger(id, name, job_id,
-                start_datetime, end_datetime,
-                earliest_trigger_datetime, latest_trigger_datetime,
-                period, cron, trigger_offset)
-            VALUES ($1, $2, $3,
-                $4, $5,
-                NULL, NULL,
-                $6, $7, $8)",
-        )
-        .bind(&new_id)
-        .bind(&trigger.name)
-        .bind(&job.uuid)
-        .bind(&trigger.start)
-        .bind(&trigger.end)
-        .bind(period_from_string(&trigger.period)?)
-        .bind(&trigger.cron)
-        .bind(period_from_string(&trigger.offset)?)
-        .execute(&mut *txn)
-        .await?;
-
-        new_id
-    };
 
     // TODO - delete removed triggers
 
-    Ok(Ok(id))
+    Ok(id)
 }
 
 #[derive(Serialize, sqlx::FromRow)]
