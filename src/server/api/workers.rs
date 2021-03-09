@@ -4,17 +4,31 @@ use chrono::{DateTime, Utc};
 use highnoon::{Json, Request, Responder, Response, StatusCode};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use crate::messages::WorkerHeartbeat;
+
+#[derive(Serialize, sqlx::FromRow)]
+struct WorkerState {
+    pub uuid: Uuid,
+    pub addr: String,
+    pub last_seen_datetime: DateTime<Utc>,
+    pub running_tasks: i32,
+    pub total_tasks: i32,
+    pub status: String,
+}
 
 pub async fn list(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let workers: Vec<WorkerHeartbeat> = sqlx::query_as(
+    let workers: Vec<WorkerState> = sqlx::query_as(
         "SELECT
             id AS uuid,
             addr,
             last_seen_datetime,
             running_tasks,
-            total_tasks
+            total_tasks,
+            CASE
+                WHEN CURRENT_TIMESTAMP - last_seen_datetime > INTERVAL '15 minutes' THEN 'gone'
+                ELSE 'up'
+            END AS status
         FROM worker w
+        WHERE CURRENT_TIMESTAMP - last_seen_datetime < INTERVAL '24 hours'
         ORDER BY last_seen_datetime DESC",
     )
     .fetch_all(&req.get_pool())
@@ -34,6 +48,7 @@ struct GetWorker {
     running_tasks: i32,
     total_tasks: i32,
     tasks: Vec<GetWorkerTask>,
+    status: String,
 }
 
 #[derive(Serialize, sqlx::FromRow)]
@@ -87,13 +102,17 @@ pub async fn tasks(req: Request<State>) -> highnoon::Result<Response> {
     .fetch_all(&req.get_pool())
     .await?;
 
-    let status: Option<WorkerHeartbeat> = sqlx::query_as(
+    let status: Option<WorkerState> = sqlx::query_as(
         "SELECT
             id AS uuid,
             addr,
             last_seen_datetime,
             running_tasks,
-            total_tasks
+            total_tasks,
+            CASE
+                WHEN CURRENT_TIMESTAMP - last_seen_datetime > INTERVAL '15 minutes' THEN 'gone'
+                ELSE 'up'
+            END AS status
         FROM worker w
         WHERE id = $1",
     )
@@ -107,6 +126,7 @@ pub async fn tasks(req: Request<State>) -> highnoon::Result<Response> {
             running_tasks: worker.running_tasks,
             total_tasks: worker.total_tasks,
             tasks,
+            status: worker.status,
         })
     } else {
         Ok(Response::status(StatusCode::NOT_FOUND))

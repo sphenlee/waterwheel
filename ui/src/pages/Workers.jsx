@@ -1,13 +1,39 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
-import { Table, Layout, Breadcrumb } from 'antd';
+import { Table, Layout, Breadcrumb, Tag } from 'antd';
 import axios from 'axios';
 import Moment from 'react-moment';
+import {
+  CheckOutlined,
+  PoweroffOutlined,
+  WarningOutlined,
+} from '@ant-design/icons';
 
 import Body from '../components/Body.jsx';
 
 const { Content } = Layout;
 
+function WorkerStatus({status}) {
+    let color;
+    let icon;
+    if (status == 'up') {
+      color = 'success';
+      icon = <CheckOutlined/>;
+    } else if (status == 'gone') {
+      color = 'warning';
+      icon = <PoweroffOutlined/>;
+    } else {
+      color = 'error';
+      icon = <WarningOutlined />;
+      status = 'error';
+    }
+
+    console.log(status, color, icon);
+
+    return (
+      <Tag icon={icon} color={color}>{status}</Tag>
+    );
+}
 
 function makeColumns() {
     return [
@@ -20,16 +46,20 @@ function makeColumns() {
                 </Link>
             ),
         },{
+            title: 'Status',
+            dataIndex: 'status',
+            render: text => <WorkerStatus status={text} />,
+        },{
             title: 'Running Tasks',
             dataIndex: 'running_tasks',
         },{
             title: 'Total Tasks',
             dataIndex: 'total_tasks',
-        },{
+        },/*{
             title: 'UI Address',
             dataIndex: 'addr',
             render: text => <a href={`http://${text}`}>{text}</a>,
-        },{
+        },*/{
             title: 'Last Seen',
             dataIndex: 'last_seen_datetime',
             render: text => <Moment fromNow withTitle>{text}</Moment>

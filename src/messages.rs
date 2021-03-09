@@ -114,7 +114,7 @@ impl Default for TaskPriority {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, sqlx::FromRow)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct WorkerHeartbeat {
     pub uuid: Uuid,
     pub addr: String,
