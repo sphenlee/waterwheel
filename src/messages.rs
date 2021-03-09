@@ -55,7 +55,6 @@ impl TokenState {
     }
 }
 
-// TODO - move this out into general code
 #[derive(PartialEq, Hash, Eq, Clone, Debug, Serialize, Deserialize)]
 pub struct Token {
     pub task_id: Uuid,

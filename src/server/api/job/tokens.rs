@@ -133,7 +133,6 @@ pub async fn get_tokens_overview(req: Request<State>) -> highnoon::Result<impl R
             trigger_datetime: k,
             task_states: v,
         })
-        //.take(50) // TODO - change this value
         .collect::<Vec<_>>();
 
     tokens_by_time.sort_by_key(|item| Reverse(item.trigger_datetime));
