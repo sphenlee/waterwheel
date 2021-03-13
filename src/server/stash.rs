@@ -58,6 +58,7 @@ fn load_rsa_keys(pub_key_file: String, priv_key_file: String) -> Result<()> {
     Ok(())
 }
 
+#[allow(clippy::unnecessary_wraps)] // for consistency with `load_rsa_keys`
 fn load_hmac_secret(secret: String) -> Result<()> {
     debug!("using HMAC for stash keys");
 
