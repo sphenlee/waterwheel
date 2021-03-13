@@ -3,10 +3,10 @@ use crate::messages::WorkerHeartbeat;
 use anyhow::Result;
 
 use chrono::Utc;
-use log::{trace, warn, debug};
+use log::{debug, trace, warn};
 
 use super::{RUNNING_TASKS, TOTAL_TASKS, WORKER_ID};
-use reqwest::{Url, StatusCode};
+use reqwest::{StatusCode, Url};
 use std::sync::atomic::Ordering;
 
 pub async fn heartbeat() -> Result<!> {

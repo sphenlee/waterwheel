@@ -1,15 +1,14 @@
 use crate::config;
 use crate::messages::TaskDef;
+use crate::worker::config_cache::get_project_config;
 use crate::worker::env;
 use crate::worker::WORKER_ID;
-use crate::worker::config_cache::get_project_config;
 use anyhow::Result;
 use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::core::v1::Pod;
 use kube::api::{Api, DeleteParams, ListParams, LogParams, Meta, PostParams, WatchEvent};
 use kube::Client;
 use kv_log_macro::{debug as kvdebug, info as kvinfo, trace as kvtrace, warn as kvwarn};
-
 
 pub async fn run_kube(task_def: TaskDef) -> Result<bool> {
     let ns: String = config::get_or("WATERWHEEL_KUBE_NAMESPACE", "default");
@@ -116,7 +115,6 @@ async fn make_pod(task_def: TaskDef) -> Result<Pod> {
             "restartPolicy": "Never",
         }
     });
-
 
     let config = get_project_config(task_def.project_id).await?;
     let pod_merge = config.get("kubernetes_pod_merge");

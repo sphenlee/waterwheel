@@ -1,8 +1,6 @@
 use crate::messages::ConfigUpdate;
 use anyhow::Result;
-use lapin::options::{
-    BasicPublishOptions, ExchangeDeclareOptions,
-};
+use lapin::options::{BasicPublishOptions, ExchangeDeclareOptions};
 use lapin::types::FieldTable;
 use lapin::{BasicProperties, Channel, ExchangeKind};
 

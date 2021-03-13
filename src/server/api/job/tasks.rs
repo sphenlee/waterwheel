@@ -1,11 +1,11 @@
 use crate::server::api::types::{Job, Task};
+use crate::util::{is_pg_integrity_error, pg_error};
 use anyhow::Result;
+use log::debug;
 use sqlx::{Postgres, Transaction};
+use std::fmt::{self, Display};
 use std::str::FromStr;
 use uuid::Uuid;
-use crate::util::{is_pg_integrity_error, pg_error};
-use log::debug;
-use std::fmt::{self, Display};
 
 #[derive(Debug)]
 enum ReferenceKind {
@@ -22,8 +22,11 @@ impl FromStr for ReferenceKind {
             "task" => Ok(ReferenceKind::Task),
             _ => Err(highnoon::Error::http((
                 highnoon::StatusCode::BAD_REQUEST,
-                format!("failed to parse reference kind (expected \"task\" \
-                         or \"trigger\", got \"{}\")", s),
+                format!(
+                    "failed to parse reference kind (expected \"task\" \
+                         or \"trigger\", got \"{}\")",
+                    s
+                ),
             ))),
         }
     }
@@ -181,8 +184,8 @@ pub async fn create_task(
                 ReferenceKind::Trigger => {
                     return Err(highnoon::Error::http((
                         highnoon::StatusCode::BAD_REQUEST,
-                        "depends_failure cannot reference a trigger since triggers can't fail"
-                        )));
+                        "depends_failure cannot reference a trigger since triggers can't fail",
+                    )));
                 }
                 ReferenceKind::Task => {
                     create_task_edge(&mut *txn, &task_id, reference, "failure").await?
@@ -226,7 +229,10 @@ async fn create_trigger_edge(
             debug!("pg integrity error: {}", e.message());
             Err(highnoon::Error::http((
                 highnoon::StatusCode::BAD_REQUEST,
-                format!("invalid trigger reference (does this trigger exist?): {}", reference),
+                format!(
+                    "invalid trigger reference (does this trigger exist?): {}",
+                    reference
+                ),
             )))
         } else {
             Err(e.into())
@@ -271,7 +277,10 @@ async fn create_task_edge(
             debug!("pg integrity error: {}", e.message());
             Err(highnoon::Error::http((
                 highnoon::StatusCode::BAD_REQUEST,
-                format!("invalid task reference (does this task exist?): {}", reference),
+                format!(
+                    "invalid task reference (does this task exist?): {}",
+                    reference
+                ),
             )))
         } else {
             Err(e.into())

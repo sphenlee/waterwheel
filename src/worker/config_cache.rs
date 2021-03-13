@@ -1,24 +1,28 @@
-use anyhow::Result;
 use crate::amqp;
+use crate::messages::ConfigUpdate;
+use anyhow::Result;
 use futures::TryStreamExt;
-use lapin::options::{BasicAckOptions, BasicConsumeOptions, QueueDeclareOptions, QueueBindOptions, ExchangeDeclareOptions};
+use lapin::options::{
+    BasicAckOptions, BasicConsumeOptions, ExchangeDeclareOptions, QueueBindOptions,
+    QueueDeclareOptions,
+};
 use lapin::types::FieldTable;
+use lapin::ExchangeKind;
 use log::trace;
 use lru_time_cache::LruCache;
 use once_cell::sync::Lazy;
 use serde_json::Value as JsonValue;
 use tokio::sync::Mutex;
 use uuid::Uuid;
-use crate::messages::ConfigUpdate;
-use lapin::ExchangeKind;
 
 const CONFIG_EXCHANGE: &str = "waterwheel.config";
 
-static PROJ_CONFIG_CACHE: Lazy<Mutex<LruCache<Uuid, JsonValue>>> =
-    Lazy::new(|| Mutex::new(LruCache::with_expiry_duration_and_capacity(
+static PROJ_CONFIG_CACHE: Lazy<Mutex<LruCache<Uuid, JsonValue>>> = Lazy::new(|| {
+    Mutex::new(LruCache::with_expiry_duration_and_capacity(
         chrono::Duration::hours(24).to_std().unwrap(),
         100,
-    )));
+    ))
+});
 
 pub async fn get_project_config(proj_id: Uuid) -> Result<JsonValue> {
     let mut cache = PROJ_CONFIG_CACHE.lock().await;
@@ -48,11 +52,7 @@ async fn fetch_project_config(proj_id: Uuid) -> Result<JsonValue> {
 
     trace!("fetching project config from api");
 
-    let resp = client
-        .get(url.clone())
-        .send()
-        .await?
-        .error_for_status()?;
+    let resp = client.get(url.clone()).send().await?.error_for_status()?;
 
     let config = resp.json().await?;
 
@@ -76,16 +76,17 @@ pub async fn process_updates() -> Result<!> {
     .await?;
 
     // declare queue for consuming incoming messages
-    let queue = chan.queue_declare(
-        "", // auto generate name on server side
-        QueueDeclareOptions {
-            durable: true,
-            exclusive: true, // implies auto delete too
-            ..QueueDeclareOptions::default()
-        },
-        FieldTable::default(),
-    )
-    .await?;
+    let queue = chan
+        .queue_declare(
+            "", // auto generate name on server side
+            QueueDeclareOptions {
+                durable: true,
+                exclusive: true, // implies auto delete too
+                ..QueueDeclareOptions::default()
+            },
+            FieldTable::default(),
+        )
+        .await?;
 
     // bind queue to the exchange
     chan.queue_bind(

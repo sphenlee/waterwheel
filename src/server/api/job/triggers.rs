@@ -22,7 +22,10 @@ pub enum TriggerError {
 }
 
 fn bad_req(err: TriggerError) -> highnoon::Result<()> {
-    Err(highnoon::Error::http((StatusCode::BAD_REQUEST, err.to_string())))
+    Err(highnoon::Error::http((
+        StatusCode::BAD_REQUEST,
+        err.to_string(),
+    )))
 }
 
 pub async fn create_trigger(

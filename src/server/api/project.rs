@@ -1,20 +1,20 @@
+use super::config_cache;
 use super::request_ext::RequestExt;
 use super::State;
-use super::config_cache;
+use crate::messages::ConfigUpdate;
 use crate::util::{is_pg_integrity_error, pg_error};
 use highnoon::{Json, Request, Responder, Response, StatusCode};
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
-use serde_json::{Value as JsonValue};
+use serde_json::Value as JsonValue;
 use uuid::Uuid;
-use crate::messages::ConfigUpdate;
 
 #[derive(Serialize, Deserialize)]
 struct NewProject {
     pub uuid: Option<Uuid>,
     pub name: String,
     pub description: String,
-    pub config: Option<JsonValue>
+    pub config: Option<JsonValue>,
 }
 
 pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {

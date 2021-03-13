@@ -1,7 +1,7 @@
-use serde::Serialize;
-use highnoon::{Request, Responder, Json};
-use crate::server::api::State;
 use crate::server::api::request_ext::RequestExt;
+use crate::server::api::State;
+use highnoon::{Json, Request, Responder};
+use serde::Serialize;
 
 #[derive(Serialize, sqlx::FromRow)]
 pub struct ServerStatus {

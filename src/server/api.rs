@@ -3,17 +3,17 @@ use anyhow::Result;
 use lapin::Channel;
 use sqlx::PgPool;
 
+mod config_cache;
 mod heartbeat;
 mod job;
 mod project;
 mod request_ext;
 mod stash;
+mod status;
 mod task;
 pub mod types;
-mod status;
 mod updates;
 mod workers;
-mod config_cache;
 
 pub struct State {
     pool: PgPool,
@@ -66,8 +66,7 @@ pub async fn serve() -> Result<()> {
     app.at("/api/projects/:id")
         .get(project::get_by_id)
         .delete(project::delete);
-    app.at("/api/projects/:id/config")
-        .get(project::get_config);
+    app.at("/api/projects/:id/config").get(project::get_config);
     app.at("/api/projects/:id/jobs").get(project::list_jobs);
 
     // project stash
