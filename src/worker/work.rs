@@ -1,7 +1,6 @@
 use crate::amqp::get_amqp_channel;
 use crate::config;
 use crate::messages::{TaskDef, TaskProgress, TokenState};
-use crate::server::stash;
 use crate::worker::{docker, kube};
 use anyhow::Result;
 
@@ -136,20 +135,18 @@ pub async fn process_work() -> Result<!> {
         .await?;
 
         let result = if task_def.image.is_some() {
-            let stash_jwt = stash::generate_jwt(&task_def.task_id.to_string())?;
-
             let res = match engine {
                 #[cfg(debug_assertions)]
                 TaskEngine::Null => Ok(true),
-                TaskEngine::Docker => docker::run_docker(task_def.clone(), stash_jwt).await,
-                TaskEngine::Kubernetes => kube::run_kube(task_def.clone(), stash_jwt).await,
+                TaskEngine::Docker => docker::run_docker(task_def.clone()).await,
+                TaskEngine::Kubernetes => kube::run_kube(task_def.clone()).await,
             };
 
             match res {
                 Ok(true) => TokenState::Success,
                 Ok(false) => TokenState::Failure,
                 Err(err) => {
-                    kverror!("failed to run task: {}", err, {
+                    kverror!("failed to run task: {:#}", err, {
                         task_id: task_def.task_id.to_string(),
                         trigger_datetime: task_def.trigger_datetime.to_rfc3339(),
                     });

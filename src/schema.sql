@@ -1,7 +1,8 @@
 CREATE TABLE IF NOT EXISTS project (
     id UUID PRIMARY KEY,
     name VARCHAR NOT NULL UNIQUE,
-    description VARCHAR
+    description VARCHAR,
+    config JSONB
 );
 
 CREATE TABLE IF NOT EXISTS job (

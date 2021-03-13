@@ -64,6 +64,8 @@ pub async fn serve() -> Result<()> {
     app.at("/api/projects/:id")
         .get(project::get_by_id)
         .delete(project::delete);
+    app.at("/api/projects/:id/config")
+        .get(project::get_config);
     app.at("/api/projects/:id/jobs").get(project::list_jobs);
 
     // project stash

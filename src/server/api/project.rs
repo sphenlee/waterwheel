@@ -4,13 +4,15 @@ use crate::util::{is_pg_integrity_error, pg_error};
 use highnoon::{Json, Request, Responder, Response, StatusCode};
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
+use serde_json::{Value as JsonValue};
 use uuid::Uuid;
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 struct NewProject {
     pub uuid: Option<Uuid>,
     pub name: String,
     pub description: String,
+    pub config: Option<JsonValue>
 }
 
 pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
@@ -19,26 +21,27 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
     let id = proj.uuid.unwrap_or_else(uuid::Uuid::new_v4);
 
     let res = sqlx::query(
-        "INSERT INTO project(id, name, description)
-        VALUES($1, $2, $3)
+        "INSERT INTO project(id, name, description, config)
+        VALUES($1, $2, $3, $4)
         ON CONFLICT(id)
         DO UPDATE
         SET name = $2,
-            description = $3",
+            description = $3,
+            config = COALESCE($4, project.config)",
     )
     .bind(&id)
     .bind(&proj.name)
     .bind(&proj.description)
+    .bind(&proj.config)
     .execute(&req.get_pool())
     .await;
 
     match pg_error(res)? {
         Ok(_done) => {
             info!("updated project {} -> {}", id, proj.name);
-            let proj = Project {
-                id,
-                name: proj.name,
-                description: proj.description,
+            let proj = NewProject {
+                uuid: Some(id),
+                ..proj
             };
             Ok(Response::status(StatusCode::CREATED).json(proj)?)
         }
@@ -60,14 +63,14 @@ struct QueryProject {
 }
 
 #[derive(Serialize, sqlx::FromRow)]
-struct Project {
+struct ListProject {
     pub id: Uuid,
     pub name: String,
     pub description: String,
 }
 
 pub async fn list(req: Request<State>) -> highnoon::Result<Response> {
-    let projects: Vec<Project> = sqlx::query_as(
+    let projects: Vec<ListProject> = sqlx::query_as(
         "SELECT id, name, description
         FROM project
         ORDER BY name
@@ -83,7 +86,7 @@ pub async fn get_by_name(req: Request<State>) -> highnoon::Result<Response> {
     let q = req.query::<QueryProject>()?;
 
     if let Some(name) = q.name {
-        let row: Option<Project> = sqlx::query_as(
+        let row: Option<ListProject> = sqlx::query_as(
             "SELECT id, name, description
             FROM project
             WHERE name = $1",
@@ -163,6 +166,29 @@ pub async fn get_by_id(req: Request<State>) -> highnoon::Result<Response> {
         None => Response::status(StatusCode::NOT_FOUND),
         Some(proj) => Response::ok().json(proj)?,
     })
+}
+
+#[derive(sqlx::FromRow, Serialize)]
+#[serde(transparent)]
+struct ProjectConfig(JsonValue);
+
+pub async fn get_config(req: Request<State>) -> highnoon::Result<impl Responder> {
+    let id_str = req.param("id")?;
+    let id = Uuid::parse_str(&id_str)?;
+
+    let row: Option<ProjectConfig> = sqlx::query_as(
+        "SELECT COALESCE(config, '{}'::jsonb) AS config
+        FROM project
+        WHERE id = $1",
+    )
+    .bind(&id)
+    .fetch_optional(&req.get_pool())
+    .await?;
+
+    // two layers of option - outer layer is None if the project is not found
+    // inner layer if the project has no config
+
+    Ok(row.map(|config| Json(config.0)))
 }
 
 pub async fn delete(req: Request<State>) -> highnoon::Result<StatusCode> {

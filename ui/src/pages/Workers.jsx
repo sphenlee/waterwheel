@@ -28,8 +28,6 @@ function WorkerStatus({status}) {
       status = 'error';
     }
 
-    console.log(status, color, icon);
-
     return (
       <Tag icon={icon} color={color}>{status}</Tag>
     );

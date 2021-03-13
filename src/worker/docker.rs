@@ -25,10 +25,10 @@ struct LogMessage<'a> {
     msg: &'a str,
 }
 
-pub async fn run_docker(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
+pub async fn run_docker(task_def: TaskDef) -> Result<bool> {
     let docker = bollard::Docker::connect_with_local_defaults()?;
 
-    let env = env::get_env_string(&task_def, stash_jwt)?;
+    let env = env::get_env_string(&task_def)?;
 
     // task_def is partially move from here down
     let image = task_def.image.unwrap();

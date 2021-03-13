@@ -2,6 +2,7 @@ use crate::config;
 use crate::messages::TaskDef;
 use crate::worker::env;
 use crate::worker::WORKER_ID;
+use crate::worker::config_cache::get_project_config;
 use anyhow::Result;
 use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::core::v1::Pod;
@@ -9,14 +10,18 @@ use kube::api::{Api, DeleteParams, ListParams, LogParams, Meta, PostParams, Watc
 use kube::Client;
 use kv_log_macro::{debug as kvdebug, info as kvinfo, trace as kvtrace, warn as kvwarn};
 
-pub async fn run_kube(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
+
+pub async fn run_kube(task_def: TaskDef) -> Result<bool> {
+    let ns: String = config::get_or("WATERWHEEL_KUBE_NAMESPACE", "default");
+
+    kvtrace!("loading kubernetes config");
     let client = Client::try_default().await?;
 
-    let ns: String = config::get_or("WATERWHEEL_KUBE_NAMESPACE", "default");
+    kvtrace!("connecting to kubernetes...");
     let pods: Api<Pod> = Api::namespaced(client, &ns);
-    kvtrace!("connected to Kubernetes namespace {}", ns);
+    kvtrace!("connected to kubernetes namespace {}", ns);
 
-    let pod = make_pod(task_def, stash_jwt)?;
+    let pod = make_pod(task_def).await?;
 
     // Create the pod
     let pod = pods.create(&PostParams::default(), &pod).await?;
@@ -82,12 +87,12 @@ pub async fn run_kube(task_def: TaskDef, stash_jwt: String) -> Result<bool> {
     Ok(result)
 }
 
-fn make_pod(task_def: TaskDef, stash_jwt: String) -> Result<Pod> {
-    let env = env::get_env(&task_def, stash_jwt)?;
+async fn make_pod(task_def: TaskDef) -> Result<Pod> {
+    let env = env::get_env(&task_def)?;
     let name = task_def.task_run_id.to_string();
 
     // Create a pod from JSON
-    let pod_json = serde_json::json!({
+    let mut pod_json = serde_json::json!({
         "apiVersion": "v1",
         "kind": "Pod",
         "metadata": {
@@ -98,9 +103,6 @@ fn make_pod(task_def: TaskDef, stash_jwt: String) -> Result<Pod> {
                 "job_id": task_def.job_id,
                 "project_id": task_def.project_id,
             },
-            "annotations": {
-                "atlassian.com/business_unit": "Data Platform"
-            }
         },
         "spec": {
             "containers": [
@@ -114,6 +116,16 @@ fn make_pod(task_def: TaskDef, stash_jwt: String) -> Result<Pod> {
             "restartPolicy": "Never",
         }
     });
+
+
+    let config = get_project_config(task_def.project_id).await?;
+    let pod_merge = config.get("kubernetes_pod_merge");
+
+    if let Some(json) = pod_merge {
+        kvtrace!("merging template: {:#} with patch: {:#}", pod_json, json);
+        json_patch::merge(&mut pod_json, json);
+    }
+
     kvtrace!("pod json: {:#}", pod_json);
 
     let pod = serde_json::from_value(pod_json)?;

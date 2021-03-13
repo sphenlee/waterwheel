@@ -11,6 +11,7 @@ use crate::postoffice;
 use crate::server::stash;
 use crate::util::spawn_retry;
 
+mod config_cache;
 mod docker;
 pub mod env;
 mod heartbeat;
