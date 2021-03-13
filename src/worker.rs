@@ -37,6 +37,17 @@ pub async fn run_worker() -> Result<()> {
         spawn_retry(&format!("worker-{}", i), work::process_work);
     }
 
+    spawn_retry("config_updates", config_cache::process_updates);
+    spawn_retry("heartbeat", heartbeat::heartbeat);
+
+    info!("worker id {}", *WORKER_ID);
+
+    serve().await?;
+
+    Ok(())
+}
+
+async fn serve() -> Result<()> {
     let mut app = highnoon::App::new(());
     app.at("/")
         .get(|_req| async { Ok("Hello from Waterwheel Worker!") });
@@ -45,15 +56,6 @@ pub async fn run_worker() -> Result<()> {
     app.at("/healthcheck").get(|_req| async { Ok("OK") });
 
     let host: String = config::get_or("WATERWHEEL_WORKER_BIND", "127.0.0.1:0");
-
-    info!("worker id {}", *WORKER_ID);
-
-    /*let tcp = TcpListener::bind(host).await?;
-    let addr = tcp.local_addr()?;
-    info!("worker listening on {}", host);*/
-
-    spawn_retry("heartbeat", heartbeat::heartbeat);
-
     app.listen(host).await?;
 
     Ok(())

@@ -1,12 +1,18 @@
 use anyhow::Result;
-use once_cell::sync::Lazy;
-use tokio::sync::Mutex;
-use lru_time_cache::LruCache;
-use uuid::Uuid;
-use serde_json::Value as JsonValue;
+use crate::amqp;
+use futures::TryStreamExt;
+use lapin::options::{BasicAckOptions, BasicConsumeOptions, QueueDeclareOptions, QueueBindOptions, ExchangeDeclareOptions};
+use lapin::types::FieldTable;
 use log::trace;
+use lru_time_cache::LruCache;
+use once_cell::sync::Lazy;
+use serde_json::Value as JsonValue;
+use tokio::sync::Mutex;
+use uuid::Uuid;
+use crate::messages::ConfigUpdate;
+use lapin::ExchangeKind;
 
-// TODO - broadcast invalidation from the API
+const CONFIG_EXCHANGE: &str = "waterwheel.config";
 
 static PROJ_CONFIG_CACHE: Lazy<Mutex<LruCache<Uuid, JsonValue>>> =
     Lazy::new(|| Mutex::new(LruCache::with_expiry_duration_and_capacity(
@@ -48,10 +54,77 @@ async fn fetch_project_config(proj_id: Uuid) -> Result<JsonValue> {
         .await?
         .error_for_status()?;
 
-    println!("{:?}", resp);
-
     let config = resp.json().await?;
 
     trace!("got config");
     Ok(config)
+}
+
+pub async fn process_updates() -> Result<!> {
+    let chan = amqp::get_amqp_channel().await?;
+
+    // declare exchange for config updates
+    chan.exchange_declare(
+        CONFIG_EXCHANGE,
+        ExchangeKind::Fanout,
+        ExchangeDeclareOptions {
+            durable: true,
+            ..ExchangeDeclareOptions::default()
+        },
+        FieldTable::default(),
+    )
+    .await?;
+
+    // declare queue for consuming incoming messages
+    let queue = chan.queue_declare(
+        "", // auto generate name on server side
+        QueueDeclareOptions {
+            durable: true,
+            exclusive: true, // implies auto delete too
+            ..QueueDeclareOptions::default()
+        },
+        FieldTable::default(),
+    )
+    .await?;
+
+    // bind queue to the exchange
+    chan.queue_bind(
+        queue.name().as_str(),
+        CONFIG_EXCHANGE,
+        "",
+        QueueBindOptions::default(),
+        FieldTable::default(),
+    )
+    .await?;
+
+    let mut consumer = chan
+        .basic_consume(
+            queue.name().as_str(),
+            "worker",
+            BasicConsumeOptions::default(),
+            FieldTable::default(),
+        )
+        .await?;
+
+    while let Some((chan, msg)) = consumer.try_next().await? {
+        let update: ConfigUpdate = serde_json::from_slice(&msg.data)?;
+
+        trace!("received config update message: {:?}", update);
+
+        match update {
+            ConfigUpdate::Project(proj_id) => drop_project_config(proj_id).await,
+        };
+
+        chan.basic_ack(msg.delivery_tag, BasicAckOptions::default())
+            .await?;
+
+        trace!("updated config");
+    }
+
+    unreachable!("consumer stopped consuming")
+}
+
+pub async fn drop_project_config(proj_id: Uuid) {
+    let mut cache = PROJ_CONFIG_CACHE.lock().await;
+    cache.remove(&proj_id);
 }

@@ -6,13 +6,14 @@ use sqlx::PgPool;
 mod heartbeat;
 mod job;
 mod project;
-pub mod request_ext;
+mod request_ext;
 mod stash;
 mod task;
 pub mod types;
 mod status;
 mod updates;
 mod workers;
+mod config_cache;
 
 pub struct State {
     pool: PgPool,
@@ -44,6 +45,7 @@ pub async fn serve() -> Result<()> {
     };
 
     updates::setup(&state.channel).await?;
+    config_cache::setup(&state.channel).await?;
 
     let mut app = highnoon::App::new(state);
     app.with(highnoon::filter::Log);

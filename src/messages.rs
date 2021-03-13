@@ -129,3 +129,9 @@ pub enum SchedulerUpdate {
     TriggerUpdate(TriggerUpdate),
     ProcessToken(ProcessToken),
 }
+
+/// message sent from the API to the workers to update config items
+#[derive(Serialize, Deserialize, Debug)]
+pub enum ConfigUpdate {
+    Project(Uuid),
+}
