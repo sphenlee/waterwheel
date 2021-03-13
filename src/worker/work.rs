@@ -1,6 +1,6 @@
 use crate::amqp::get_amqp_channel;
 use crate::config;
-use crate::messages::{TaskDef, TaskProgress, TokenState};
+use crate::messages::{TaskRequest, TaskProgress, TokenState};
 use crate::worker::{docker, kube};
 use anyhow::Result;
 
@@ -112,7 +112,7 @@ pub async fn process_work() -> Result<!> {
     let engine: TaskEngine = config::get_or("WATERWHEEL_TASK_ENGINE", TaskEngine::Docker);
 
     while let Some((chan, msg)) = consumer.try_next().await? {
-        let task_def: TaskDef = serde_json::from_slice(&msg.data)?;
+        let task_def: TaskRequest = serde_json::from_slice(&msg.data)?;
 
         let started_datetime = Utc::now();
 
@@ -188,7 +188,7 @@ pub async fn process_work() -> Result<!> {
 }
 
 fn task_progress_payload(
-    task_def: &TaskDef,
+    task_def: &TaskRequest,
     started_datetime: DateTime<Utc>,
     finished_datetime: Option<DateTime<Utc>>,
     result: TokenState,

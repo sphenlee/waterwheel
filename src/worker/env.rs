@@ -1,11 +1,11 @@
 use crate::config;
-use crate::messages::TaskDef;
+use crate::messages::TaskRequest;
 use crate::server::stash;
 use anyhow::Result;
 use itertools::Itertools;
 use k8s_openapi::api::core::v1::EnvVar;
 
-pub fn get_env_string(task_def: &TaskDef) -> Result<Vec<String>> {
+pub fn get_env_string(task_def: &TaskRequest) -> Result<Vec<String>> {
     let env = get_env(task_def)?;
 
     Ok(env
@@ -22,7 +22,7 @@ fn envvar(name: &str, val: impl std::fmt::Display) -> EnvVar {
     }
 }
 
-pub fn get_env(task_def: &TaskDef) -> Result<Vec<EnvVar>> {
+pub fn get_env(task_def: &TaskRequest) -> Result<Vec<EnvVar>> {
     let provided_env = task_def.env.clone().unwrap_or_default();
 
     let mut env = vec![];

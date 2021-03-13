@@ -62,7 +62,7 @@ pub struct Token {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct TaskDef {
+pub struct TaskRequest {
     pub task_run_id: Uuid,
     pub task_id: Uuid,
     pub task_name: String,

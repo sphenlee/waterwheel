@@ -1,4 +1,4 @@
-use crate::messages::TaskDef;
+use crate::messages::TaskRequest;
 use crate::worker::env;
 use anyhow::Result;
 use bollard::container::{
@@ -25,7 +25,7 @@ struct LogMessage<'a> {
     msg: &'a str,
 }
 
-pub async fn run_docker(task_def: TaskDef) -> Result<bool> {
+pub async fn run_docker(task_def: TaskRequest) -> Result<bool> {
     let docker = bollard::Docker::connect_with_local_defaults()?;
 
     let env = env::get_env_string(&task_def)?;

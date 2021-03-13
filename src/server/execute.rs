@@ -1,5 +1,5 @@
 use crate::amqp::get_amqp_channel;
-use crate::messages::{TaskDef, TaskPriority, Token};
+use crate::messages::{TaskRequest, TaskPriority, Token};
 use crate::{db, postoffice};
 use anyhow::Result;
 use chrono::Utc;
@@ -105,7 +105,7 @@ pub async fn process_executions() -> Result<!> {
         .fetch_one(&mut txn)
         .await?;
 
-        let task_def = TaskDef {
+        let task_def = TaskRequest {
             task_run_id: Uuid::new_v4(),
             task_id: token.task_id,
             task_name: params.task_name,
