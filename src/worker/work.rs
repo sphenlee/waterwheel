@@ -1,7 +1,7 @@
 use crate::amqp::get_amqp_channel;
 use crate::config;
 use crate::messages::{TaskRequest, TaskProgress, TokenState};
-use crate::worker::{docker, kube};
+use crate::worker::{docker, kube, config_cache};
 use anyhow::Result;
 
 use futures::TryStreamExt;
@@ -112,24 +112,26 @@ pub async fn process_work() -> Result<!> {
     let engine: TaskEngine = config::get_or("WATERWHEEL_TASK_ENGINE", TaskEngine::Docker);
 
     while let Some((chan, msg)) = consumer.try_next().await? {
-        let task_def: TaskRequest = serde_json::from_slice(&msg.data)?;
+        let task_req: TaskRequest = serde_json::from_slice(&msg.data)?;
+
+        let task_def = config_cache::get_task_def(task_req.task_id).await?;
 
         let started_datetime = Utc::now();
 
         RUNNING_TASKS.fetch_add(1, Ordering::Relaxed);
 
         kvinfo!("received task", {
-            task_id: task_def.task_id.to_string(),
-            trigger_datetime: task_def.trigger_datetime.to_rfc3339(),
+            task_id: task_req.task_id.to_string(),
+            trigger_datetime: task_req.trigger_datetime.to_rfc3339(),
             started_datetime: started_datetime.to_rfc3339(),
-            priority: format!("{:?}", task_def.priority),
+            priority: format!("{:?}", task_req.priority),
         });
 
         chan.basic_publish(
             RESULT_EXCHANGE,
             "",
             BasicPublishOptions::default(),
-            task_progress_payload(&task_def, started_datetime, None, TokenState::Running)?,
+            task_progress_payload(&task_req, started_datetime, None, TokenState::Running)?,
             BasicProperties::default(),
         )
         .await?;
@@ -138,8 +140,8 @@ pub async fn process_work() -> Result<!> {
             let res = match engine {
                 #[cfg(debug_assertions)]
                 TaskEngine::Null => Ok(true),
-                TaskEngine::Docker => docker::run_docker(task_def.clone()).await,
-                TaskEngine::Kubernetes => kube::run_kube(task_def.clone()).await,
+                TaskEngine::Docker => docker::run_docker(task_req.clone(), task_def).await,
+                TaskEngine::Kubernetes => kube::run_kube(task_req.clone(), task_def).await,
             };
 
             match res {
@@ -147,8 +149,8 @@ pub async fn process_work() -> Result<!> {
                 Ok(false) => TokenState::Failure,
                 Err(err) => {
                     kverror!("failed to run task: {:#}", err, {
-                        task_id: task_def.task_id.to_string(),
-                        trigger_datetime: task_def.trigger_datetime.to_rfc3339(),
+                        task_id: task_req.task_id.to_string(),
+                        trigger_datetime: task_req.trigger_datetime.to_rfc3339(),
                     });
                     TokenState::Error
                 }
@@ -165,8 +167,8 @@ pub async fn process_work() -> Result<!> {
 
         kvinfo!("task completed", {
             result: result.to_string(),
-            task_id: task_def.task_id.to_string(),
-            trigger_datetime: task_def.trigger_datetime.to_rfc3339(),
+            task_id: task_req.task_id.to_string(),
+            trigger_datetime: task_req.trigger_datetime.to_rfc3339(),
             started_datetime: started_datetime.to_rfc3339(),
         });
 
@@ -174,7 +176,7 @@ pub async fn process_work() -> Result<!> {
             RESULT_EXCHANGE,
             "",
             BasicPublishOptions::default(),
-            task_progress_payload(&task_def, started_datetime, Some(finished_datetime), result)?,
+            task_progress_payload(&task_req, started_datetime, Some(finished_datetime), result)?,
             BasicProperties::default(),
         )
         .await?;
@@ -188,20 +190,20 @@ pub async fn process_work() -> Result<!> {
 }
 
 fn task_progress_payload(
-    task_def: &TaskRequest,
+    task_req: &TaskRequest,
     started_datetime: DateTime<Utc>,
     finished_datetime: Option<DateTime<Utc>>,
     result: TokenState,
 ) -> Result<Vec<u8>> {
     let payload = serde_json::to_vec(&TaskProgress {
-        task_run_id: task_def.task_run_id,
-        task_id: task_def.task_id,
-        trigger_datetime: task_def.trigger_datetime,
+        task_run_id: task_req.task_run_id,
+        task_id: task_req.task_id,
+        trigger_datetime: task_req.trigger_datetime,
         started_datetime,
         finished_datetime,
         worker_id: *WORKER_ID,
         result,
-        priority: task_def.priority,
+        priority: task_req.priority,
     })?;
 
     Ok(payload)

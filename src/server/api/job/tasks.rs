@@ -109,7 +109,7 @@ pub async fn create_task(
     txn: &mut Transaction<'_, Postgres>,
     task: &Task,
     job: &Job,
-) -> highnoon::Result<()> {
+) -> highnoon::Result<Uuid> {
     let threshold = task.threshold.unwrap_or_else(|| {
         if let Some(dep) = &task.depends {
             dep.len() as u32
@@ -194,7 +194,7 @@ pub async fn create_task(
         }
     }
 
-    Ok(())
+    Ok(task_id)
 }
 
 async fn create_trigger_edge(

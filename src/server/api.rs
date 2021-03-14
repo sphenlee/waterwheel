@@ -101,7 +101,7 @@ pub async fn serve() -> Result<()> {
         .get(job::get_triggers_by_job);
     app.at("/api/jobs/:id/graph").get(job::get_graph);
     app.at("/api/jobs/:job_id/triggers/:id")
-        .get(job::get_trigger);
+        .get(job::get_trigger); // TODO - move to /api/triggers/:id
 
     // job stash
     app.at("/api/jobs/:id/stash/:trigger_datetime/")
@@ -111,9 +111,11 @@ pub async fn serve() -> Result<()> {
         .get(stash::job::get)
         .delete(stash::job::delete);
 
-    // task tokens
+    // tasks
     app.at("/api/tasks/:id/tokens/:trigger_datetime")
         .put(task::create_token);
+    app.at("/api/tasks/:id")
+        .get(task::get_task_def);
 
     // trigger times
     app.at("/api/triggers/:id").get(job::get_trigger_times);

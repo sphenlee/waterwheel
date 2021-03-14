@@ -1,5 +1,5 @@
 use crate::config;
-use crate::messages::TaskRequest;
+use crate::messages::{TaskRequest, TaskDef};
 use crate::worker::config_cache::get_project_config;
 use crate::worker::env;
 use crate::worker::WORKER_ID;
@@ -10,7 +10,7 @@ use kube::api::{Api, DeleteParams, ListParams, LogParams, Meta, PostParams, Watc
 use kube::Client;
 use kv_log_macro::{debug as kvdebug, info as kvinfo, trace as kvtrace, warn as kvwarn};
 
-pub async fn run_kube(task_def: TaskRequest) -> Result<bool> {
+pub async fn run_kube(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
     let ns: String = config::get_or("WATERWHEEL_KUBE_NAMESPACE", "default");
 
     kvtrace!("loading kubernetes config");
@@ -20,7 +20,7 @@ pub async fn run_kube(task_def: TaskRequest) -> Result<bool> {
     let pods: Api<Pod> = Api::namespaced(client, &ns);
     kvtrace!("connected to kubernetes namespace {}", ns);
 
-    let pod = make_pod(task_def).await?;
+    let pod = make_pod(task_req, task_def).await?;
 
     // Create the pod
     let pod = pods.create(&PostParams::default(), &pod).await?;
@@ -86,9 +86,9 @@ pub async fn run_kube(task_def: TaskRequest) -> Result<bool> {
     Ok(result)
 }
 
-async fn make_pod(task_def: TaskRequest) -> Result<Pod> {
-    let env = env::get_env(&task_def)?;
-    let name = task_def.task_run_id.to_string();
+async fn make_pod(task_req: TaskRequest, task_def: TaskDef) -> Result<Pod> {
+    let env = env::get_env(&task_req, &task_def)?;
+    let name = task_req.task_run_id.to_string();
 
     // Create a pod from JSON
     let mut pod_json = serde_json::json!({
@@ -98,7 +98,7 @@ async fn make_pod(task_def: TaskRequest) -> Result<Pod> {
             "name": name,
             "labels": {
                 "worker_id": *WORKER_ID,
-                "task_id": task_def.task_id,
+                "task_id": task_req.task_id,
                 "job_id": task_def.job_id,
                 "project_id": task_def.project_id,
             },

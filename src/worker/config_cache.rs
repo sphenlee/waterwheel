@@ -1,5 +1,5 @@
 use crate::amqp;
-use crate::messages::ConfigUpdate;
+use crate::messages::{ConfigUpdate, TaskDef};
 use anyhow::Result;
 use futures::TryStreamExt;
 use lapin::options::{
@@ -24,20 +24,38 @@ static PROJ_CONFIG_CACHE: Lazy<Mutex<LruCache<Uuid, JsonValue>>> = Lazy::new(|| 
     ))
 });
 
+static TASK_DEF_CACHE: Lazy<Mutex<LruCache<Uuid, TaskDef>>> = Lazy::new(|| {
+    Mutex::new(LruCache::with_expiry_duration_and_capacity(
+        chrono::Duration::hours(24).to_std().unwrap(),
+        100,
+    ))
+});
+
+
 pub async fn get_project_config(proj_id: Uuid) -> Result<JsonValue> {
     let mut cache = PROJ_CONFIG_CACHE.lock().await;
     let config = cache.get(&proj_id);
 
     if let Some(config) = config {
-        return Ok(config.clone());
+        Ok(config.clone())
+    } else {
+        let config = fetch_project_config(proj_id).await?;
+        cache.insert(proj_id, config.clone());
+        Ok(config)
     }
+}
 
-    // cache miss
-    let config = fetch_project_config(proj_id).await?;
+pub async fn get_task_def(task_id: Uuid) -> Result<TaskDef> {
+    let mut cache = TASK_DEF_CACHE.lock().await;
+    let def = cache.get(&task_id);
 
-    cache.insert(proj_id, config.clone());
-
-    Ok(config)
+    if let Some(def) = def {
+        Ok(def.clone())
+    } else {
+        let def = fetch_task_def(task_id).await?;
+        cache.insert(task_id, def.clone());
+        Ok(def)
+    }
 }
 
 async fn fetch_project_config(proj_id: Uuid) -> Result<JsonValue> {
@@ -58,6 +76,24 @@ async fn fetch_project_config(proj_id: Uuid) -> Result<JsonValue> {
 
     trace!("got config");
     Ok(config)
+}
+
+async fn fetch_task_def(task_id: Uuid) -> Result<TaskDef> {
+    let server_addr: String = crate::config::get("WATERWHEEL_SERVER_ADDR")?;
+
+    let url = reqwest::Url::parse(&server_addr)?
+        .join("api/tasks/")?
+        .join(&format!("{}", task_id))?;
+
+    let client = reqwest::Client::new();
+
+    trace!("fetching task def from api");
+
+    let resp = client.get(url.clone()).send().await?.error_for_status()?;
+    let def = resp.json().await?;
+
+    trace!("got task def");
+    Ok(def)
 }
 
 pub async fn process_updates() -> Result<!> {
@@ -114,6 +150,7 @@ pub async fn process_updates() -> Result<!> {
 
         match update {
             ConfigUpdate::Project(proj_id) => drop_project_config(proj_id).await,
+            ConfigUpdate::TaskDef(task_id) => drop_task_def(task_id).await,
         };
 
         chan.basic_ack(msg.delivery_tag, BasicAckOptions::default())
@@ -128,4 +165,9 @@ pub async fn process_updates() -> Result<!> {
 pub async fn drop_project_config(proj_id: Uuid) {
     let mut cache = PROJ_CONFIG_CACHE.lock().await;
     cache.remove(&proj_id);
+}
+
+pub async fn drop_task_def(task_id: Uuid) {
+    let mut cache = TASK_DEF_CACHE.lock().await;
+    cache.remove(&task_id);
 }

@@ -1,4 +1,4 @@
-use crate::messages::TaskRequest;
+use crate::messages::{TaskRequest, TaskDef};
 use crate::worker::env;
 use anyhow::Result;
 use bollard::container::{
@@ -25,10 +25,10 @@ struct LogMessage<'a> {
     msg: &'a str,
 }
 
-pub async fn run_docker(task_def: TaskRequest) -> Result<bool> {
+pub async fn run_docker(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
     let docker = bollard::Docker::connect_with_local_defaults()?;
 
-    let env = env::get_env_string(&task_def)?;
+    let env = env::get_env_string(&task_req, &task_def)?;
 
     // task_def is partially move from here down
     let image = task_def.image.unwrap();
@@ -113,7 +113,7 @@ pub async fn run_docker(task_def: TaskRequest) -> Result<bool> {
         project_id: &task_def.project_id.to_string(),
         job_id: &task_def.job_id.to_string(),
         task_id: &task_def.task_id.to_string(),
-        trigger_datetime: &task_def.trigger_datetime.to_rfc3339(),
+        trigger_datetime: &task_req.trigger_datetime.to_rfc3339(),
     };
 
     while let Some(line) = logs.try_next().await? {

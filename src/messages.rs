@@ -65,17 +65,21 @@ pub struct Token {
 pub struct TaskRequest {
     pub task_run_id: Uuid,
     pub task_id: Uuid,
+    pub trigger_datetime: DateTime<Utc>,
+    pub priority: TaskPriority,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, sqlx::FromRow)]
+pub struct TaskDef {
+    pub task_id: Uuid,
     pub task_name: String,
     pub job_id: Uuid,
     pub job_name: String,
     pub project_id: Uuid,
     pub project_name: String,
-    pub trigger_datetime: DateTime<Utc>,
     pub image: Option<String>,
     pub args: Vec<String>,
     pub env: Option<Vec<String>>,
-    #[serde(default)]
-    pub priority: TaskPriority,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -134,4 +138,5 @@ pub enum SchedulerUpdate {
 #[derive(Serialize, Deserialize, Debug)]
 pub enum ConfigUpdate {
     Project(Uuid),
+    TaskDef(Uuid),
 }

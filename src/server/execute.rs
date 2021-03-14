@@ -21,18 +21,6 @@ const PERSISTENT: u8 = 2;
 #[derive(Debug, Clone)]
 pub struct ExecuteToken(pub Token, pub TaskPriority);
 
-#[derive(sqlx::FromRow)]
-struct TaskParams {
-    task_name: String,
-    job_id: Uuid,
-    job_name: String,
-    project_id: Uuid,
-    project_name: String,
-    image: Option<String>,
-    args: Option<Vec<String>>,
-    env: Option<Vec<String>>,
-}
-
 pub async fn process_executions() -> Result<!> {
     let pool = db::get_pool();
 
@@ -86,37 +74,10 @@ pub async fn process_executions() -> Result<!> {
         let mut conn = pool.acquire().await?;
         let mut txn = conn.begin().await?;
 
-        let params: TaskParams = sqlx::query_as(
-            "SELECT
-                t.name AS task_name,
-                j.id AS job_id,
-                j.name AS job_name,
-                p.id AS project_id,
-                p.name AS project_name,
-                image,
-                args,
-                env
-            FROM task t
-            JOIN job j on t.job_id = j.id
-            JOIN project p ON j.project_id = p.id
-            WHERE t.id = $1",
-        )
-        .bind(&token.task_id)
-        .fetch_one(&mut txn)
-        .await?;
-
-        let task_def = TaskRequest {
+        let task_req = TaskRequest {
             task_run_id: Uuid::new_v4(),
             task_id: token.task_id,
-            task_name: params.task_name,
-            job_id: params.job_id,
-            job_name: params.job_name,
-            project_id: params.project_id,
-            project_name: params.project_name,
             trigger_datetime: token.trigger_datetime,
-            image: params.image,
-            args: params.args.unwrap_or_default(),
-            env: params.env,
             priority,
         };
 
@@ -128,7 +89,7 @@ pub async fn process_executions() -> Result<!> {
             TASK_EXCHANGE,
             "",
             BasicPublishOptions::default(),
-            serde_json::to_vec(&task_def)?,
+            serde_json::to_vec(&task_req)?,
             props,
         )
         .await?;
@@ -153,7 +114,7 @@ pub async fn process_executions() -> Result<!> {
                 $4, NULL, NULL,
                 NULL, 'active')",
         )
-        .bind(&task_def.task_run_id)
+        .bind(&task_req.task_run_id)
         .bind(token.task_id)
         .bind(token.trigger_datetime)
         .bind(Utc::now())
@@ -164,9 +125,6 @@ pub async fn process_executions() -> Result<!> {
 
         kvinfo!("task enqueued", {
             task_id: token.task_id.to_string(),
-            project_name: task_def.project_name,
-            job_name: task_def.job_name,
-            task_name: task_def.task_name,
             trigger_datetime: token.trigger_datetime.to_rfc3339(),
             priority: log::kv::Value::from_debug(&priority),
         });
@@ -174,43 +132,3 @@ pub async fn process_executions() -> Result<!> {
 
     unreachable!("ExecuteToken channel was closed!")
 }
-/*
-async fn mark_success(token: &Token) -> Result<()> {
-    let pool = db::get_pool();
-    let token_tx = postoffice::post_mail::<ProcessToken>().await?;
-
-    let mut conn = pool.acquire().await?;
-    let mut txn = conn.begin().await?;
-
-    let task_result = TaskResult {
-        task_id: token.task_id.to_string(),
-        trigger_datetime: token.trigger_datetime.to_rfc3339(),
-        result: "success".to_owned()
-    };
-
-    sqlx::query(
-        "UPDATE token
-                SET state = 'success',
-                    count = count - (SELECT threshold FROM task WHERE id = task_id)
-                WHERE task_id = $1
-                AND trigger_datetime = $2",
-    )
-        .bind(token.task_id)
-        .bind(token.trigger_datetime)
-        .execute(&pool)
-        .await?;
-
-    let tokens_to_tx = advance_tokens(&mut txn, task_result).await?;
-
-    txn.commit().await?;
-
-    debug!("task ");
-
-    // after committing the transaction we can tell the token processor to check thresholds
-    for token in tokens_to_tx {
-        token_tx.send(ProcessToken(token)).await;
-    }
-
-    Ok(())
-}
-*/
