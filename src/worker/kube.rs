@@ -1,5 +1,5 @@
 use crate::config;
-use crate::messages::{TaskRequest, TaskDef};
+use crate::messages::{TaskDef, TaskRequest};
 use crate::worker::config_cache::get_project_config;
 use crate::worker::env;
 use crate::worker::WORKER_ID;

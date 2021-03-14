@@ -1,5 +1,5 @@
 use crate::config;
-use crate::messages::{TaskRequest, TaskDef};
+use crate::messages::{TaskDef, TaskRequest};
 use crate::server::stash;
 use anyhow::Result;
 use itertools::Itertools;

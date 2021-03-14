@@ -1,5 +1,5 @@
 use crate::amqp::get_amqp_channel;
-use crate::messages::{TaskRequest, TaskPriority, Token};
+use crate::messages::{TaskPriority, TaskRequest, Token};
 use crate::{db, postoffice};
 use anyhow::Result;
 use chrono::Utc;

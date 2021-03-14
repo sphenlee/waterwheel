@@ -1,4 +1,4 @@
-use crate::messages::{TaskRequest, TaskDef};
+use crate::messages::{TaskDef, TaskRequest};
 use crate::worker::env;
 use anyhow::Result;
 use bollard::container::{

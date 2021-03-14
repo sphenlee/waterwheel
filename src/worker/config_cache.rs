@@ -31,7 +31,6 @@ static TASK_DEF_CACHE: Lazy<Mutex<LruCache<Uuid, TaskDef>>> = Lazy::new(|| {
     ))
 });
 
-
 pub async fn get_project_config(proj_id: Uuid) -> Result<JsonValue> {
     let mut cache = PROJ_CONFIG_CACHE.lock().await;
     let config = cache.get(&proj_id);

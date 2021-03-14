@@ -114,8 +114,7 @@ pub async fn serve() -> Result<()> {
     // tasks
     app.at("/api/tasks/:id/tokens/:trigger_datetime")
         .put(task::create_token);
-    app.at("/api/tasks/:id")
-        .get(task::get_task_def);
+    app.at("/api/tasks/:id").get(task::get_task_def);
 
     // trigger times
     app.at("/api/triggers/:id").get(job::get_trigger_times);

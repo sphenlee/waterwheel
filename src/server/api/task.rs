@@ -1,9 +1,9 @@
-use crate::messages::{SchedulerUpdate, TaskPriority, Token, TaskDef};
+use crate::messages::{SchedulerUpdate, TaskDef, TaskPriority, Token};
 use crate::server::api::request_ext::RequestExt;
 use crate::server::api::{updates, State};
 use crate::server::tokens::{increment_token, ProcessToken};
 use chrono::{DateTime, Utc};
-use highnoon::{Request, Responder, StatusCode, Json};
+use highnoon::{Json, Request, Responder, StatusCode};
 use uuid::Uuid;
 
 pub async fn create_token(req: Request<State>) -> highnoon::Result<impl Responder> {
@@ -28,7 +28,6 @@ pub async fn create_token(req: Request<State>) -> highnoon::Result<impl Responde
 
     Ok(StatusCode::CREATED)
 }
-
 
 pub async fn get_task_def(req: Request<State>) -> highnoon::Result<impl Responder> {
     let task_id = req.param("id")?.parse::<Uuid>()?;

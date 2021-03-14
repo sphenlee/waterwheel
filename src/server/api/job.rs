@@ -13,14 +13,14 @@ mod tasks;
 mod tokens;
 mod triggers;
 
-use crate::messages::{SchedulerUpdate, ConfigUpdate};
+use crate::messages::{ConfigUpdate, SchedulerUpdate};
+use crate::server::api::config_cache;
 use crate::server::triggers::TriggerUpdate;
 pub use graph::get_graph;
 pub use tokens::{
     clear_tokens_trigger_datetime, get_tokens, get_tokens_overview, get_tokens_trigger_datetime,
 };
 pub use triggers::{get_trigger, get_trigger_times, get_triggers_by_job};
-use crate::server::api::config_cache;
 
 pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
     let job: Job = req.body_json().await?;
@@ -96,13 +96,8 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
     }
 
     for id in tasks_to_tx {
-        config_cache::send(
-            req.get_channel(),
-            ConfigUpdate::TaskDef(id),
-        )
-            .await?;
+        config_cache::send(req.get_channel(), ConfigUpdate::TaskDef(id)).await?;
     }
-
 
     StatusCode::CREATED.into_response()
 }
