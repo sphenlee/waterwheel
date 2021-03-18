@@ -2,6 +2,7 @@ use crate::messages::SchedulerUpdate;
 use crate::server::tokens::ProcessToken;
 use crate::server::triggers::TriggerUpdate;
 use crate::{amqp, postoffice};
+use crate::metrics;
 use anyhow::Result;
 use futures::TryStreamExt;
 use kv_log_macro::trace as kvtrace;

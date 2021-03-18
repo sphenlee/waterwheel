@@ -1,5 +1,6 @@
 use crate::amqp::get_amqp_channel;
 use crate::config;
+use crate::metrics;
 use crate::messages::{TaskProgress, TaskRequest, TokenState};
 use crate::worker::{config_cache, docker, kube};
 use anyhow::Result;
@@ -17,6 +18,7 @@ use super::{RUNNING_TASKS, TOTAL_TASKS, WORKER_ID};
 use chrono::{DateTime, Utc};
 use std::str::FromStr;
 use std::sync::atomic::Ordering;
+use cadence::Counted;
 
 enum TaskEngine {
     /// Null engine always returns success - disabled in release builds
@@ -52,6 +54,7 @@ const RESULT_QUEUE: &str = "waterwheel.results";
 
 pub async fn process_work() -> Result<!> {
     let chan = get_amqp_channel().await?;
+    let statsd = metrics::get_client();
 
     // declare queue for consuming incoming messages
     let mut args = FieldTable::default();
@@ -119,6 +122,9 @@ pub async fn process_work() -> Result<!> {
         let started_datetime = Utc::now();
 
         RUNNING_TASKS.fetch_add(1, Ordering::Relaxed);
+        statsd.incr_with_tags("tasks.running").with_tag("worker_id", &WORKER_ID.to_string()).send();
+        statsd.incr_with_tags("tasks.received").with_tag("worker_id", &WORKER_ID.to_string()).send();
+
 
         kvinfo!("received task", {
             task_id: task_req.task_id.to_string(),
@@ -127,16 +133,16 @@ pub async fn process_work() -> Result<!> {
             priority: format!("{:?}", task_req.priority),
         });
 
-        chan.basic_publish(
-            RESULT_EXCHANGE,
-            "",
-            BasicPublishOptions::default(),
-            task_progress_payload(&task_req, started_datetime, None, TokenState::Running)?,
-            BasicProperties::default(),
-        )
-        .await?;
-
         let result = if task_def.image.is_some() {
+            chan.basic_publish(
+                RESULT_EXCHANGE,
+                "",
+                BasicPublishOptions::default(),
+                task_progress_payload(&task_req, started_datetime, None, TokenState::Running)?,
+                BasicProperties::default(),
+            )
+            .await?;
+
             let res = match engine {
                 #[cfg(debug_assertions)]
                 TaskEngine::Null => Ok(true),
@@ -165,8 +171,17 @@ pub async fn process_work() -> Result<!> {
         RUNNING_TASKS.fetch_sub(1, Ordering::Relaxed);
         TOTAL_TASKS.fetch_add(1, Ordering::Relaxed);
 
+        statsd.decr_with_tags("tasks.running")
+            .with_tag("worker_id", &WORKER_ID.to_string())
+            .send();
+        statsd.incr_with_tags("tasks.total")
+            .with_tag("worker_id", &WORKER_ID.to_string())
+            .with_tag("result", result.as_str())
+            .send();
+
+
         kvinfo!("task completed", {
-            result: result.to_string(),
+            result: result.as_str(),
             task_id: task_req.task_id.to_string(),
             trigger_datetime: task_req.trigger_datetime.to_rfc3339(),
             started_datetime: started_datetime.to_rfc3339(),

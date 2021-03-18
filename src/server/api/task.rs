@@ -1,7 +1,7 @@
 use crate::messages::{SchedulerUpdate, TaskDef, TaskPriority, Token};
 use crate::server::api::request_ext::RequestExt;
 use crate::server::api::{updates, State};
-use crate::server::tokens::{increment_token, ProcessToken};
+use crate::server::tokens::ProcessToken;
 use chrono::{DateTime, Utc};
 use highnoon::{Json, Request, Responder, StatusCode};
 use uuid::Uuid;
@@ -15,14 +15,20 @@ pub async fn create_token(req: Request<State>) -> highnoon::Result<impl Responde
         trigger_datetime,
     };
 
-    let pool = req.get_pool();
-    let mut txn = pool.begin().await?;
-    increment_token(&mut txn, &token).await?;
-    txn.commit().await?;
+    sqlx::query(
+        "INSERT INTO token(task_id, trigger_datetime, count, state)
+            VALUES ($1, $2, 0, 'waiting')
+            ON CONFLICT(task_id, trigger_datetime)
+            DO UPDATE SET count = 0",
+    )
+    .bind(&token.task_id)
+    .bind(&token.trigger_datetime)
+    .execute(&req.get_pool())
+    .await?;
 
     updates::send(
         req.get_channel(),
-        SchedulerUpdate::ProcessToken(ProcessToken::Increment(token, TaskPriority::High)),
+        SchedulerUpdate::ProcessToken(ProcessToken::Activate(token, TaskPriority::High)),
     )
     .await?;
 

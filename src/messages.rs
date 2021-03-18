@@ -24,7 +24,7 @@ pub enum TokenState {
 }
 
 impl TokenState {
-    pub fn to_string(&self) -> &'static str {
+    pub fn as_str(&self) -> &'static str {
         match self {
             TokenState::Waiting => "waiting",
             TokenState::Active => "active",
@@ -110,6 +110,17 @@ pub enum TaskPriority {
     Low = 1,
     Normal = 2,
     High = 3,
+}
+
+impl TaskPriority {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            TaskPriority::BackFill => "backfill",
+            TaskPriority::Low => "low",
+            TaskPriority::Normal => "normal",
+            TaskPriority::High => "high",
+        }
+    }
 }
 
 impl Default for TaskPriority {

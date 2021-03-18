@@ -16,12 +16,12 @@ template = {
     "project": project,
     "name": None,
     "description": "a generated job",
-    "paused": True,
+    "paused": False,
     "triggers": [
         {
             "name": "hourly",
             "start": "2021-03-01T00:00:00Z",
-            "period": "1h",
+            "period": "10m",
         }
     ],
     "tasks": [
@@ -34,7 +34,7 @@ template = {
     ]
 }
 
-for i in range(100):
+for i in range(400):
 
     name = f'job {i}'
     resp = requests.get(WATERWHEEL_HOST + '/api/jobs', params={'name': name, 'project': project})

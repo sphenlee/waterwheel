@@ -13,6 +13,7 @@ use std::fmt;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ProcessToken {
     Increment(Token, TaskPriority),
+    Activate(Token, TaskPriority),
     Clear(Token),
 }
 
@@ -66,6 +67,10 @@ pub async fn process_tokens() -> Result<!> {
                     execute_tx.send(ExecuteToken(token, priority)).await?;
                 }
             }
+            ProcessToken::Activate(token, priority) => {
+                tokens.remove(&token); // effectively setting token back to 0
+                execute_tx.send(ExecuteToken(token, priority)).await?;
+            }
             ProcessToken::Clear(token) => {
                 tokens.remove(&token);
             }
@@ -93,18 +98,8 @@ pub async fn increment_token(txn: &mut Transaction<'_, Postgres>, token: &Token)
     sqlx::query(
         "INSERT INTO token(task_id, trigger_datetime, count, state)
             VALUES ($1, $2, 0, 'waiting')
-            ON CONFLICT DO NOTHING",
-    )
-    .bind(token.task_id)
-    .bind(token.trigger_datetime)
-    .execute(&mut *txn)
-    .await?;
-
-    sqlx::query(
-        "UPDATE token
-            SET count = count + 1
-            WHERE task_id = $1
-            AND trigger_datetime = $2",
+            ON CONFLICT(task_id, trigger_datetime)
+            DO UPDATE SET count = token.count + 1",
     )
     .bind(token.task_id)
     .bind(token.trigger_datetime)

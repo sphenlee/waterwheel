@@ -338,6 +338,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b700ce4376041dcd0a327fd0097c41095743c4c8af8887265942faf1100bd040"
 
 [[package]]
+name = "cadence"
+version = "0.24.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e47ac30b0598bfd991b91817387bff591a75fb8e63f5b318c80e61d29aaf20c0"
+dependencies = [
+ "crossbeam-channel",
+]
+
+[[package]]
 name = "cc"
 version = "1.0.67"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2988,6 +2997,7 @@ dependencies = [
  "anyhow",
  "binary-heap-plus",
  "bollard",
+ "cadence",
  "chrono",
  "clap",
  "colored",

@@ -12,6 +12,7 @@ pub mod postoffice;
 mod server;
 pub mod util;
 mod worker;
+mod metrics;
 
 #[tokio::main]
 async fn main() -> Result<()> {

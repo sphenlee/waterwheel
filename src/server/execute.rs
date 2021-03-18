@@ -1,6 +1,6 @@
 use crate::amqp::get_amqp_channel;
 use crate::messages::{TaskPriority, TaskRequest, Token};
-use crate::{db, postoffice};
+use crate::{db, postoffice, metrics};
 use anyhow::Result;
 use chrono::Utc;
 use kv_log_macro::{debug as kvdebug, info as kvinfo};
@@ -12,6 +12,7 @@ use lapin::{BasicProperties, ExchangeKind};
 use postage::prelude::*;
 use sqlx::Connection;
 use uuid::Uuid;
+use cadence::Counted;
 
 const TASK_EXCHANGE: &str = "waterwheel.tasks";
 const TASK_QUEUE: &str = "waterwheel.tasks";
@@ -23,6 +24,7 @@ pub struct ExecuteToken(pub Token, pub TaskPriority);
 
 pub async fn process_executions() -> Result<!> {
     let pool = db::get_pool();
+    let statsd = metrics::get_client();
 
     let mut execute_rx = postoffice::receive_mail::<ExecuteToken>().await?;
 
@@ -94,10 +96,12 @@ pub async fn process_executions() -> Result<!> {
         )
         .await?;
 
+        // TODO - check if the logic here is correct
+        // used to set count = count - (SELECT threshold FROM task WHERE id = task_id)
         sqlx::query(
             "UPDATE token
             SET state = 'active',
-                count = count - (SELECT threshold FROM task WHERE id = task_id)
+                count = 0
             WHERE task_id = $1
             AND trigger_datetime = $2",
         )
@@ -128,6 +132,10 @@ pub async fn process_executions() -> Result<!> {
             trigger_datetime: token.trigger_datetime.to_rfc3339(),
             priority: log::kv::Value::from_debug(&priority),
         });
+
+        statsd.incr_with_tags("tasks.enqueued")
+            .with_tag("priority", priority.as_str())
+            .send();
     }
 
     unreachable!("ExecuteToken channel was closed!")

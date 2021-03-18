@@ -2,7 +2,7 @@ use crate::messages::{TaskPriority, Token};
 use crate::server::tokens::{increment_token, ProcessToken};
 use crate::server::trigger_time::TriggerTime;
 use crate::util::format_duration_approx;
-use crate::{db, postoffice};
+use crate::{db, postoffice, metrics};
 use anyhow::Result;
 use binary_heap_plus::{BinaryHeap, MinComparator};
 use chrono::{DateTime, Duration, Utc};
@@ -16,6 +16,7 @@ use sqlx::types::Uuid;
 use sqlx::Connection;
 use std::str::FromStr;
 use tokio::time;
+use cadence::Gauged;
 
 type Queue = BinaryHeap<TriggerTime, MinComparator>;
 
@@ -73,6 +74,8 @@ pub async fn process_triggers() -> Result<!> {
     let mut trigger_rx = postoffice::receive_mail::<TriggerUpdate>().await?;
     let mut queue = Queue::new_min();
 
+    let statsd = metrics::get_client();
+
     restore_triggers(&mut queue).await?;
 
     loop {
@@ -93,6 +96,7 @@ pub async fn process_triggers() -> Result<!> {
         // once per loop - it's for monitoring purposes anyway
         // TODO - how can we get this value to the API?
         //SERVER_STATUS.lock().await.queued_triggers = queue.len();
+        statsd.gauge_with_tags("triggers.queued", queue.len() as u64).send();
 
         if queue.is_empty() {
             debug!("no triggers queued, waiting for a trigger update");

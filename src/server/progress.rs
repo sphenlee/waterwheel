@@ -5,7 +5,7 @@ use crate::{db, postoffice};
 use anyhow::Result;
 use futures::TryStreamExt;
 use kv_log_macro::{debug, info};
-use lapin::options::{BasicAckOptions, BasicConsumeOptions, QueueDeclareOptions};
+use lapin::options::{BasicAckOptions, BasicConsumeOptions, QueueDeclareOptions, BasicQosOptions};
 use lapin::types::FieldTable;
 use postage::prelude::*;
 use sqlx::{Connection, Postgres, Transaction};
@@ -28,6 +28,9 @@ pub async fn process_progress() -> Result<!> {
     )
     .await?;
 
+    // to limit the number of redeliveries needed after a restart/crash
+    chan.basic_qos(100, BasicQosOptions::default()).await?;
+
     let mut consumer = chan
         .basic_consume(
             RESULT_QUEUE,
@@ -42,7 +45,7 @@ pub async fn process_progress() -> Result<!> {
 
         info!(
         "received task progress", {
-            result: task_progress.result.to_string(),
+            result: task_progress.result.as_str(),
             task_id: task_progress.task_id.to_string(),
             trigger_datetime: task_progress.trigger_datetime.to_rfc3339(),
         });
@@ -90,7 +93,7 @@ pub async fn advance_tokens(
             AND kind = $2",
     )
     .bind(&task_progress.task_id)
-    .bind(task_progress.result.to_string())
+    .bind(task_progress.result.as_str())
     .fetch(&pool);
 
     let mut tokens_to_tx = Vec::new();
@@ -118,7 +121,7 @@ async fn update_task_progress(
         WHERE task_id = $2
         AND trigger_datetime = $3",
     )
-    .bind(task_progress.result.to_string())
+    .bind(task_progress.result.as_str())
     .bind(&task_progress.task_id)
     .bind(&task_progress.trigger_datetime)
     .execute(&mut *txn)
@@ -132,7 +135,7 @@ async fn update_task_progress(
                 worker_id = $4
         WHERE id = $5",
     )
-    .bind(task_progress.result.to_string())
+    .bind(task_progress.result.as_str())
     .bind(&task_progress.started_datetime)
     .bind(&task_progress.finished_datetime)
     .bind(&task_progress.worker_id)

@@ -10,7 +10,7 @@ struct Mailbox<T> {
 
 impl<T: Clone> Mailbox<T> {
     fn new() -> Mailbox<T> {
-        let (tx, _) = postage::dispatch::channel(32);
+        let (tx, _) = postage::dispatch::channel(128);
         Mailbox { tx }
     }
 }
