@@ -2,6 +2,7 @@ use crate::config;
 use anyhow::Result;
 use lapin::Channel;
 use sqlx::PgPool;
+use cadence::StatsdClient;
 
 mod config_cache;
 mod heartbeat;
@@ -18,6 +19,7 @@ mod workers;
 pub struct State {
     pool: PgPool,
     channel: Channel,
+    statsd: StatsdClient,
 }
 
 impl highnoon::State for State {
@@ -42,6 +44,7 @@ pub async fn serve() -> Result<()> {
     let state = State {
         pool: crate::db::get_pool(),
         channel: crate::amqp::get_amqp_channel().await?,
+        statsd: crate::metrics::get_client(),
     };
 
     updates::setup(&state.channel).await?;

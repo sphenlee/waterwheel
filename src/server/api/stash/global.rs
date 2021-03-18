@@ -3,6 +3,7 @@ use highnoon::{Json, Request, Responder, StatusCode};
 use kv_log_macro::info;
 
 use super::{get_jwt_subject, StashData, StashName};
+use cadence::Counted;
 
 pub async fn create(mut req: Request<State>) -> highnoon::Result<impl Responder> {
     let data = req.body_bytes().await?;
@@ -59,6 +60,10 @@ pub async fn get(req: Request<State>) -> highnoon::Result<impl Responder> {
     .bind(&key)
     .fetch_optional(&db)
     .await?;
+
+    req.state().statsd.incr_with_tags("stash.get")
+        .with_tag_value("global")
+        .send();
 
     Ok(row)
 }
