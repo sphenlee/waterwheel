@@ -97,7 +97,7 @@ pub async fn increment_token(txn: &mut Transaction<'_, Postgres>, token: &Token)
 
     sqlx::query(
         "INSERT INTO token(task_id, trigger_datetime, count, state)
-            VALUES ($1, $2, 0, 'waiting')
+            VALUES ($1, $2, 1, 'waiting')
             ON CONFLICT(task_id, trigger_datetime)
             DO UPDATE SET count = token.count + 1",
     )
