@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use sqlx::types::Uuid;
 use std::fmt;
 
-#[derive(Clone, Eq, Hash, Debug, Ord, PartialOrd, PartialEq)]
+#[derive(Copy, Clone, Eq, Hash, Debug, Ord, PartialOrd, PartialEq)]
 pub struct TriggerTime {
     // ensure triggers are sorted by time before id
     pub trigger_datetime: DateTime<Utc>,

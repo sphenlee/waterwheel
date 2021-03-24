@@ -1,7 +1,7 @@
 use crate::config;
 use anyhow::Result;
 use lapin::{Channel, Connection, ConnectionProperties};
-use log::info;
+use log::{info, warn};
 use once_cell::sync::OnceCell;
 use tokio_amqp::LapinTokioExt;
 
@@ -16,9 +16,9 @@ pub async fn amqp_connect() -> Result<()> {
     let conn =
         Connection::connect_uri(amqp_uri, ConnectionProperties::default().with_tokio()).await?;
 
-    AMQP_CONNECTION
-        .set(conn)
-        .expect("AMQP connection is already set");
+    if AMQP_CONNECTION.set(conn).is_err() {
+        warn!("AMQP connection is already set");
+    }
     info!("connected to AMQP broker");
 
     Ok(())

@@ -1,6 +1,4 @@
-use crate::postoffice;
 use crate::util::spawn_retry;
-use crate::{amqp, db};
 use anyhow::Result;
 
 mod api;
@@ -13,11 +11,6 @@ pub mod triggers;
 mod updates;
 
 pub async fn run_scheduler() -> Result<()> {
-    postoffice::open()?;
-
-    db::create_pool().await?;
-    amqp::amqp_connect().await?;
-
     spawn_retry("triggers", triggers::process_triggers);
     spawn_retry("tokens", tokens::process_tokens);
     spawn_retry("executions", execute::process_executions);
@@ -31,9 +24,6 @@ pub async fn run_scheduler() -> Result<()> {
 
 pub async fn run_api() -> Result<()> {
     stash::load_keys()?;
-
-    db::create_pool().await?;
-    amqp::amqp_connect().await?;
 
     api::serve().await?;
 

@@ -18,7 +18,7 @@ use super::{RUNNING_TASKS, TOTAL_TASKS, WORKER_ID};
 use chrono::{DateTime, Utc};
 use std::str::FromStr;
 use std::sync::atomic::Ordering;
-use cadence::Counted;
+use cadence::{Counted, Gauged};
 
 enum TaskEngine {
     /// Null engine always returns success - disabled in release builds
@@ -126,7 +126,7 @@ pub async fn process_work() -> Result<!> {
         statsd.incr_with_tags("tasks.received").with_tag("worker_id", &WORKER_ID.to_string()).send();
 
 
-        kvinfo!("received task", {
+        kvdebug!("received task", {
             task_id: task_req.task_id.to_string(),
             trigger_datetime: task_req.trigger_datetime.to_rfc3339(),
             started_datetime: started_datetime.to_rfc3339(),
@@ -171,7 +171,7 @@ pub async fn process_work() -> Result<!> {
         RUNNING_TASKS.fetch_sub(1, Ordering::Relaxed);
         TOTAL_TASKS.fetch_add(1, Ordering::Relaxed);
 
-        statsd.decr_with_tags("tasks.running")
+        statsd.gauge_with_tags("tasks.running", RUNNING_TASKS.load(Ordering::Relaxed) as u64)
             .with_tag("worker_id", &WORKER_ID.to_string())
             .send();
         statsd.incr_with_tags("tasks.total")

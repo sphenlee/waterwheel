@@ -1,0 +1,137 @@
+# A Kubernetes setup for a basic stats pipeline
+# Installs influxdb and telegraf
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+    name: influxdb
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+    labels:
+        app: influxdb
+    name: influxdb
+    namespace: influxdb
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: influxdb
+    serviceName: influxdb
+    template:
+        metadata:
+            labels:
+                app: influxdb
+        spec:
+            containers:
+              - image: influxdb:2.0.4
+                name: influxdb
+                ports:
+                  - containerPort: 8086
+                    name: influxdb
+                volumeMounts:
+                  - mountPath: /root/.influxdbv2
+                    name: data
+    volumeClaimTemplates:
+      - metadata:
+            name: data
+            namespace: influxdb
+        spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+                requests:
+                    storage: 10G
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: influxdb
+    namespace: influxdb
+spec:
+    type: NodePort
+    ports:
+      - name: influxdb
+        port: 8086
+        targetPort: 8086
+    selector:
+        app: influxdb
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: telegraf-conf
+  namespace: influxdb
+data:
+  telegraf.conf: |
+    [agent]
+    quiet = false
+    debug = true
+
+    [[inputs.statsd]]
+    service_address = "0.0.0.0:8125"
+    datadog_extensions = true
+
+    [[outputs.influxdb_v2]]
+    urls = ["http://influxdb:8086"]
+    token = "itCt7e96iG6_vBBHCeiSjRlKZgvF8r4WeDENXtjzK5F_CQn81vUb1WcPXrcgbVRj6Gmw3yck_m74f9QqspW64g=="
+    organization = "waterwheel"
+    bucket = "waterwheel"
+    
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+    labels:
+        app: telegraf
+    name: telegraf
+    namespace: influxdb
+spec:
+    selector:
+        matchLabels:
+            app: telegraf
+    template:
+        metadata:
+            labels:
+                app: telegraf
+        spec:
+            tolerations:
+              - key: node-role.kubernetes.io/master
+                effect: NoSchedule
+            containers:
+              - name: telegraf
+                image: telegraf:1.18
+                ports:
+                  - containerPort: 8125
+                    name: statsd
+                    protocol: UDP
+                volumeMounts:
+                  - name: config
+                    mountPath: "/etc/telegraf"
+                    readOnly: true
+            volumes:
+              - name: config
+                #namespace: influxdb
+                configMap:
+                    name: telegraf-conf
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: telegraf
+    namespace: influxdb
+spec:
+    type: NodePort
+    ports:
+      - name: statsd
+        protocol: UDP
+        port: 8125
+    selector:
+        app: telegraf
+    

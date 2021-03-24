@@ -7,7 +7,6 @@ use uuid::Uuid;
 
 use crate::amqp;
 use crate::config;
-use crate::postoffice;
 use crate::server::stash;
 use crate::util::spawn_retry;
 
@@ -29,7 +28,6 @@ pub async fn run_worker() -> Result<()> {
     stash::load_keys()?;
 
     amqp::amqp_connect().await?;
-    postoffice::open()?;
 
     let max_tasks: u32 = config::get_or("WATERWHEEL_MAX_TASKS", DEFAULT_MAX_TASKS);
 

@@ -1,5 +1,5 @@
 use crate::config;
-use log::{debug, info, trace};
+use log::{debug, info, trace, warn};
 use sqlx::{Executor, PgPool};
 
 const SCHEMA: &str = include_str!("schema.sql");
@@ -19,7 +19,9 @@ pub async fn create_pool() -> anyhow::Result<()> {
 
     info!("connected to database");
 
-    DB_POOL.set(pool).expect("the DB pool is already created!");
+    if DB_POOL.set(pool).is_err() {
+        warn!("database was already connected!");
+    }
 
     Ok(())
 }

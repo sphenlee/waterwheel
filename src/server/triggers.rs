@@ -13,7 +13,7 @@ use postage::prelude::*;
 use postage::stream::TryRecvError;
 use serde::{Deserialize, Serialize};
 use sqlx::types::Uuid;
-use sqlx::Connection;
+use sqlx::{Connection, Transaction, Postgres};
 use std::str::FromStr;
 use tokio::time;
 use cadence::Gauged;
@@ -159,7 +159,25 @@ pub async fn process_triggers() -> Result<!> {
 async fn activate_trigger(trigger_time: TriggerTime, priority: TaskPriority) -> Result<()> {
     let pool = db::get_pool();
 
-    let mut token_tx = postoffice::post_mail::<ProcessToken>().await?;
+    let mut conn = pool.acquire().await?;
+    let mut txn = conn.begin().await?;
+
+    let tokens_to_tx = do_activate_trigger(&mut txn, trigger_time).await?;
+
+    txn.commit().await?;
+    trace!("done activating trigger: {}", trigger_time);
+
+    // after committing the transaction we can tell the token processor to check thresholds
+    send_to_token_processor(tokens_to_tx, priority).await?;
+
+    Ok(())
+}
+
+async fn do_activate_trigger(
+        txn: &mut Transaction<'_, Postgres>,
+        trigger_time: TriggerTime) -> Result<Vec<Token>>
+{
+    let pool = db::get_pool();
 
     debug!("activating trigger", {
         trigger_id: trigger_time.trigger_id.to_string(),
@@ -175,9 +193,6 @@ async fn activate_trigger(trigger_time: TriggerTime, priority: TaskPriority) -> 
     .bind(trigger_time.trigger_id)
     .fetch(&pool);
 
-    let mut conn = pool.acquire().await?;
-    let mut txn = conn.begin().await?;
-
     let mut tokens_to_tx = Vec::new();
 
     while let Some((task_id,)) = cursor.try_next().await? {
@@ -186,7 +201,7 @@ async fn activate_trigger(trigger_time: TriggerTime, priority: TaskPriority) -> 
             trigger_datetime: trigger_time.trigger_datetime,
         };
 
-        increment_token(&mut txn, &token).await?;
+        increment_token(txn, &token).await?;
         tokens_to_tx.push(token);
     }
 
@@ -200,24 +215,25 @@ async fn activate_trigger(trigger_time: TriggerTime, priority: TaskPriority) -> 
     )
     .bind(trigger_time.trigger_id)
     .bind(trigger_time.trigger_datetime)
-    .execute(&mut txn)
+    .execute(txn)
     .await?;
 
-    txn.commit().await?;
-    trace!("done activating trigger: {}", trigger_time);
-
-    // after committing the transaction we can tell the token processor to check thresholds
-    for token in tokens_to_tx {
-        token_tx
-            .send(ProcessToken::Increment(token, priority))
-            .await?;
-    }
-
-    Ok(())
+    Ok(tokens_to_tx)
 }
 
 // returns the next trigger time in the future
 async fn catchup_trigger(trigger: &Trigger) -> anyhow::Result<DateTime<Utc>> {
+    debug!("checking trigger for any catchup", {
+        trigger_id: trigger.id.to_string()
+    });
+
+    let pool = db::get_pool();
+
+    let mut tokens_to_tx = Vec::new();
+
+    let mut conn = pool.acquire().await?;
+    let mut txn = conn.begin().await?;
+
     let period = trigger.period()?;
 
     if let Some(earliest) = trigger.earliest_trigger_datetime {
@@ -231,7 +247,8 @@ async fn catchup_trigger(trigger: &Trigger) -> anyhow::Result<DateTime<Utc>> {
 
             let mut next = trigger.start_datetime;
             while next < earliest {
-                activate_trigger(trigger.at(next), TaskPriority::BackFill).await?;
+                let mut tokens = do_activate_trigger(&mut txn,trigger.at(next)).await?;
+                tokens_to_tx.append(&mut tokens);
                 next = next + &period;
             }
         }
@@ -253,11 +270,28 @@ async fn catchup_trigger(trigger: &Trigger) -> anyhow::Result<DateTime<Utc>> {
     };
 
     while next < last {
-        activate_trigger(trigger.at(next), TaskPriority::BackFill).await?;
+        let mut tokens = do_activate_trigger(&mut txn, trigger.at(next)).await?;
+        tokens_to_tx.append(&mut tokens);
         next = next + &period;
     }
 
+    txn.commit().await?;
+
+    send_to_token_processor(tokens_to_tx, TaskPriority::BackFill).await?;
+
     Ok(next)
+}
+
+async fn send_to_token_processor(tokens_to_tx: Vec<Token>, priority: TaskPriority) -> Result<()> {
+    let mut token_tx = postoffice::post_mail::<ProcessToken>().await?;
+
+    for token in tokens_to_tx {
+        token_tx
+            .send(ProcessToken::Increment(token, priority))
+            .await?;
+    }
+
+    Ok(())
 }
 
 async fn update_trigger(uuid: &Uuid, queue: &mut Queue) -> Result<()> {
