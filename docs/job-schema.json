@@ -1,0 +1,113 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": [
+    "uuid",
+    "project",
+    "name",
+    "description",
+    "triggers",
+    "tasks"
+  ],
+  "properties": {
+    "uuid": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "paused": {
+      "type": "boolean",
+      "default": "false"
+    },
+    "triggers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "start"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string",
+            "format": "timestamp"
+          },
+          "end": {
+            "type": "string",
+            "format": "timestamp"
+          },
+          "period": {
+            "type": "string"
+          },
+          "cron": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "items":{
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "docker": {
+            "type": "object",
+            "required": [
+              "image",
+              "args"
+            ],
+            "properties": {
+              "image": {
+                "type": "string"
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "env": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "depends": {
+            "type": "array",
+            "items":{
+              "type": "string"
+            }
+          },
+          "depends_failure": {
+            "type": "array",
+            "items":{
+              "type": "string"
+            }
+          },
+          "threshold": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  }
+}
