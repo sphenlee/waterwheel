@@ -11,6 +11,8 @@ worker has no access to this.
 > The server was split to enable scaling - the scheduler must be a singleton 
 > process, whereas the API can be replicated.
 
+![Architecture Diagram](./waterwheel_architecture.png)
+
 ## Scheduler
 
 The scheduler itself is composed of several interacting tasks. These 
@@ -86,7 +88,7 @@ of zero: these are discarded.
 ### Execution Processor
 
 The **Execution Processor** listens for messages from the *Execute Token* 
-channel. It gets the task definition from the database, sends it to RabbitMQ 
+channel. It sends the task request to RabbitMQ 
 to be executed by a worker and then updates the token's counter in the 
 database and creates a task run entry.
 
@@ -103,6 +105,12 @@ tasks. This involves checking for task edges in the database and sending an
 increment message to the **Token Processor**. For all status updates it also 
 updates the token and the task run entry in the database.
 
+### Update Processor
+
+The **Update Processor** listens for updates from RabbitMQ. These are sent 
+from the API when a job is created or edited, or when tasks are manually 
+activated by the UI. This process routes these updates to either the 
+**Trigger Processor** or the **Token Processor** as needed. 
 
 ## API
 
@@ -112,17 +120,15 @@ serving the Web interface.
 The API has methods to get and update all the various objects that 
 Waterwheel manages.
 
-The only thing to note is that when a Job is updated the API will send a 
-*Trigger Update* message to the **Trigger Processor** which will wake up any 
-sleep and allow the potentially modified triggers to be applied immediately.
+When a Job is updated the API will send a *Trigger Update* message over 
+RabbitMQ to the **Trigger Processor** which will wake up any sleep and allow 
+the potentially modified triggers to be applied immediately. A message is 
+sent on the same queue to the **Token Processor** when a task is manually 
+activated.
 
-> TODO: API also send messages to the **Token Processor**
-
-> TODO: Messages now go over a RabbitMQ queue and get routed by a new 
-> process in the scheduler
-
-> TODO: API receives heartbeats from the workers - these should get stored 
-> in the database for consistency when scaling up the API
+Finally the **API** sends a broadcast message to RabbitMQ when either 
+project config or task definitions are edited. This allows the workers to 
+invalidate their caches.
 
 ## Worker
 
@@ -131,9 +137,21 @@ The worker is much simpler than the scheduler and only runs two distinct tasks.
 ### Work Processor
 
 The **Work Processor** listens to RabbitMQ for task definitions to execute. 
-It then uses either Docker or Kubernetes to execue the task and send the 
+It then uses either Docker or Kubernetes to execute the task and send the 
 results back over RabbitMQ.  This process is created multiple times 
 determined by the `WATERWHEEL_MAX_TASKS` variable.
+
+The task definitions are fetched from the **API** via HTTP and cached 
+locally. The cache expires after 24 hours, and evicts least recently used 
+items when full. The **API** sends invalidation messages over RabbitMQ and 
+the Worker subscribes to these.
+
+### Update Processor
+
+The **Update Processor** listens for cache invalidation messages from RabbitMQ. 
+These are sent from the API when a job is created or edited, or when a 
+project's config is modified. This process deletes the relevant items from 
+the in-memory cache so that they will be fetched again if needed.
 
 ### Heartbeat
 

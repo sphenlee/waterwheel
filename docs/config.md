@@ -49,7 +49,7 @@ Defaults:
 
 > Note that the default value for the server bind will not allow docker 
 > containers or kubernetes pods to access the stash. You should specify the 
-> specific to bind to depending on your networking setup.
+> specific address to bind to depending on your networking setup.
 
 # Task settings
 
@@ -117,7 +117,7 @@ these except when debugging Waterwheel. Defaults as shown below.
 
     # Rust logging settings
     WATERWHEEL_LOG="waterwheel=info,sqlx=warn,highnoon=warn"
-    # Enable backtraces on unhandled errors
+    # Disable backtraces on unhandled errors
     RUST_BACKTRACE=0
 
 

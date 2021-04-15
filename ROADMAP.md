@@ -32,13 +32,13 @@ Features
 Operational
 -----------
 
-* [ ] emit metrics to statsd
+* [x] emit metrics to statsd
 * [ ] better control over server and worker logs (send them to fluentd/Vector too?)
 * [ ] High Availability
     * [x] separate the server from the web interface
         * update messages are sent from the api to the scheduler over AMQP
-    * [ ] server is stateless, but has in-memory caches, verify and test
-    * [ ] HA mode for the server
+    * [ ] scheduler is stateless, but has in-memory caches, verify and test
+    * [ ] HA mode for the scheduler
         * initially active/passive mode, active/active in future?
         
 Bug Fixes / Paper Cuts
