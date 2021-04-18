@@ -115,8 +115,10 @@ pub async fn serve() -> Result<()> {
         .delete(stash::job::delete);
 
     // tasks
+    app.at("/api/tasks/:id/tokens")
+        .post(task::clear_multiple_tokens);
     app.at("/api/tasks/:id/tokens/:trigger_datetime")
-        .put(task::create_token);
+        .put(task::clear_token);
     app.at("/api/tasks/:id").get(task::get_task_def);
 
     // trigger times
