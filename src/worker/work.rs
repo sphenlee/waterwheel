@@ -121,8 +121,10 @@ pub async fn process_work() -> Result<!> {
 
         let started_datetime = Utc::now();
 
-        RUNNING_TASKS.fetch_add(1, Ordering::Relaxed);
-        statsd.incr_with_tags("tasks.running").with_tag("worker_id", &WORKER_ID.to_string()).send();
+        RUNNING_TASKS.fetch_add(1, Ordering::SeqCst);
+        statsd.gauge_with_tags("tasks.running", RUNNING_TASKS.load(Ordering::SeqCst) as u64)
+            .with_tag("worker_id", &WORKER_ID.to_string())
+            .send();
         statsd.incr_with_tags("tasks.received").with_tag("worker_id", &WORKER_ID.to_string()).send();
 
 
@@ -168,10 +170,10 @@ pub async fn process_work() -> Result<!> {
 
         let finished_datetime = Utc::now();
 
-        RUNNING_TASKS.fetch_sub(1, Ordering::Relaxed);
-        TOTAL_TASKS.fetch_add(1, Ordering::Relaxed);
+        RUNNING_TASKS.fetch_sub(1, Ordering::SeqCst);
+        TOTAL_TASKS.fetch_add(1, Ordering::SeqCst);
 
-        statsd.gauge_with_tags("tasks.running", RUNNING_TASKS.load(Ordering::Relaxed) as u64)
+        statsd.gauge_with_tags("tasks.running", RUNNING_TASKS.load(Ordering::SeqCst) as u64)
             .with_tag("worker_id", &WORKER_ID.to_string())
             .send();
         statsd.incr_with_tags("tasks.total")
