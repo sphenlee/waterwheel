@@ -162,10 +162,12 @@ class TaskGrid extends Component {
 
         let last = resp.data.tokens[resp.data.tokens.length - 1].trigger_datetime;
         
-        this.setState({
-            data: resp.data,
-            last: last,
-        });
+        this.setState((state) => (state.before == before) ?
+            {
+                data: resp.data,
+                last: last,
+            } : {}
+        );
     }
 
     componentDidMount() {
