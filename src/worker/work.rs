@@ -112,7 +112,7 @@ pub async fn process_work() -> Result<!> {
         )
         .await?;
 
-    let engine: TaskEngine = config::get_or("WATERWHEEL_TASK_ENGINE", TaskEngine::Docker);
+    let engine: TaskEngine = config::get_or("WATERWHEEL_TASK_ENGINE", TaskEngine::Docker)?;
 
     while let Some((chan, msg)) = consumer.try_next().await? {
         let task_req: TaskRequest = serde_json::from_slice(&msg.data)?;

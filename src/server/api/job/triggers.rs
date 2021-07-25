@@ -2,7 +2,7 @@ use crate::server::api::request_ext::RequestExt;
 use crate::server::api::types::{period_from_string, Job, Trigger};
 use crate::server::api::State;
 use chrono::{DateTime, Utc};
-use highnoon::{Json, Request, Responder, StatusCode};
+use highnoon::{Json, Request, Responder};
 use serde::Serialize;
 use sqlx::{Postgres, Transaction};
 use std::str::FromStr;
@@ -22,10 +22,7 @@ pub enum TriggerError {
 }
 
 fn bad_req(err: TriggerError) -> highnoon::Result<()> {
-    Err(highnoon::Error::http((
-        StatusCode::BAD_REQUEST,
-        err.to_string(),
-    )))
+    Err(highnoon::Error::bad_request(err.to_string()))
 }
 
 pub async fn create_trigger(

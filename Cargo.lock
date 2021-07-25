@@ -412,14 +412,15 @@ checksum = "28b9d6de7f49e22cf97ad17fc4036ece69300032f45f78f30b4a4482cdc3f4a6"
 
 [[package]]
 name = "cookie"
-version = "0.14.3"
+version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "784ad0fbab4f3e9cef09f20e0aea6000ae08d2cb98ac4c0abc53df18803d702f"
+checksum = "d5f1c7727e460397e56abc4bddc1d49e07a1ad78fc98eb2e1c8f032a58a2f80d"
 dependencies = [
- "base64 0.12.3",
+ "base64 0.13.0",
  "hmac",
- "rand 0.7.3",
+ "rand 0.8.3",
  "sha2",
+ "subtle",
  "time 0.2.25",
  "version_check",
 ]
@@ -950,9 +951,9 @@ checksum = "644f9158b2f133fd50f5fb3242878846d9eb792e445c893805ff0e3824006e35"
 
 [[package]]
 name = "highnoon"
-version = "0.0.4"
+version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d35395f556efc42b792a1f35a65b3b756511ebaefdff26f823b2d3d9b34985f"
+checksum = "c3823225882bafc828706186650ca161a718dc8fc93b1b0a1f1adaec15ffd034"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -961,17 +962,17 @@ dependencies = [
  "futures-util",
  "headers",
  "hyper",
- "kv-log-macro",
- "log",
  "mime",
  "mime_guess",
  "route-recognizer",
  "serde",
  "serde_json",
  "serde_urlencoded",
+ "time 0.2.25",
  "tokio",
  "tokio-tungstenite",
  "tokio-util",
+ "tracing",
  "uuid",
 ]
 
@@ -1120,15 +1121,6 @@ checksum = "4fb1fa934250de4de8aef298d81c729a7d33d8c239daa3a7575e6b92bfc7313b"
 dependencies = [
  "autocfg",
  "hashbrown",
-]
-
-[[package]]
-name = "input_buffer"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f97967975f448f1a7ddb12b0bc41069d09ed6a1c161a92687e057325db35d413"
-dependencies = [
- "bytes",
 ]
 
 [[package]]
@@ -2637,9 +2629,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-tungstenite"
-version = "0.13.0"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1a5f475f1b9d077ea1017ecbc60890fda8e54942d680ca0b1d2b47cfa2d861b"
+checksum = "511de3f85caf1c98983545490c3d09685fa8eb634e57eec22bb4db271f46cbd8"
 dependencies = [
  "futures-util",
  "log",
@@ -2746,19 +2738,19 @@ checksum = "59547bce71d9c38b83d9c0e92b6066c4253371f15005def0c30d9657f50c7642"
 
 [[package]]
 name = "tungstenite"
-version = "0.12.0"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ada8297e8d70872fa9a551d93250a9f407beb9f37ef86494eb20012a2ff7c24"
+checksum = "a0b2d8558abd2e276b0a8df5c05a2ec762609344191e5fd23e292c910e9165b5"
 dependencies = [
  "base64 0.13.0",
  "byteorder",
  "bytes",
  "http",
  "httparse",
- "input_buffer",
  "log",
  "rand 0.8.3",
  "sha-1 0.9.4",
+ "thiserror",
  "url",
  "utf-8",
 ]

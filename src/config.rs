@@ -7,22 +7,38 @@ where
     T: FromStr,
     <T as FromStr>::Err: Debug,
 {
-    let val =
-        std::env::var(key).map_err(|err| Error::msg(format!("error getting {}: {}", key, err)))?;
-    let t = val
-        .parse()
-        .map_err(|err| Error::msg(format!("error parsing {}: {:?}", key, err)))?;
-    Ok(t)
+    get_opt(key)?.ok_or_else(|| Error::msg(format!("environment variable {} not found", key)))
 }
 
-pub fn get_or<T, D>(key: &str, default: D) -> T
+pub fn get_opt<T>(key: &str) -> Result<Option<T>>
+    where
+        T: FromStr,
+        <T as FromStr>::Err: Debug,
+{
+    match std::env::var(key) {
+        Ok(val) => {
+            val
+                .parse()
+                .map_err(|err| Error::msg(format!("error parsing {}: {:?}", key, err)))
+                .map(Some)
+        },
+        Err(std::env::VarError::NotPresent) => {
+            Ok(None)
+        },
+        Err(err) => {
+            Err(Error::msg(format!("error getting {}: {}", key, err)))
+        }
+    }
+}
+
+pub fn get_or<T, D>(key: &str, default: D) -> Result<T>
 where
     T: FromStr,
     <T as FromStr>::Err: Debug,
     D: Into<T>,
 {
-    match get(key) {
-        Ok(val) => val,
-        Err(_) => default.into(),
+    match get_opt(key)? {
+        Some(val) => Ok(val),
+        None => Ok(default.into()),
     }
 }

@@ -11,7 +11,7 @@ use kube::Client;
 use kv_log_macro::{debug as kvdebug, info as kvinfo, trace as kvtrace, warn as kvwarn};
 
 pub async fn run_kube(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
-    let ns: String = config::get_or("WATERWHEEL_KUBE_NAMESPACE", "default");
+    let ns: String = config::get_or("WATERWHEEL_KUBE_NAMESPACE", "default")?;
 
     kvtrace!("loading kubernetes config");
     let client = Client::try_default().await?;

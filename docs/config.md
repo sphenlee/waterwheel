@@ -101,6 +101,31 @@ provided, or an HMAC secret must be provided.
     WATERWHEEL_PUBLIC_KEY=public.pem
     WATERWHEEL_PRIVATE_KEY=private.pem
 
+### WATERWHEEL_OPA_SIDECAR_ADDR
+The address of the OPA sidecar used for authorization decisions.
+For more information about configuring OPA see [Authorization](./authz.md)
+
+    WATERWHEEL_OPA_SIDECAR_ADDR=http://localhost:8181/
+
+Default is unset, which currently disables authorization checks (this may 
+change to avoid accidentally skipping checks if the variable is misspelled or 
+otherwise accidentally not set).
+
+### WATERWHEEL_HEADER_IDENTITY
+The name of the HTTP header that the authentication proxy will use to store
+the identity of the authenticated principal. If unset defaults to using the
+`Authorization` header and expecting a `Bearer` token.
+
+    WATERWHEEL_HEADER_IDENTITY=X-Principal-Identity
+
+### WATERWHEEL_HEADER_AUTHORITY
+The name of the HTTP header than the authentication proxy will use to store
+the authority vouching for the principal's authenticity. If unset, the authority
+is set to `bearer` (indicating that the identity is vouching for their own
+authenticity by bearing the token).
+
+    WATERWHEEL_HEADER_AUTHORITY=X-Authority
+
 # Logging and debugging
 
 ### WATERWHEEL_JSON_LOG

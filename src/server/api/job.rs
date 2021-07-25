@@ -16,16 +16,52 @@ mod triggers;
 use crate::messages::{ConfigUpdate, SchedulerUpdate};
 use crate::server::api::config_cache;
 use crate::server::triggers::TriggerUpdate;
+use crate::server::api::auth;
 pub use graph::get_graph;
 pub use tokens::{
     clear_tokens_trigger_datetime, get_tokens, get_tokens_overview, get_tokens_trigger_datetime,
 };
 pub use triggers::{get_trigger, get_trigger_times, get_triggers_by_job};
+use sqlx::PgPool;
+
+#[derive(sqlx::FromRow)]
+pub struct JobAndProject {
+    pub job_name: String,
+    pub project_id: Uuid,
+    pub project_name: String,
+}
+
+/// Get the job's name, as well as it's project id and name
+/// Used by the authz so we can send all these details to OPA
+/// TODO - should API server be caching some of these values from the database?
+pub async fn get_job_name_and_project(pool: &PgPool, job_id: Uuid) -> highnoon::Result<JobAndProject> {
+    let row: Option<JobAndProject> = sqlx::query_as("
+            SELECT
+                j.name AS job_name
+                p.id AS project_id
+                p.name AS project_name
+            FROM project p
+            JOIN job j
+            WHERE p.id = j.project_id
+            AND j.id = $1")
+        .bind(&job_id)
+        .fetch_optional(pool)
+        .await?;
+
+    match row {
+        None => Err(highnoon::Error::bad_request("job not found")),
+        Some(jp) => Ok(jp),
+    }
+}
 
 pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
-    let job: Job = req.body_json().await?;
-
     let pool = req.get_pool();
+
+    let job: Job = req.body_json().await?;
+    //let proj_id = get_job_project(&pool, job.uuid).await?;
+
+    auth::delete().job(job.uuid).check(&req).await?;
+
     let mut txn = pool.begin().await?;
 
     let query = sqlx::query(

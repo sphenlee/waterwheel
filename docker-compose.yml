@@ -16,3 +16,11 @@ services:
       - POSTGRES_PASSWORD
     ports:
       - "5432:5432"
+
+  opa:
+    image: openpolicyagent/opa
+    ports:
+      - "8181:8181"
+    volumes:
+      - "$PWD/sample/policy:/policy"
+    command: ["run", "--server", "-b", "/policy"]

@@ -1,3 +1,4 @@
+use super::auth;
 use super::config_cache;
 use super::request_ext::RequestExt;
 use super::State;
@@ -8,6 +9,20 @@ use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use uuid::Uuid;
+use sqlx::PgPool;
+
+/// resolve a project ID into a name
+pub async fn get_project_name(pool: &PgPool, project_id: Uuid) -> highnoon::Result<String> {
+    let row: Option<(String,)> = sqlx::query_as("SELECT name FROM project WHERE id = $1")
+        .bind(&project_id)
+        .fetch_optional(pool)
+        .await?;
+
+    match row {
+        None => Err(highnoon::Error::bad_request("project not found")),
+        Some((name,)) => Ok(name),
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 struct NewProject {
@@ -21,6 +36,8 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
     let proj: NewProject = req.body_json().await?;
 
     let id = proj.uuid.unwrap_or_else(uuid::Uuid::new_v4);
+
+    auth::update().project(id).check(&req).await?;
 
     let res = sqlx::query(
         "INSERT INTO project(id, name, description, config)
@@ -75,6 +92,8 @@ struct ListProject {
 }
 
 pub async fn list(req: Request<State>) -> highnoon::Result<Response> {
+    auth::list().project(None).check(&req).await?;
+
     let projects: Vec<ListProject> = sqlx::query_as(
         "SELECT id, name, description
         FROM project
@@ -102,7 +121,10 @@ pub async fn get_by_name(req: Request<State>) -> highnoon::Result<Response> {
 
         Ok(match row {
             None => Response::status(StatusCode::NOT_FOUND),
-            Some(proj) => Response::ok().json(proj)?,
+            Some(proj) => {
+                auth::get().project(proj.id).check(&req).await?;
+                Response::ok().json(proj)?
+            },
         })
     } else {
         list(req).await
@@ -169,7 +191,10 @@ pub async fn get_by_id(req: Request<State>) -> highnoon::Result<Response> {
 
     Ok(match row {
         None => Response::status(StatusCode::NOT_FOUND),
-        Some(proj) => Response::ok().json(proj)?,
+        Some(proj) => {
+            auth::get().project(proj.id).check(&req).await?;
+            Response::ok().json(proj)?
+        },
     })
 }
 
@@ -199,6 +224,8 @@ pub async fn get_config(req: Request<State>) -> highnoon::Result<impl Responder>
 pub async fn delete(req: Request<State>) -> highnoon::Result<StatusCode> {
     let id_str = req.param("id")?;
     let id = Uuid::parse_str(&id_str)?;
+
+    auth::delete().project(id).check(&req).await?;
 
     let res = sqlx::query(
         "DELETE FROM project

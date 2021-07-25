@@ -1,9 +1,10 @@
+use anyhow::Result;
 use crate::config;
 
 const DEFAULT_LOG_FILTER: &str = "warn,waterwheel=info";
 
-pub fn setup() {
-    let use_json: bool = config::get_or("WATERWHEEL_JSON_LOG", false);
+pub fn setup() -> Result<()> {
+    let use_json: bool = config::get_or("WATERWHEEL_JSON_LOG", false)?;
 
     let mut builder = env_logger::builder();
     builder.format(if use_json {
@@ -14,6 +15,8 @@ pub fn setup() {
 
     builder.parse_env(env_logger::Env::new().filter_or("WATERWHEEL_LOG", DEFAULT_LOG_FILTER));
     builder.init();
+
+    Ok(())
 }
 
 mod env_log_format {

@@ -29,7 +29,7 @@ pub async fn run_worker() -> Result<()> {
 
     amqp::amqp_connect().await?;
 
-    let max_tasks: u32 = config::get_or("WATERWHEEL_MAX_TASKS", DEFAULT_MAX_TASKS);
+    let max_tasks: u32 = config::get_or("WATERWHEEL_MAX_TASKS", DEFAULT_MAX_TASKS)?;
 
     for i in 0..max_tasks {
         spawn_retry(&format!("worker-{}", i), work::process_work);
@@ -53,7 +53,7 @@ async fn serve() -> Result<()> {
     // healthcheck to see if the worker is up
     app.at("/healthcheck").get(|_req| async { Ok("OK") });
 
-    let host: String = config::get_or("WATERWHEEL_WORKER_BIND", "127.0.0.1:0");
+    let host: String = config::get_or("WATERWHEEL_WORKER_BIND", "127.0.0.1:0")?;
     app.listen(host).await?;
 
     Ok(())

@@ -17,8 +17,6 @@ pub async fn run_scheduler() -> Result<()> {
     spawn_retry("progress", progress::process_progress);
     spawn_retry("updates", updates::process_updates);
 
-    let () = futures::future::pending().await; // wait forever
-
     Ok(())
 }
 

@@ -18,7 +18,7 @@ cron = "0.6.1"
 dotenv = "0.15.0"
 env_logger = "0.8"
 futures = "0.3.5"
-highnoon = { version = "0.0.4" } # { path = "../highnoon" }
+highnoon = { version = "0.0.5" } # { path = "../highnoon" }
 humantime = "2.0.1"
 itertools = "0.10"
 jsonwebtoken = "7.2.0"
