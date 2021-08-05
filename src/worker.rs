@@ -9,6 +9,7 @@ use crate::amqp;
 use crate::config;
 use crate::server::stash;
 use crate::util::spawn_retry;
+use std::str::FromStr;
 
 mod config_cache;
 mod docker;
@@ -22,14 +23,40 @@ static WORKER_ID: Lazy<Uuid> = Lazy::new(Uuid::new_v4);
 pub static RUNNING_TASKS: AtomicI32 = AtomicI32::new(0);
 pub static TOTAL_TASKS: AtomicI32 = AtomicI32::new(0);
 
-const DEFAULT_MAX_TASKS: u32 = 8;
+#[derive(Copy, Clone, serde::Deserialize)]
+#[serde(rename_all="lowercase")]
+pub enum TaskEngine {
+    /// Null engine always returns success - disabled in release builds
+    #[cfg(debug_assertions)]
+    Null,
+    /// Use a local docker instance (TODO - allow remote docker)
+    Docker,
+    /// Use a remote Kubernetes cluster
+    Kubernetes,
+}
+
+impl FromStr for TaskEngine {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            #[cfg(debug_assertions)]
+            "null" => Ok(TaskEngine::Null),
+            "docker" => Ok(TaskEngine::Docker),
+            "kubernetes" => Ok(TaskEngine::Kubernetes),
+            _ => Err(anyhow::Error::msg(
+                "invalid engine, valid options: docker, kubernetes",
+            )),
+        }
+    }
+}
 
 pub async fn run_worker() -> Result<()> {
     stash::load_keys()?;
 
     amqp::amqp_connect().await?;
 
-    let max_tasks: u32 = config::get_or("WATERWHEEL_MAX_TASKS", DEFAULT_MAX_TASKS)?;
+    let max_tasks: u32 = config::get().max_tasks;
 
     for i in 0..max_tasks {
         spawn_retry(&format!("worker-{}", i), work::process_work);
@@ -53,7 +80,7 @@ async fn serve() -> Result<()> {
     // healthcheck to see if the worker is up
     app.at("/healthcheck").get(|_req| async { Ok("OK") });
 
-    let host: String = config::get_or("WATERWHEEL_WORKER_BIND", "127.0.0.1:0")?;
+    let host = &config::get().worker_bind;
     app.listen(host).await?;
 
     Ok(())

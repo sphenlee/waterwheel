@@ -8,7 +8,7 @@ paused: false
 triggers:
   - name: daily
     start: '2021-01-01T00:00:00Z'
-    period: '1h'
+    period: '1d'
 
 tasks:
   - name: stepA

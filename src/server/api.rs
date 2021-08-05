@@ -161,7 +161,7 @@ pub async fn serve() -> Result<()> {
             .get(get_file!(HTML; "text/html;charset=utf-8"));
     }
 
-    let host: String = config::get_or("WATERWHEEL_SERVER_BIND", "127.0.0.1:8080")?;
+    let host = &config::get().server_bind;
 
     app.listen(host).await?;
 

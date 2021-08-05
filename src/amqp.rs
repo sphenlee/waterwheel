@@ -9,7 +9,7 @@ static AMQP_CONNECTION: OnceCell<Connection> = OnceCell::new();
 
 pub async fn amqp_connect() -> Result<()> {
     info!("connecting to AMQP broker...");
-    let addr: String = config::get_or("WATERWHEEL_AMQP_ADDR", "amqp://127.0.0.1:5672/%2f")?;
+    let addr = &config::get().amqp_addr;
 
     let amqp_uri = addr.parse().map_err(anyhow::Error::msg)?;
 

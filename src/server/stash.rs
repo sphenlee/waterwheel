@@ -1,5 +1,5 @@
 use crate::config;
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use log::debug;
 use once_cell::sync::OnceCell;
@@ -26,19 +26,25 @@ static ENCODING_KEY: OnceCell<EncodingKey> = OnceCell::new();
 /// Prefers an RSA key pair if one is provided, otherwise will use an HMAC shared secret
 /// (which is easier to generate and share for local development)
 pub fn load_keys() -> Result<()> {
-    match config::get("WATERWHEEL_PUBLIC_KEY") {
-        Ok(pub_key_file) => {
-            let priv_key_file = config::get("WATERWHEEL_PRIVATE_KEY")?;
+    match config::get().public_key.as_deref() {
+        Some(pub_key_file) => {
+            let priv_key_file = config::get()
+                .private_key
+                .as_deref()
+                .ok_or_else(|| anyhow!("RSA private key not set
+                    (either both public and private keys must be set, or the HMAC secret must be set)"))?;
+
             load_rsa_keys(pub_key_file, priv_key_file)
         }
-        Err(_) => {
-            let secret = config::get("WATERWHEEL_HMAC_SECRET")?;
+        None => {
+            let secret = config::get().hmac_secret.as_deref().ok_or_else(|| anyhow!("HMAC secret set
+                (either both public and private keys must be set, or the HMAC secret must be set)"))?;
             load_hmac_secret(secret)
         }
     }
 }
 
-fn load_rsa_keys(pub_key_file: String, priv_key_file: String) -> Result<()> {
+fn load_rsa_keys(pub_key_file: &str, priv_key_file: &str) -> Result<()> {
     debug!("using RSA for stash keys");
 
     let pub_key = fs::read(pub_key_file)?;
@@ -59,7 +65,7 @@ fn load_rsa_keys(pub_key_file: String, priv_key_file: String) -> Result<()> {
 }
 
 #[allow(clippy::unnecessary_wraps)] // for consistency with `load_rsa_keys`
-fn load_hmac_secret(secret: String) -> Result<()> {
+fn load_hmac_secret(secret: &str) -> Result<()> {
     debug!("using HMAC for stash keys");
 
     DECODING_KEY

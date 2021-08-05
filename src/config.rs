@@ -1,44 +1,41 @@
-use anyhow::{Error, Result};
-use std::fmt::Debug;
-use std::str::FromStr;
+use anyhow::{Context, Result};
+use crate::worker::TaskEngine;
+use once_cell::sync::OnceCell;
+use config as config_loader;
+use reqwest::Url;
 
-pub fn get<T>(key: &str) -> Result<T>
-where
-    T: FromStr,
-    <T as FromStr>::Err: Debug,
-{
-    get_opt(key)?.ok_or_else(|| Error::msg(format!("environment variable {} not found", key)))
+#[derive(serde::Deserialize)]
+pub struct Config {
+    pub db_url: String,
+    pub amqp_addr: String,
+    pub server_addr: String,
+    pub server_bind: String,
+    pub worker_bind: String,
+    pub max_tasks: u32,
+    pub task_engine: TaskEngine,
+    pub kube_namespace: String,
+    pub hmac_secret: Option<String>,
+    pub public_key: Option<String>,
+    pub private_key: Option<String>,
+    pub opa_sidecar_addr: Option<Url>,
+    pub statsd_server: Option<String>,
+    pub json_log: bool,
 }
 
-pub fn get_opt<T>(key: &str) -> Result<Option<T>>
-    where
-        T: FromStr,
-        <T as FromStr>::Err: Debug,
-{
-    match std::env::var(key) {
-        Ok(val) => {
-            val
-                .parse()
-                .map_err(|err| Error::msg(format!("error parsing {}: {:?}", key, err)))
-                .map(Some)
-        },
-        Err(std::env::VarError::NotPresent) => {
-            Ok(None)
-        },
-        Err(err) => {
-            Err(Error::msg(format!("error getting {}: {}", key, err)))
-        }
-    }
+static CONFIG: OnceCell<Config> = OnceCell::new();
+
+pub fn load() -> Result<()> {
+    let mut loader = config_loader::Config::new();
+
+    loader.merge(config_loader::File::from_str(include_str!("default_config.toml"), config_loader::FileFormat::Toml))?
+        .merge(config_loader::File::with_name("waterwheel").required(false))?
+        .merge(config_loader::Environment::with_prefix("WATERWHEEL"))?;
+
+    let config = loader.try_into().context("mandatory configuration value not set")?;
+    let _ = CONFIG.set(config);
+    Ok(())
 }
 
-pub fn get_or<T, D>(key: &str, default: D) -> Result<T>
-where
-    T: FromStr,
-    <T as FromStr>::Err: Debug,
-    D: Into<T>,
-{
-    match get_opt(key)? {
-        Some(val) => Ok(val),
-        None => Ok(default.into()),
-    }
+pub fn get() -> &'static Config {
+    CONFIG.get().expect("config has not been loaded yet!")
 }

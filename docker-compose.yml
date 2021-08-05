@@ -24,3 +24,9 @@ services:
     volumes:
       - "$PWD/sample/policy:/policy"
     command: ["run", "--server", "-b", "/policy"]
+
+  redis:
+    # used to store sessions for the authentication server, not needed for waterwheel itself
+    image: redis
+    ports:
+      - "6379:6379"

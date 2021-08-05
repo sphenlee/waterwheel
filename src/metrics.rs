@@ -7,8 +7,8 @@ use std::net::UdpSocket;
 const METRIC_PREFIX: &str = "waterwheel"; // TODO - customise this for multiple deployments
 
 static STATSD_CLIENT: Lazy<StatsdClient> = Lazy::new(|| {
-    match config::get::<String>("WATERWHEEL_STATSD_SERVER") {
-        Ok(server) => {
+    match config::get().statsd_server.as_deref() {
+        Some(server) => {
             let socket = UdpSocket::bind("0.0.0.0:0").expect("failed to bind to statsd socket");
             let sink = QueuingMetricSink::from(
                 BufferedUdpMetricSink::from(
@@ -18,8 +18,8 @@ static STATSD_CLIENT: Lazy<StatsdClient> = Lazy::new(|| {
 
             StatsdClient::builder(METRIC_PREFIX, sink).build()
         }
-        Err(err) => {
-            warn!("not sending metrics: {}", err);
+        None => {
+            warn!("not sending metrics");
             StatsdClient::builder(METRIC_PREFIX, NopMetricSink).build()
         }
     }

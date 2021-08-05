@@ -8,7 +8,7 @@ paused: false
 triggers:
   - name: every_minute
     start: '2021-03-21T00:00:00Z'
-    period: '1m'
+    period: '1d'
 
 tasks:
   - name: step0

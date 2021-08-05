@@ -77,7 +77,7 @@ data:
 
     [[outputs.influxdb_v2]]
     urls = ["http://influxdb:8086"]
-    token = "itCt7e96iG6_vBBHCeiSjRlKZgvF8r4WeDENXtjzK5F_CQn81vUb1WcPXrcgbVRj6Gmw3yck_m74f9QqspW64g=="
+    token = "<token here>"
     organization = "waterwheel"
     bucket = "waterwheel"
     

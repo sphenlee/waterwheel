@@ -11,13 +11,13 @@ use kube::Client;
 use kv_log_macro::{debug as kvdebug, info as kvinfo, trace as kvtrace, warn as kvwarn};
 
 pub async fn run_kube(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
-    let ns: String = config::get_or("WATERWHEEL_KUBE_NAMESPACE", "default")?;
+    let ns = &config::get().kube_namespace;
 
     kvtrace!("loading kubernetes config");
     let client = Client::try_default().await?;
 
     kvtrace!("connecting to kubernetes...");
-    let pods: Api<Pod> = Api::namespaced(client, &ns);
+    let pods: Api<Pod> = Api::namespaced(client, ns);
     kvtrace!("connected to kubernetes namespace {}", ns);
 
     let pod = make_pod(task_req, task_def).await?;

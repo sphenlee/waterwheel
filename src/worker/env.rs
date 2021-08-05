@@ -37,7 +37,7 @@ pub fn get_env(task_req: &TaskRequest, task_def: &TaskDef) -> Result<Vec<EnvVar>
         }
     }
 
-    let server_addr: String = config::get("WATERWHEEL_SERVER_ADDR")?;
+    let server_addr: &str = config::get().server_addr.as_ref();
 
     env.push(envvar(
         "WATERWHEEL_TRIGGER_DATETIME",

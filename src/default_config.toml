@@ -1,0 +1,7 @@
+amqp_addr = "amqp://127.0.0.1:5672/%2f"
+server_bind = "127.0.0.1:8080"
+worker_bind = "127.0.0.1:0"
+max_tasks = 8
+task_engine = "docker"
+kube_namespace = "default"
+json_log = false

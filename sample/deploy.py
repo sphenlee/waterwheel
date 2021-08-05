@@ -22,11 +22,17 @@ resp = requests.put(WATERWHEEL_HOST + f'/api/projects/{project["uuid"]}/stash/te
 assert resp.status_code == codes.created
 
 
-for file in os.listdir('.'):
-    if p.splitext(file)[1] == '.yml':
+for file in os.listdir('./jobs'):
+    ext = p.splitext(file)[1]
+    if ext == '.yml':
         print(f'deploying {file}')
         job = yaml.safe_load(open(file))
-        resp = requests.put(WATERWHEEL_HOST + '/api/jobs', json=job)
-        if resp.status_code != codes.created:
-            print(resp.text)
+    elif ext == '.json':
+        print(f'deploying {file}')
+        job = json.load(open(file))
+    else:
+        continue
 
+    resp = requests.put(WATERWHEEL_HOST + '/api/jobs', json=job)
+    if resp.status_code != codes.created:
+        print(resp.text)

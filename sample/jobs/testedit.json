@@ -7,7 +7,7 @@
   "triggers": [
     {
       "name": "every_minute",
-      "start": "2021-03-01T00:00:00Z",
+      "start": "2021-04-07T00:00:00Z",
       "period": "1m"
     }
   ],

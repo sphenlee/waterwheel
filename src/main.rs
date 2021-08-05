@@ -17,6 +17,7 @@ mod metrics;
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv::dotenv().ok();
+    config::load()?;
     logging::setup()?;
 
     let app = clap::App::new("waterwheel")

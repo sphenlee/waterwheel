@@ -2,7 +2,7 @@ use crate::amqp::get_amqp_channel;
 use crate::config;
 use crate::metrics;
 use crate::messages::{TaskProgress, TaskRequest, TokenState};
-use crate::worker::{config_cache, docker, kube};
+use crate::worker::{config_cache, docker, kube, TaskEngine};
 use anyhow::Result;
 
 use futures::TryStreamExt;
@@ -16,35 +16,8 @@ use lapin::{BasicProperties, ExchangeKind};
 
 use super::{RUNNING_TASKS, TOTAL_TASKS, WORKER_ID};
 use chrono::{DateTime, Utc};
-use std::str::FromStr;
 use std::sync::atomic::Ordering;
 use cadence::{Counted, Gauged};
-
-enum TaskEngine {
-    /// Null engine always returns success - disabled in release builds
-    #[cfg(debug_assertions)]
-    Null,
-    /// Use a local docker instance (TODO - allow remote docker)
-    Docker,
-    /// Use a remote Kubernetes cluster
-    Kubernetes,
-}
-
-impl FromStr for TaskEngine {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            #[cfg(debug_assertions)]
-            "null" => Ok(TaskEngine::Null),
-            "docker" => Ok(TaskEngine::Docker),
-            "kubernetes" => Ok(TaskEngine::Kubernetes),
-            _ => Err(anyhow::Error::msg(
-                "invalid engine, valid options: docker, kubernetes",
-            )),
-        }
-    }
-}
 
 // TODO - queues should be configurable for task routing
 const TASK_QUEUE: &str = "waterwheel.tasks";
@@ -112,7 +85,7 @@ pub async fn process_work() -> Result<!> {
         )
         .await?;
 
-    let engine: TaskEngine = config::get_or("WATERWHEEL_TASK_ENGINE", TaskEngine::Docker)?;
+    let engine = config::get().task_engine;
 
     while let Some((chan, msg)) = consumer.try_next().await? {
         let task_req: TaskRequest = serde_json::from_slice(&msg.data)?;

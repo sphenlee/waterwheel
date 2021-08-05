@@ -128,6 +128,11 @@ authenticity by bearing the token).
 
 # Logging and debugging
 
+### WATERWHEEL_STATSD_SERVER
+Address of the statsd server to receive metrics data.
+
+    WATERWHEEL_STATSD_SERVER=localhost:8081
+
 ### WATERWHEEL_JSON_LOG
 Enable json logging output instead of the default formatted logs.
 

@@ -58,7 +58,7 @@ pub async fn get_task_def(task_id: Uuid) -> Result<TaskDef> {
 }
 
 async fn fetch_project_config(proj_id: Uuid) -> Result<JsonValue> {
-    let server_addr: String = crate::config::get("WATERWHEEL_SERVER_ADDR")?;
+    let server_addr = crate::config::get().server_addr.as_ref();
 
     let url = reqwest::Url::parse(&server_addr)?
         .join("api/projects/")?
@@ -78,7 +78,7 @@ async fn fetch_project_config(proj_id: Uuid) -> Result<JsonValue> {
 }
 
 async fn fetch_task_def(task_id: Uuid) -> Result<TaskDef> {
-    let server_addr: String = crate::config::get("WATERWHEEL_SERVER_ADDR")?;
+    let server_addr = crate::config::get().server_addr.as_ref();
 
     let url = reqwest::Url::parse(&server_addr)?
         .join("api/tasks/")?

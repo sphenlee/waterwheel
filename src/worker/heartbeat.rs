@@ -10,8 +10,8 @@ use reqwest::{StatusCode, Url};
 use std::sync::atomic::Ordering;
 
 pub async fn heartbeat() -> Result<!> {
-    let server_addr: String = config::get("WATERWHEEL_SERVER_ADDR")?;
-    let url = Url::parse(&server_addr)?.join("api/heartbeat")?;
+    let server_addr = config::get().server_addr.as_ref();
+    let url = Url::parse(server_addr)?.join("api/heartbeat")?;
 
     let client = reqwest::Client::new();
 

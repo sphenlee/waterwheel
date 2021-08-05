@@ -2,7 +2,6 @@ use anyhow::Result;
 use serde::Deserialize;
 use uuid::Uuid;
 use serde::Serialize;
-use reqwest::Url;
 use crate::config;
 use crate::server::api::request_ext::RequestExt;
 use highnoon::headers::Authorization;
@@ -12,10 +11,10 @@ use kv_log_macro::debug;
 use crate::server::api::project::get_project_name;
 use crate::server::api::State;
 use crate::server::api::job::get_job_name_and_project;
+use log::kv::Value;
+use std::collections::HashMap;
+use once_cell::sync::OnceCell;
 
-fn as_debug<D: std::fmt::Debug>(obj: &D) -> log::kv::Value {
-    log::kv::Value::from_debug(obj)
-}
 
 #[derive(Serialize, Debug)]
 struct Object {
@@ -28,9 +27,7 @@ struct Object {
 
 #[derive(Serialize, Debug)]
 pub struct Principal {
-    identity: String, // who is making the request
-    authority: String, // who verified their identity
-    groups: Vec<String>, // group membership
+    bearer: Option<String> // bearer token if present
 }
 
 #[derive(Serialize, Debug, Copy, Clone)]
@@ -41,11 +38,18 @@ pub enum Action {
     Delete,
 }
 
+#[derive(Serialize, Debug)]
+struct Http {
+    method: String,
+    headers: HashMap<String, String>,
+}
+
 #[derive(Serialize)]
 struct RequestCtx<'a> {
     object: &'a Object,
     principal: &'a Principal,
     action: Action,
+    http: Http,
 }
 
 #[derive(Serialize)]
@@ -59,36 +63,38 @@ struct OPAResponse {
 }
 
 fn derive_principal<S: highnoon::State>(req: &highnoon::Request<S>) -> Result<Principal> {
-    let authority = match config::get_opt::<String>("WATERWHEEL_HEADER_AUTHORITY")? {
-        None => "bearer".to_owned(),
-        Some(header) => {
-            match req.headers().get(&header) {
-                None => "none".to_owned(),
-                Some(value) => value.to_str()?.to_owned()
-            }
-        }
-    };
-
-    let identity = match config::get_opt::<String>("WATERWHEEL_HEADER_IDENTITY")? {
-        None => match req.header::<Authorization<Bearer>>() {
-            None => "".to_owned(),
-            Some(auth) => auth.0.token().to_owned()
-        },
-        Some(header) => match req.headers().get(&header) {
-            None => "".to_owned(),
-            Some(value) => value.to_str()?.to_owned()
-        }
-    };
+    let bearer = req.header::<Authorization<Bearer>>().map(|header| {
+        header.0.token().to_owned()
+    });
 
     Ok(Principal {
-        identity,
-        authority,
-        groups: vec![],
+        bearer,
     })
 }
 
-async fn authorize(principal: Principal, action: Action, object: Object) -> Result<bool> {
-    let opa: Url = config::get("WATERWHEEL_OPA_SIDECAR_ADDR")?;
+fn derive_http<S: highnoon::State>(req: &highnoon::Request<S>) -> Result<Http> {
+    let mut headers = HashMap::new();
+
+    for (k, v) in req.headers() {
+        if let Ok(val) = v.to_str() {
+            // TODO avoid this copying
+            headers.insert(k.to_string(), val.to_owned());
+        }
+    }
+
+    Ok(Http {
+        method: req.method().to_string(),
+        headers
+    })
+}
+
+async fn authorize(principal: Principal, action: Action, object: Object, http: Http) -> Result<bool> {
+    let opa = match config::get().opa_sidecar_addr.as_ref() {
+        // TODO - allow by default if OPA address is not set, not very secure default
+        None => return Ok(true),
+        Some(url) => url
+    };
+
     let url = opa.join("/v1/data/waterwheel/allow")?;
 
     let reply = reqwest::Client::new()
@@ -98,6 +104,7 @@ async fn authorize(principal: Principal, action: Action, object: Object) -> Resu
                 principal: &principal,
                 action,
                 object: &object,
+                http
             }
         })
         .send()
@@ -105,17 +112,18 @@ async fn authorize(principal: Principal, action: Action, object: Object) -> Resu
 
     let result: OPAResponse = reply.json().await?;
 
+    // purposely don't log the HTTP object as it contains raw headers which could contain tokens or cookies
     if result.result {
         debug!("authorized", {
-            principal: as_debug(&principal),
-            action: as_debug(&action),
-            object: as_debug(&object)
+            principal: Value::from_debug(&principal),
+            action: Value::from_debug(&action),
+            object: Value::from_debug(&object)
         });
     } else {
         debug!("unauthorized", {
-            principal: as_debug(&principal),
-            action: as_debug(&action),
-            object: as_debug(&object)
+            principal: Value::from_debug(&principal),
+            action: Value::from_debug(&action),
+            object: Value::from_debug(&object)
         });
     }
 
@@ -156,6 +164,7 @@ impl Check {
         let principal = derive_principal(req)?;
         let mut object = self.object.expect("authorization object uninitialised");
 
+        // TODO - DB query on every auth decision; maybe cache project/job id -> name mappings?
         let pool = req.get_pool();
 
         if let Some(proj_id) = object.project_id {
@@ -170,8 +179,10 @@ impl Check {
             object.job_name = Some(jp.job_name);
         }
 
+        let http = derive_http(&req)?;
+        //debug!("http context", { http: Value::from_debug(&http) });
 
-        if authorize(principal, self.action, object).await? {
+        if authorize(principal, self.action, object, http).await? {
             Ok(())
         } else {
             Err(highnoon::Error::http(StatusCode::FORBIDDEN))

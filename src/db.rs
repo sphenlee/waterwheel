@@ -9,8 +9,8 @@ static DB_POOL: once_cell::sync::OnceCell<PgPool> = once_cell::sync::OnceCell::n
 pub async fn create_pool() -> anyhow::Result<()> {
     info!("connecting to database...");
 
-    let url: String = config::get("WATERWHEEL_DB_URL")?;
-    let pool = PgPool::connect(&url).await?;
+    let url = &config::get().db_url;
+    let pool = PgPool::connect(url).await?;
 
     let mut conn = pool.acquire().await?;
     debug!("creating schema if needed");
