@@ -1,5 +1,5 @@
 use crate::server::api::request_ext::RequestExt;
-use crate::server::api::State;
+use crate::server::api::{State, auth};
 use highnoon::{Json, Request, Responder};
 use serde::Serialize;
 
@@ -11,6 +11,8 @@ pub struct ServerStatus {
 }
 
 pub async fn status(req: Request<State>) -> highnoon::Result<impl Responder> {
+    auth::get().kind("status").check(&req).await?;
+
     let status: ServerStatus = sqlx::query_as(
         "SELECT
             0 AS queued_triggers, -- TODO

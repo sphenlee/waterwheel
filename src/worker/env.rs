@@ -1,6 +1,6 @@
 use crate::config;
 use crate::messages::{TaskDef, TaskRequest};
-use crate::server::stash;
+use crate::server::jwt;
 use anyhow::Result;
 use itertools::Itertools;
 use k8s_openapi::api::core::v1::EnvVar;
@@ -53,7 +53,7 @@ pub fn get_env(task_req: &TaskRequest, task_def: &TaskDef) -> Result<Vec<EnvVar>
     env.push(envvar("WATERWHEEL_PROJECT_ID", task_def.project_id));
     env.push(envvar("WATERWHEEL_SERVER_ADDR", server_addr));
 
-    let stash_jwt = stash::generate_jwt(&task_req.task_id.to_string())?;
+    let stash_jwt = jwt::generate_stash_jwt(&task_req.task_id.to_string())?;
     env.push(envvar("WATERWHEEL_JWT", stash_jwt));
 
     Ok(env)

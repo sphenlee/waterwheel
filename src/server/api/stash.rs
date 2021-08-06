@@ -1,5 +1,5 @@
 use super::State;
-use crate::server::stash;
+use crate::server::jwt;
 use highnoon::headers::{authorization::Bearer, Authorization};
 use highnoon::{Error, Request, Responder, StatusCode};
 
@@ -24,7 +24,7 @@ pub fn get_jwt_subject(req: &Request<State>) -> highnoon::Result<String> {
         .header::<Authorization<Bearer>>()
         .ok_or_else(|| Error::http(StatusCode::UNAUTHORIZED))?;
 
-    let subject = stash::validate_jtw(jwt.0.token()).map_err(|err| {
+    let subject = jwt::validate_stash_jwt(jwt.0.token()).map_err(|err| {
         log::warn!("error validating JWT: {}", err);
         Error::http(StatusCode::UNAUTHORIZED)
     })?;

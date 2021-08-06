@@ -7,10 +7,13 @@ use chrono::{DateTime, Utc};
 use highnoon::{Json, Request, Responder, StatusCode};
 use uuid::Uuid;
 use serde::{Deserialize, Serialize};
+use crate::server::jwt;
 
 pub async fn clear_token(req: Request<State>) -> highnoon::Result<impl Responder> {
     let task_id = req.param("id")?.parse::<Uuid>()?;
     let trigger_datetime = req.param("trigger_datetime")?.parse::<DateTime<Utc>>()?;
+
+    //auth::update().job()
 
     let token = Token {
         task_id,
@@ -107,6 +110,8 @@ pub async fn clear_multiple_tokens(mut req: Request<State>) -> highnoon::Result<
 
 pub async fn get_task_def(req: Request<State>) -> highnoon::Result<impl Responder> {
     let task_id = req.param("id")?.parse::<Uuid>()?;
+
+    jwt::validate_config_jwt(&req, task_id)?;
 
     let def: Option<TaskDef> = sqlx::query_as(
         "SELECT

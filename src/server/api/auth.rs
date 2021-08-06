@@ -13,7 +13,6 @@ use crate::server::api::State;
 use crate::server::api::job::get_job_name_and_project;
 use log::kv::Value;
 use std::collections::HashMap;
-use once_cell::sync::OnceCell;
 
 
 #[derive(Serialize, Debug)]
@@ -156,6 +155,17 @@ impl Check {
             job_id: job_id.into(),
             job_name: None,
             kind: "job".to_owned(),
+        });
+        self
+    }
+
+    pub fn kind(mut self, kind: impl Into<String>) -> Self {
+        self.object = Some(Object {
+            project_id: None,
+            project_name: None,
+            job_id: None,
+            job_name: None,
+            kind: kind.into(),
         });
         self
     }

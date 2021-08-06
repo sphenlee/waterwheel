@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::amqp;
 use crate::config;
-use crate::server::stash;
+use crate::server::jwt;
 use crate::util::spawn_retry;
 use std::str::FromStr;
 
@@ -52,7 +52,7 @@ impl FromStr for TaskEngine {
 }
 
 pub async fn run_worker() -> Result<()> {
-    stash::load_keys()?;
+    jwt::load_keys()?;
 
     amqp::amqp_connect().await?;
 

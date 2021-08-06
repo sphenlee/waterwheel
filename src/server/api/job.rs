@@ -58,9 +58,8 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
     let pool = req.get_pool();
 
     let job: Job = req.body_json().await?;
-    //let proj_id = get_job_project(&pool, job.uuid).await?;
 
-    auth::delete().job(job.uuid).check(&req).await?;
+    auth::update().job(job.uuid).check(&req).await?;
 
     let mut txn = pool.begin().await?;
 
@@ -156,7 +155,7 @@ struct GetJob {
 pub async fn get_by_name(req: Request<State>) -> highnoon::Result<impl Responder> {
     let q = req.query::<QueryJob>()?;
 
-    let job: Option<GetJob> = sqlx::query_as(
+    let maybe_job: Option<GetJob> = sqlx::query_as(
         "SELECT
             j.id AS id,
             j.name AS name,
@@ -173,7 +172,12 @@ pub async fn get_by_name(req: Request<State>) -> highnoon::Result<impl Responder
     .fetch_optional(&req.get_pool())
     .await?;
 
-    Ok(job.map(Json))
+    if let Some(job) = maybe_job {
+        auth::get().job(job.id).check(&req).await?;
+        Json(job).into_response()
+    } else {
+        StatusCode::NOT_FOUND.into_response()
+    }
 }
 
 #[derive(Serialize, sqlx::FromRow)]
@@ -193,7 +197,7 @@ struct GetJobExtra {
 pub async fn get_by_id(req: Request<State>) -> highnoon::Result<impl Responder> {
     let id = req.param("id")?.parse::<Uuid>()?;
 
-    let job: Option<GetJobExtra> = sqlx::query_as(
+    let maybe_job: Option<GetJobExtra> = sqlx::query_as(
         "SELECT
             j.id AS id,
             j.name AS name,
@@ -233,11 +237,18 @@ pub async fn get_by_id(req: Request<State>) -> highnoon::Result<impl Responder> 
     .fetch_optional(&req.get_pool())
     .await?;
 
-    Ok(Json(job))
+    if let Some(job) = maybe_job {
+        auth::get().job(job.id).check(&req).await?;
+        Json(job).into_response()
+    } else {
+        StatusCode::NOT_FOUND.into_response()
+    }
 }
 
 pub async fn delete(req: Request<State>) -> highnoon::Result<StatusCode> {
     let id = req.param("id")?.parse::<Uuid>()?;
+
+    auth::delete().job(id).check(&req).await?;
 
     // TODO - this breaks because of foreign key constraints
     // should we even allow deleting a job?
@@ -269,6 +280,8 @@ pub async fn delete(req: Request<State>) -> highnoon::Result<StatusCode> {
 pub async fn get_paused(req: Request<State>) -> highnoon::Result<impl Responder> {
     let id = req.param("id")?.parse::<Uuid>()?;
 
+    auth::get().job(id).check(&req).await?;
+
     let row: Option<(bool,)> = sqlx::query_as(
         "SELECT paused
         FROM job
@@ -291,6 +304,8 @@ struct Paused {
 
 pub async fn set_paused(mut req: Request<State>) -> impl Responder {
     let id = req.param("id")?.parse::<Uuid>()?;
+
+    auth::update().job(id).check(&req).await?;
 
     let Paused { paused } = req.body_json().await?;
 

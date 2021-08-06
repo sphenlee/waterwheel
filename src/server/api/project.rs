@@ -2,6 +2,7 @@ use super::auth;
 use super::config_cache;
 use super::request_ext::RequestExt;
 use super::State;
+use crate::server::jwt;
 use crate::messages::ConfigUpdate;
 use crate::util::{is_pg_integrity_error, pg_error};
 use highnoon::{Json, Request, Responder, Response, StatusCode};
@@ -65,15 +66,14 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
                 uuid: Some(id),
                 ..proj
             };
-            Ok(Response::status(StatusCode::CREATED).json(proj)?)
+            (StatusCode::CREATED, Json(proj)).into_response()
         }
         Err(err) => {
             warn!("error updating project: {}", err);
             if is_pg_integrity_error(&err) {
-                Ok(Response::status(StatusCode::CONFLICT)
-                    .body("a project with this name already exists"))
+                (StatusCode::CONFLICT, "a project with this name already exists").into_response()
             } else {
-                Ok(Response::status(StatusCode::INTERNAL_SERVER_ERROR))
+                StatusCode::INTERNAL_SERVER_ERROR.into_response()
             }
         }
     }
@@ -119,13 +119,13 @@ pub async fn get_by_name(req: Request<State>) -> highnoon::Result<Response> {
         .fetch_optional(&req.get_pool())
         .await?;
 
-        Ok(match row {
-            None => Response::status(StatusCode::NOT_FOUND),
+        match row {
+            None => StatusCode::NOT_FOUND.into_response(),
             Some(proj) => {
                 auth::get().project(proj.id).check(&req).await?;
-                Response::ok().json(proj)?
+                Json(proj).into_response()
             },
-        })
+        }
     } else {
         list(req).await
     }
@@ -189,13 +189,13 @@ pub async fn get_by_id(req: Request<State>) -> highnoon::Result<Response> {
     .fetch_optional(&req.get_pool())
     .await?;
 
-    Ok(match row {
-        None => Response::status(StatusCode::NOT_FOUND),
+    match row {
+        None => StatusCode::NOT_FOUND.into_response(),
         Some(proj) => {
             auth::get().project(proj.id).check(&req).await?;
-            Response::ok().json(proj)?
+            Json(proj).into_response()
         },
-    })
+    }
 }
 
 #[derive(sqlx::FromRow, Serialize)]
@@ -205,6 +205,8 @@ struct ProjectConfig(JsonValue);
 pub async fn get_config(req: Request<State>) -> highnoon::Result<impl Responder> {
     let id_str = req.param("id")?;
     let id = Uuid::parse_str(&id_str)?;
+
+    jwt::validate_config_jwt(&req, id)?;
 
     let row: Option<ProjectConfig> = sqlx::query_as(
         "SELECT COALESCE(config, '{}'::jsonb) AS config
@@ -218,7 +220,11 @@ pub async fn get_config(req: Request<State>) -> highnoon::Result<impl Responder>
     // two layers of option - outer layer is None if the project is not found
     // inner layer if the project has no config
 
-    Ok(row.map(|config| Json(config.0)))
+    if let Some(proj_conf) = row {
+        Json(proj_conf).into_response()
+    } else {
+        StatusCode::NOT_FOUND.into_response()
+    }
 }
 
 pub async fn delete(req: Request<State>) -> highnoon::Result<StatusCode> {

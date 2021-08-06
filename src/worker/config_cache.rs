@@ -1,5 +1,6 @@
 use crate::amqp;
 use crate::messages::{ConfigUpdate, TaskDef};
+use crate::server::jwt;
 use anyhow::Result;
 use futures::TryStreamExt;
 use lapin::options::{
@@ -60,6 +61,8 @@ pub async fn get_task_def(task_id: Uuid) -> Result<TaskDef> {
 async fn fetch_project_config(proj_id: Uuid) -> Result<JsonValue> {
     let server_addr = crate::config::get().server_addr.as_ref();
 
+    let token = "Bearer ".to_owned() + &jwt::generate_config_jwt(proj_id)?;
+
     let url = reqwest::Url::parse(&server_addr)?
         .join("api/projects/")?
         .join(&format!("{}/", proj_id))?
@@ -69,7 +72,10 @@ async fn fetch_project_config(proj_id: Uuid) -> Result<JsonValue> {
 
     trace!("fetching project config from api");
 
-    let resp = client.get(url.clone()).send().await?.error_for_status()?;
+    let resp = client
+        .get(url.clone())
+        .header(reqwest::header::AUTHORIZATION, token)
+        .send().await?.error_for_status()?;
 
     let config = resp.json().await?;
 
@@ -80,6 +86,8 @@ async fn fetch_project_config(proj_id: Uuid) -> Result<JsonValue> {
 async fn fetch_task_def(task_id: Uuid) -> Result<TaskDef> {
     let server_addr = crate::config::get().server_addr.as_ref();
 
+    let token = "Bearer ".to_owned() + &jwt::generate_config_jwt(task_id)?;
+
     let url = reqwest::Url::parse(&server_addr)?
         .join("api/tasks/")?
         .join(&format!("{}", task_id))?;
@@ -88,7 +96,12 @@ async fn fetch_task_def(task_id: Uuid) -> Result<TaskDef> {
 
     trace!("fetching task def from api");
 
-    let resp = client.get(url.clone()).send().await?.error_for_status()?;
+    let resp = client
+        .get(url.clone())
+        .header(reqwest::header::AUTHORIZATION, token)
+        .send()
+        .await?
+        .error_for_status()?;
     let def = resp.json().await?;
 
     trace!("got task def");

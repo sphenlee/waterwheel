@@ -4,7 +4,7 @@ use anyhow::Result;
 mod api;
 mod execute;
 mod progress;
-pub mod stash;
+pub mod jwt;
 pub mod tokens;
 mod trigger_time;
 pub mod triggers;
@@ -21,7 +21,7 @@ pub async fn run_scheduler() -> Result<()> {
 }
 
 pub async fn run_api() -> Result<()> {
-    stash::load_keys()?;
+    jwt::load_keys()?;
 
     api::serve().await?;
 
