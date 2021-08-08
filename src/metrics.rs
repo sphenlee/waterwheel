@@ -1,5 +1,5 @@
 use once_cell::sync::Lazy;
-use log::warn;
+use tracing::warn;
 use crate::config;
 use cadence::{QueuingMetricSink, BufferedUdpMetricSink, StatsdClient, NopMetricSink};
 use std::net::UdpSocket;

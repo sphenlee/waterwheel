@@ -6,7 +6,7 @@ use crate::worker::{config_cache, docker, kube, TaskEngine};
 use anyhow::Result;
 
 use futures::TryStreamExt;
-use kv_log_macro::{debug as kvdebug, error as kverror, info as kvinfo};
+use tracing::{debug, error, info};
 use lapin::options::{
     BasicAckOptions, BasicConsumeOptions, BasicPublishOptions, BasicQosOptions,
     ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
@@ -101,12 +101,11 @@ pub async fn process_work() -> Result<!> {
         statsd.incr_with_tags("tasks.received").with_tag("worker_id", &WORKER_ID.to_string()).send();
 
 
-        kvdebug!("received task", {
-            task_id: task_req.task_id.to_string(),
-            trigger_datetime: task_req.trigger_datetime.to_rfc3339(),
-            started_datetime: started_datetime.to_rfc3339(),
-            priority: format!("{:?}", task_req.priority),
-        });
+        debug!(task_id=?task_req.task_id,
+            trigger_datetime=?task_req.trigger_datetime.to_rfc3339(),
+            started_datetime=?started_datetime.to_rfc3339(),
+            priority=?task_req.priority,
+            "received task");
 
         let result = if task_def.image.is_some() {
             chan.basic_publish(
@@ -129,10 +128,9 @@ pub async fn process_work() -> Result<!> {
                 Ok(true) => TokenState::Success,
                 Ok(false) => TokenState::Failure,
                 Err(err) => {
-                    kverror!("failed to run task: {:#}", err, {
-                        task_id: task_req.task_id.to_string(),
-                        trigger_datetime: task_req.trigger_datetime.to_rfc3339(),
-                    });
+                    error!(task_id=?task_req.task_id,
+                        trigger_datetime=?task_req.trigger_datetime.to_rfc3339(),
+                        "failed to run task: {:#}", err);
                     TokenState::Error
                 }
             }
@@ -155,12 +153,11 @@ pub async fn process_work() -> Result<!> {
             .send();
 
 
-        kvinfo!("task completed", {
-            result: result.as_str(),
-            task_id: task_req.task_id.to_string(),
-            trigger_datetime: task_req.trigger_datetime.to_rfc3339(),
-            started_datetime: started_datetime.to_rfc3339(),
-        });
+        info!(result=result.as_str(),
+            task_id=?task_req.task_id,
+            trigger_datetime=?task_req.trigger_datetime.to_rfc3339(),
+            started_datetime=?started_datetime.to_rfc3339(),
+            "task completed");
 
         chan.basic_publish(
             RESULT_EXCHANGE,
@@ -173,7 +170,7 @@ pub async fn process_work() -> Result<!> {
 
         chan.basic_ack(msg.delivery_tag, BasicAckOptions::default())
             .await?;
-        kvdebug!("task acked");
+        debug!("task acked");
     }
 
     unreachable!("consumer stopped consuming")

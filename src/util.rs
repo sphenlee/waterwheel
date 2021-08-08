@@ -1,7 +1,7 @@
 use crate::circuit_breaker::CircuitBreaker;
 use anyhow::Result;
 use chrono::Duration;
-use log::error;
+use tracing::error;
 use sqlx::postgres::PgDatabaseError;
 use std::future::Future;
 

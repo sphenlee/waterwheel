@@ -7,11 +7,10 @@ use crate::server::api::request_ext::RequestExt;
 use highnoon::headers::Authorization;
 use highnoon::headers::authorization::Bearer;
 use highnoon::StatusCode;
-use kv_log_macro::debug;
+use tracing::debug;
 use crate::server::api::project::get_project_name;
 use crate::server::api::State;
 use crate::server::api::job::get_job_name_and_project;
-use log::kv::Value;
 use std::collections::HashMap;
 
 
@@ -113,17 +112,9 @@ async fn authorize(principal: Principal, action: Action, object: Object, http: H
 
     // purposely don't log the HTTP object as it contains raw headers which could contain tokens or cookies
     if result.result {
-        debug!("authorized", {
-            principal: Value::from_debug(&principal),
-            action: Value::from_debug(&action),
-            object: Value::from_debug(&object)
-        });
+        debug!(?principal, ?action, ?object, "authorized");
     } else {
-        debug!("unauthorized", {
-            principal: Value::from_debug(&principal),
-            action: Value::from_debug(&action),
-            object: Value::from_debug(&object)
-        });
+        debug!(?principal, ?action, ?object, "unauthorized");
     }
 
 

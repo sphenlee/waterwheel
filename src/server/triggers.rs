@@ -8,7 +8,7 @@ use binary_heap_plus::{BinaryHeap, MinComparator};
 use chrono::{DateTime, Duration, Utc};
 use cron::Schedule;
 use futures::TryStreamExt;
-use kv_log_macro::{debug, info, trace, warn};
+use tracing::{debug, info, trace, warn};
 use postage::prelude::*;
 use postage::stream::TryRecvError;
 use serde::{Deserialize, Serialize};
@@ -109,7 +109,7 @@ pub async fn process_triggers() -> Result<!> {
         }
 
         #[cfg(debug_assertions)]
-        if log::max_level() >= log::Level::Trace {
+        {
             let queue_copy = queue.clone();
             trace!(
                 "dumping the first 10 (of total {}) triggers in the queue:",
@@ -128,9 +128,8 @@ pub async fn process_triggers() -> Result<!> {
 
         let delay = next_triggertime.trigger_datetime - Utc::now();
         if delay > Duration::zero() {
-            info!("sleeping {} until next trigger", format_duration_approx(delay), {
-                trigger_id: next_triggertime.trigger_id.to_string()
-            });
+            info!(trigger_id=?next_triggertime.trigger_id,
+                "sleeping {} until next trigger", format_duration_approx(delay));
 
             tokio::select! {
                 Some(TriggerUpdate(uuid)) = trigger_rx.recv() => {
@@ -179,10 +178,9 @@ async fn do_activate_trigger(
 {
     let pool = db::get_pool();
 
-    debug!("activating trigger", {
-        trigger_id: trigger_time.trigger_id.to_string(),
-        trigger_datetime: trigger_time.trigger_datetime.to_rfc3339(),
-    });
+    debug!(trigger_id=?trigger_time.trigger_id,
+        trigger_datetime=?trigger_time.trigger_datetime.to_rfc3339(),
+        "activating trigger");
 
     let mut cursor = sqlx::query_as(
         "SELECT
@@ -223,9 +221,7 @@ async fn do_activate_trigger(
 
 // returns the next trigger time in the future
 async fn catchup_trigger(trigger: &Trigger) -> anyhow::Result<DateTime<Utc>> {
-    debug!("checking trigger for any catchup", {
-        trigger_id: trigger.id.to_string()
-    });
+    debug!(trigger_id=?trigger.id, "checking trigger for any catchup");
 
     let pool = db::get_pool();
 
@@ -239,10 +235,9 @@ async fn catchup_trigger(trigger: &Trigger) -> anyhow::Result<DateTime<Utc>> {
     if let Some(earliest) = trigger.earliest_trigger_datetime {
         if trigger.start_datetime < earliest {
             // start date moved backwards
-            debug!(
+            debug!(trigger_id=?trigger.id,
                 "start date has moved backwards: {} -> {}",
-                earliest, trigger.start_datetime,
-                { trigger_id: trigger.id.to_string() }
+                earliest, trigger.start_datetime
             );
 
             let mut next = trigger.start_datetime;
@@ -297,7 +292,7 @@ async fn send_to_token_processor(tokens_to_tx: Vec<Token>, priority: TaskPriorit
 async fn update_trigger(uuid: &Uuid, queue: &mut Queue) -> Result<()> {
     let pool = db::get_pool();
 
-    debug!("updating trigger", { trigger_id: uuid.to_string() });
+    debug!(trigger_id=?uuid, "updating trigger");
 
     // de-heapify the triggers and delete the one we are updating
     let mut triggers = queue
@@ -335,11 +330,11 @@ async fn update_trigger(uuid: &Uuid, queue: &mut Queue) -> Result<()> {
 
         if trigger.end_datetime.is_none() || next < trigger.end_datetime.unwrap() {
             // push one trigger in the future
-            trace!("queueing trigger at {}", next, { trigger_id: trigger.id.to_string() });
+            trace!(trigger_id=?trigger.id, "queueing trigger at {}", next);
             queue.push(trigger.at(next));
         }
     } else {
-        debug!(
+        debug!(trigger_id=?uuid,
             "trigger {} has been paused, it had been removed from the queue",
             uuid
         );
@@ -376,7 +371,7 @@ async fn restore_triggers(queue: &mut Queue) -> Result<()> {
 
         if trigger.end_datetime.is_none() || next < trigger.end_datetime.unwrap() {
             // push one trigger in the future
-            trace!("queueing trigger at {}", next, { trigger_id: trigger.id.to_string() });
+            trace!(trigger_id=?trigger.id, "queueing trigger at {}", next);
             queue.push(trigger.at(next));
         }
     }
@@ -413,9 +408,8 @@ async fn requeue_next_triggertime(next_triggertime: &TriggerTime, queue: &mut Qu
     if trigger.end_datetime.is_none() || next_datetime < trigger.end_datetime.unwrap() {
         let requeue = trigger.at(next_datetime);
 
-        trace!("queueing next time: {}", requeue.trigger_datetime, {
-            trigger_id: requeue.trigger_id.to_string()
-        });
+        trace!(trigger_id=?requeue.trigger_id,
+            "queueing next time: {}", requeue.trigger_datetime);
 
         queue.push(requeue);
     }

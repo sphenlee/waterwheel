@@ -4,7 +4,7 @@ use crate::server::triggers::TriggerUpdate;
 use crate::{amqp, postoffice};
 use anyhow::Result;
 use futures::TryStreamExt;
-use kv_log_macro::trace as kvtrace;
+use tracing::trace;
 use lapin::options::{BasicAckOptions, BasicConsumeOptions, QueueDeclareOptions};
 use lapin::types::FieldTable;
 use postage::prelude::*;
@@ -40,10 +40,7 @@ pub async fn process_updates() -> Result<!> {
     while let Some((chan, msg)) = consumer.try_next().await? {
         let update: SchedulerUpdate = serde_json::from_slice(&msg.data)?;
 
-        kvtrace!(
-        "received scheduler update message", {
-            update: log::kv::value::Value::from_debug(&update),
-        });
+        trace!(?update, "received scheduler update message");
 
         match update {
             SchedulerUpdate::TriggerUpdate(tu) => trigger_tx.send(tu).await?,
@@ -53,7 +50,7 @@ pub async fn process_updates() -> Result<!> {
         chan.basic_ack(msg.delivery_tag, BasicAckOptions::default())
             .await?;
 
-        kvtrace!("forwarded scheduler update");
+        trace!("forwarded scheduler update");
     }
 
     unreachable!("consumer stopped consuming")

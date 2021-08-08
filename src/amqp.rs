@@ -1,7 +1,7 @@
 use crate::config;
 use anyhow::Result;
 use lapin::{Channel, Connection, ConnectionProperties};
-use log::{info, warn};
+use tracing::{info, warn};
 use once_cell::sync::OnceCell;
 use tokio_amqp::LapinTokioExt;
 

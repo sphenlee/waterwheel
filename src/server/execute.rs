@@ -3,7 +3,7 @@ use crate::messages::{TaskPriority, TaskRequest, Token};
 use crate::{db, postoffice, metrics};
 use anyhow::Result;
 use chrono::Utc;
-use kv_log_macro::{debug as kvdebug, info as kvinfo};
+use tracing::{debug, info};
 use lapin::options::{
     BasicPublishOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
 };
@@ -67,11 +67,10 @@ pub async fn process_executions() -> Result<!> {
 
     while let Some(msg) = execute_rx.recv().await {
         let ExecuteToken(token, priority) = msg;
-        kvdebug!("enqueueing", {
-            task_id: token.task_id.to_string(),
-            trigger_datetime: token.trigger_datetime.to_rfc3339(),
-            priority: log::kv::Value::from_debug(&priority),
-        });
+        debug!(task_id=?token.task_id,
+            trigger_datetime=?token.trigger_datetime.to_rfc3339(),
+            ?priority,
+            "enqueueing");
 
         let mut conn = pool.acquire().await?;
         let mut txn = conn.begin().await?;
@@ -127,11 +126,10 @@ pub async fn process_executions() -> Result<!> {
 
         txn.commit().await?;
 
-        kvinfo!("task enqueued", {
-            task_id: token.task_id.to_string(),
-            trigger_datetime: token.trigger_datetime.to_rfc3339(),
-            priority: log::kv::Value::from_debug(&priority),
-        });
+        info!(task_id=?token.task_id,
+            trigger_datetime=?token.trigger_datetime.to_rfc3339(),
+            ?priority,
+            "task enqueued");
 
         statsd.incr_with_tags("tasks.enqueued")
             .with_tag("priority", priority.as_str())

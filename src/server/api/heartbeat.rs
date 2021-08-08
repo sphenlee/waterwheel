@@ -2,14 +2,12 @@ use crate::messages::WorkerHeartbeat;
 use crate::server::api::request_ext::RequestExt;
 use crate::server::api::State;
 use highnoon::{Request, Responder, StatusCode};
-use kv_log_macro::trace;
+use tracing::trace;
 
 pub async fn post(mut req: Request<State>) -> highnoon::Result<impl Responder> {
     let beat: WorkerHeartbeat = req.body_json().await?;
 
-    trace!("received heartbeat", {
-        uuid: beat.uuid.to_string(),
-    });
+    trace!(uuid=?beat.uuid, "received heartbeat");
 
     sqlx::query(
         "INSERT INTO worker(

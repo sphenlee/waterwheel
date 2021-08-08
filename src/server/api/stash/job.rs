@@ -1,6 +1,6 @@
 use crate::server::api::{request_ext::RequestExt, State};
 use highnoon::{Json, Request, Responder, StatusCode};
-use kv_log_macro::info;
+use tracing::info;
 use uuid::Uuid;
 
 use super::{get_jwt_subject, StashData, StashName};
@@ -30,11 +30,7 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<impl Responder>
     .execute(&db)
     .await?;
 
-    info!("created job stash item", {
-        job_id: job_id.to_string(),
-        trigger_datetime: trigger_datetime.to_rfc3339(),
-        key: key
-    });
+    info!(?job_id, trigger_datetime=?trigger_datetime.to_rfc3339(), %key, "created job stash item");
 
     Ok(StatusCode::CREATED)
 }
@@ -67,12 +63,11 @@ pub async fn get(req: Request<State>) -> highnoon::Result<impl Responder> {
     let task_id = get_jwt_subject(&req)?.parse::<Uuid>()?;
     let key = req.param("key")?;
 
-    info!("task requested job stash", {
-        job_id: job_id.to_string(),
-        trigger_datetime: trigger_datetime.to_rfc3339(),
-        task_id: task_id.to_string(),
-        key: key,
-    });
+    info!(?job_id,
+        trigger_datetime=?trigger_datetime.to_rfc3339(),
+        ?task_id,
+        key,
+        "task requested job stash");
 
     let row: Option<StashData> = sqlx::query_as(
         "SELECT js.data
@@ -120,11 +115,7 @@ pub async fn delete(req: Request<State>) -> highnoon::Result<impl Responder> {
     .execute(&db)
     .await?;
 
-    info!("deleted job stash item", {
-        job_id: job_id.to_string(),
-        trigger_datetime: trigger_datetime.to_rfc3339(),
-        key: key
-    });
+    info!(?job_id, trigger_datetime=?trigger_datetime.to_rfc3339(), key, "deleted job stash item");
 
     Ok(StatusCode::NO_CONTENT)
 }

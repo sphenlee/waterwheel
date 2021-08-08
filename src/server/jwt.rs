@@ -1,7 +1,7 @@
 use crate::config;
 use anyhow::{Result, anyhow};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation};
-use log::debug;
+use tracing::debug;
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 use std::fs;

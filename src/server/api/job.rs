@@ -4,7 +4,7 @@ use super::updates;
 use super::State;
 use crate::util::{is_pg_integrity_error, pg_error};
 use highnoon::{Json, Request, Responder, Response, StatusCode};
-use log::{info, warn};
+use tracing::{info, warn};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -37,13 +37,12 @@ pub struct JobAndProject {
 pub async fn get_job_name_and_project(pool: &PgPool, job_id: Uuid) -> highnoon::Result<JobAndProject> {
     let row: Option<JobAndProject> = sqlx::query_as("
             SELECT
-                j.name AS job_name
-                p.id AS project_id
+                j.name AS job_name,
+                p.id AS project_id,
                 p.name AS project_name
             FROM project p
-            JOIN job j
-            WHERE p.id = j.project_id
-            AND j.id = $1")
+            JOIN job j ON p.id = j.project_id
+            WHERE j.id = $1")
         .bind(&job_id)
         .fetch_optional(pool)
         .await?;

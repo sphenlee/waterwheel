@@ -1,7 +1,7 @@
 use std::sync::atomic::AtomicI32;
 
 use anyhow::Result;
-use kv_log_macro::info;
+use tracing::info;
 use once_cell::sync::Lazy;
 use uuid::Uuid;
 

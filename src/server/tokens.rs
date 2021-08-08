@@ -3,7 +3,7 @@ use crate::server::execute::ExecuteToken;
 use crate::{db, postoffice};
 use anyhow::Result;
 use futures::TryStreamExt;
-use kv_log_macro::{info, trace};
+use tracing::{info, trace};
 use postage::prelude::*;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Postgres, Transaction};
@@ -57,10 +57,9 @@ pub async fn process_tokens() -> Result<!> {
 
                 let threshold = get_threshold(&pool, &token).await?;
 
-                trace!("count is {} (threshold {})", *count, threshold, {
-                    task_id: token.task_id.to_string(),
-                    trigger_datetime: token.trigger_datetime.to_rfc3339(),
-                });
+                trace!(task_id=?token.task_id,
+                    trigger_datetime=?token.trigger_datetime.to_rfc3339(),
+                    "count is {} (threshold {})", *count, threshold);
 
                 if *count >= threshold {
                     *count -= threshold;
@@ -90,10 +89,9 @@ pub async fn process_tokens() -> Result<!> {
 /// After adding the token you have to send the token over to the process_tokens future to actually
 /// check if the node has activated
 pub async fn increment_token(txn: &mut Transaction<'_, Postgres>, token: &Token) -> Result<()> {
-    trace!("incrementing token", {
-        task_id: token.task_id.to_string(),
-        trigger_datetime: token.trigger_datetime.to_rfc3339(),
-    });
+    trace!(task_id=?token.task_id,
+        trigger_datetime=?token.trigger_datetime.to_rfc3339(),
+        "incrementing token");
 
     sqlx::query(
         "INSERT INTO token(task_id, trigger_datetime, count, state)
@@ -139,7 +137,10 @@ async fn restore_tokens() -> Result<HashMap<Token, i32>> {
             trigger_datetime,
         };
 
-        trace!("restored token", {task_id: token.task_id.to_string(), count: count});
+        trace!(task_id=?token.task_id,
+            trigger_datetime=?token.trigger_datetime.to_rfc3339(),
+            count,
+            "restored token");
 
         if count >= threshold {
             execute_tx

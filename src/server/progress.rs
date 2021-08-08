@@ -4,7 +4,7 @@ use crate::server::tokens::{increment_token, ProcessToken};
 use crate::{db, postoffice};
 use anyhow::Result;
 use futures::TryStreamExt;
-use kv_log_macro::debug;
+use tracing::debug;
 use lapin::options::{BasicAckOptions, BasicConsumeOptions, QueueDeclareOptions, BasicQosOptions};
 use lapin::types::FieldTable;
 use postage::prelude::*;
@@ -43,12 +43,10 @@ pub async fn process_progress() -> Result<!> {
     while let Some((chan, msg)) = consumer.try_next().await? {
         let task_progress: TaskProgress = serde_json::from_slice(&msg.data)?;
 
-        debug!(
-        "received task progress", {
-            result: task_progress.result.as_str(),
-            task_id: task_progress.task_id.to_string(),
-            trigger_datetime: task_progress.trigger_datetime.to_rfc3339(),
-        });
+        debug!(result=task_progress.result.as_str(),
+            task_id=?task_progress.task_id,
+            trigger_datetime=?task_progress.trigger_datetime.to_rfc3339(),
+            "received task progress");
 
         let pool = db::get_pool();
         let mut conn = pool.acquire().await?;

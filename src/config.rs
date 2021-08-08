@@ -20,6 +20,7 @@ pub struct Config {
     pub opa_sidecar_addr: Option<Url>,
     pub statsd_server: Option<String>,
     pub json_log: bool,
+    pub log: String,
 }
 
 static CONFIG: OnceCell<Config> = OnceCell::new();

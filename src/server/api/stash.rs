@@ -25,7 +25,7 @@ pub fn get_jwt_subject(req: &Request<State>) -> highnoon::Result<String> {
         .ok_or_else(|| Error::http(StatusCode::UNAUTHORIZED))?;
 
     let subject = jwt::validate_stash_jwt(jwt.0.token()).map_err(|err| {
-        log::warn!("error validating JWT: {}", err);
+        tracing::warn!("error validating JWT: {}", err);
         Error::http(StatusCode::UNAUTHORIZED)
     })?;
 

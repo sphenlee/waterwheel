@@ -1,6 +1,6 @@
 use crate::server::api::{request_ext::RequestExt, State};
 use highnoon::{Json, Request, Responder, StatusCode};
-use kv_log_macro::info;
+use tracing::info;
 use uuid::Uuid;
 
 use super::{get_jwt_subject, StashData, StashName};
@@ -27,10 +27,7 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<impl Responder>
     .execute(&db)
     .await?;
 
-    info!("created project stash item", {
-        project_id: proj_id.to_string(),
-        key: key
-    });
+    info!(project_id=?proj_id, key, "created project stash item");
 
     Ok(StatusCode::CREATED)
 }
@@ -59,11 +56,7 @@ pub async fn get(req: Request<State>) -> highnoon::Result<impl Responder> {
     let task_id = get_jwt_subject(&req)?.parse::<Uuid>()?;
     let key = req.param("key")?;
 
-    info!("task requested project stash", {
-        project_id: proj_id.to_string(),
-        task_id: task_id.to_string(),
-        key: key,
-    });
+    info!(?proj_id, ?task_id, %key, "task requested project stash");
 
     let row: Option<StashData> = sqlx::query_as(
         "SELECT data
@@ -108,10 +101,7 @@ pub async fn delete(req: Request<State>) -> highnoon::Result<impl Responder> {
     .execute(&db)
     .await?;
 
-    info!("deleted project stash item", {
-        project_id: proj_id.to_string(),
-        key: key
-    });
+    info!(?proj_id, ?key, "deleted project stash item");
 
     Ok(StatusCode::NO_CONTENT)
 }

@@ -8,17 +8,17 @@ use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::core::v1::Pod;
 use kube::api::{Api, DeleteParams, ListParams, LogParams, Meta, PostParams, WatchEvent};
 use kube::Client;
-use kv_log_macro::{debug as kvdebug, info as kvinfo, trace as kvtrace, warn as kvwarn};
+use tracing::{debug, info, trace, warn};
 
 pub async fn run_kube(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
     let ns = &config::get().kube_namespace;
 
-    kvtrace!("loading kubernetes config");
+    trace!("loading kubernetes config");
     let client = Client::try_default().await?;
 
-    kvtrace!("connecting to kubernetes...");
+    trace!("connecting to kubernetes...");
     let pods: Api<Pod> = Api::namespaced(client, ns);
-    kvtrace!("connected to kubernetes namespace {}", ns);
+    trace!("connected to kubernetes namespace {}", ns);
 
     let pod = make_pod(task_req, task_def).await?;
 
@@ -34,16 +34,12 @@ pub async fn run_kube(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> 
     while let Some(status) = stream.try_next().await? {
         match status {
             WatchEvent::Added(pod) => {
-                kvdebug!("pod created", {
-                    pod_name: Meta::name(&pod),
-                });
+                debug!(pod_name=?Meta::name(&pod), "pod created");
             }
             WatchEvent::Modified(pod) => {
                 let status = pod.status.as_ref().expect("status exists on pod");
                 let phase = status.phase.clone().unwrap_or_default();
-                kvtrace!("pod modified, phase is '{}'", phase, {
-                    pod_name: Meta::name(&pod),
-                });
+                trace!(pod_name=?Meta::name(&pod), "pod modified, phase is '{}'", phase);
 
                 if phase == "Succeeded" {
                     result = true;
@@ -55,7 +51,7 @@ pub async fn run_kube(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> 
             }
             //WatchEvent::Deleted(o) => println!("Deleted {}", Meta::name(&o)),
             WatchEvent::Error(e) => {
-                kvwarn!("error from Kubernetes {:?}", e, { pod_name: name });
+                warn!(pod_name=?name, "error from Kubernetes {:?}", e);
                 return Err(e.into());
             }
             _ => {}
@@ -74,13 +70,13 @@ pub async fn run_kube(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> 
         .await?;
 
     while let Some(log) = logs.try_next().await? {
-        // TODO - direct these to a different log stream
         // TODO - kubernetes probably doesn't need this, logs can be shipped from the cluster
         let line = String::from_utf8_lossy(&*log);
-        kvinfo!("{}", line.trim_end());
+        info!(target: "container_logs",
+            "{}", line.trim_end());
     }
 
-    kvtrace!("deleting pod", { pod_name: name });
+    trace!(pod_name=?name, "deleting pod");
     let _ = pods.delete(&name, &DeleteParams::default()).await?;
 
     Ok(result)
@@ -120,11 +116,11 @@ async fn make_pod(task_req: TaskRequest, task_def: TaskDef) -> Result<Pod> {
     let pod_merge = config.get("kubernetes_pod_merge");
 
     if let Some(json) = pod_merge {
-        kvtrace!("merging template: {:#} with patch: {:#}", pod_json, json);
+        trace!("merging template: {:#} with patch: {:#}", pod_json, json);
         json_patch::merge(&mut pod_json, json);
     }
 
-    kvtrace!("pod json: {:#}", pod_json);
+    trace!("pod json: {:#}", pod_json);
 
     let pod = serde_json::from_value(pod_json)?;
     Ok(pod)

@@ -9,7 +9,7 @@ use lapin::options::{
 };
 use lapin::types::FieldTable;
 use lapin::ExchangeKind;
-use log::trace;
+use tracing::trace;
 use lru_time_cache::LruCache;
 use once_cell::sync::Lazy;
 use serde_json::Value as JsonValue;

@@ -1,6 +1,6 @@
 use crate::server::api::{request_ext::RequestExt, State};
 use highnoon::{Json, Request, Responder, StatusCode};
-use kv_log_macro::info;
+use tracing::info;
 
 use super::{get_jwt_subject, StashData, StashName};
 use cadence::Counted;
@@ -23,7 +23,7 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<impl Responder>
     .execute(&db)
     .await?;
 
-    info!("created global stash item", { key: key });
+    info!(key, "created global stash item");
 
     Ok(StatusCode::CREATED)
 }
@@ -47,10 +47,7 @@ pub async fn get(req: Request<State>) -> highnoon::Result<impl Responder> {
     let subject = get_jwt_subject(&req)?;
     let key = req.param("key")?;
 
-    info!("task requested global stash", {
-        task_id: subject,
-        key: key,
-    });
+    info!(task_id=?subject, key, "task requested global stash");
 
     let row: Option<StashData> = sqlx::query_as(
         "SELECT data
@@ -82,7 +79,7 @@ pub async fn delete(req: Request<State>) -> highnoon::Result<impl Responder> {
     .execute(&db)
     .await?;
 
-    info!("deleted global stash item", { key: key });
+    info!(key, "deleted global stash item");
 
     Ok(StatusCode::NO_CONTENT)
 }

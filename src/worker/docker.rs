@@ -7,7 +7,7 @@ use bollard::container::{
 };
 use bollard::image::{CreateImageOptions, ListImagesOptions};
 use futures::TryStreamExt;
-use kv_log_macro::{info as kvinfo, trace as kvtrace};
+use tracing::{info, trace};
 use serde::Serialize;
 use std::collections::HashMap;
 
@@ -39,7 +39,7 @@ pub async fn run_docker(task_req: TaskRequest, task_def: TaskDef) -> Result<bool
     let mut filters = HashMap::new();
     filters.insert("reference", vec![&*image]);
 
-    kvtrace!("listing images", { filters: format!("{:?}", filters) });
+    trace!(?filters, "listing images");
 
     let list = docker
         .list_images(Some(ListImagesOptions {
@@ -48,7 +48,7 @@ pub async fn run_docker(task_req: TaskRequest, task_def: TaskDef) -> Result<bool
         }))
         .await?;
 
-    kvtrace!("got {} images", list.len());
+    trace!("got {} images", list.len());
 
     // ____________________________________________________
     // pull the image if we didn't find it
@@ -63,17 +63,13 @@ pub async fn run_docker(task_req: TaskRequest, task_def: TaskDef) -> Result<bool
         );
 
         while let Some(data) = pull.try_next().await? {
-            kvtrace!("pulling image: {}", serde_json::to_string(&data)?);
+            trace!("pulling image: {}", serde_json::to_string(&data)?);
         }
     }
 
     // ____________________________________________________
     // launch the container
-    kvtrace!("launching container", {
-        image: &image,
-        args: format!("{:?}", args),
-        env: format!("{:?}", env),
-    });
+    trace!(?image, ?args, ?env, "launching container");
 
     let container = docker
         .create_container(
@@ -87,7 +83,7 @@ pub async fn run_docker(task_req: TaskRequest, task_def: TaskDef) -> Result<bool
         )
         .await?;
 
-    kvtrace!("created container", { id: container.id });
+    trace!(id=?container.id, "created container");
 
     // ____________________________________________________
     // start the container
@@ -95,7 +91,7 @@ pub async fn run_docker(task_req: TaskRequest, task_def: TaskDef) -> Result<bool
         .start_container(&container.id, None::<StartContainerOptions<String>>)
         .await?;
 
-    kvtrace!("started container", { id: container.id});
+    trace!(id=?container.id, "started container");
 
     // ____________________________________________________
     // streams the logs back
@@ -117,13 +113,12 @@ pub async fn run_docker(task_req: TaskRequest, task_def: TaskDef) -> Result<bool
     };
 
     while let Some(line) = logs.try_next().await? {
-        // TODO - direct these to a different log stream
-        kvinfo!("{}", line, {
-            project_id: log_meta.project_id,
-            job_id: log_meta.job_id,
-            task_id: log_meta.task_id,
-            trigger_datetime: log_meta.trigger_datetime,
-        });
+        info!(target: "container_logs",
+            project_id=?log_meta.project_id,
+            job_id=?log_meta.job_id,
+            task_id=?log_meta.task_id,
+            trigger_datetime=?log_meta.trigger_datetime,
+            "{}", line);
     }
 
     // ____________________________________________________
@@ -132,7 +127,7 @@ pub async fn run_docker(task_req: TaskRequest, task_def: TaskDef) -> Result<bool
 
     let mut exit = 0;
     while let Some(x) = waiter.try_next().await? {
-        kvtrace!("container exit code: {}", x.status_code, { id: container.id});
+        trace!(id=?container.id, "container exit code: {}", x.status_code);
         exit = x.status_code;
     }
 
@@ -142,7 +137,7 @@ pub async fn run_docker(task_req: TaskRequest, task_def: TaskDef) -> Result<bool
         .remove_container(&container.id, None::<RemoveContainerOptions>)
         .await?;
 
-    kvtrace!("container removed", { id: container.id });
+    trace!(id=?container.id, "container removed");
 
     Ok(exit == 0)
 }

@@ -3,7 +3,7 @@ use crate::messages::WorkerHeartbeat;
 use anyhow::Result;
 
 use chrono::Utc;
-use log::{debug, trace, warn};
+use tracing::{debug, trace, warn};
 
 use super::{RUNNING_TASKS, TOTAL_TASKS, WORKER_ID};
 use reqwest::{StatusCode, Url};
@@ -35,8 +35,10 @@ pub async fn heartbeat() -> Result<!> {
                 trace!("heartbeat: {}", resp.status())
             }
             Ok(resp) => {
-                warn!("heartbeat: {}", resp.status());
-                debug!("heartbeat: {}", resp.text().await?);
+                let status = resp.status();
+                let body = resp.text().await?;
+                warn!("heartbeat: {}", status);
+                debug!("heartbeat: {}", body);
             }
             Err(err) => {
                 warn!("failed to send heartbeat to the server: {}", err)
