@@ -1,5 +1,5 @@
 use crate::server::api::request_ext::RequestExt;
-use crate::server::api::{State, auth};
+use crate::server::api::{auth, State};
 use highnoon::{Json, Request, Responder};
 use serde::Serialize;
 

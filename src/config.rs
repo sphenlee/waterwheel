@@ -1,7 +1,7 @@
-use anyhow::{Context, Result};
 use crate::worker::TaskEngine;
-use once_cell::sync::OnceCell;
+use anyhow::{Context, Result};
 use config as config_loader;
+use once_cell::sync::OnceCell;
 use reqwest::Url;
 
 #[derive(serde::Deserialize)]
@@ -28,11 +28,17 @@ static CONFIG: OnceCell<Config> = OnceCell::new();
 pub fn load() -> Result<()> {
     let mut loader = config_loader::Config::new();
 
-    loader.merge(config_loader::File::from_str(include_str!("default_config.toml"), config_loader::FileFormat::Toml))?
+    loader
+        .merge(config_loader::File::from_str(
+            include_str!("default_config.toml"),
+            config_loader::FileFormat::Toml,
+        ))?
         .merge(config_loader::File::with_name("waterwheel").required(false))?
         .merge(config_loader::Environment::with_prefix("WATERWHEEL"))?;
 
-    let config = loader.try_into().context("mandatory configuration value not set")?;
+    let config = loader
+        .try_into()
+        .context("mandatory configuration value not set")?;
     let _ = CONFIG.set(config);
     Ok(())
 }

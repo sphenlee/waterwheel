@@ -1,6 +1,6 @@
 use crate::config;
-use tracing::{debug, info, trace, warn};
 use sqlx::{Executor, PgPool};
+use tracing::{debug, info, trace, warn};
 
 const SCHEMA: &str = include_str!("schema.sql");
 

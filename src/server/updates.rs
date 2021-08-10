@@ -4,10 +4,10 @@ use crate::server::triggers::TriggerUpdate;
 use crate::{amqp, postoffice};
 use anyhow::Result;
 use futures::TryStreamExt;
-use tracing::trace;
 use lapin::options::{BasicAckOptions, BasicConsumeOptions, QueueDeclareOptions};
 use lapin::types::FieldTable;
 use postage::prelude::*;
+use tracing::trace;
 
 const UPDATE_QUEUE: &str = "waterwheel.updates";
 

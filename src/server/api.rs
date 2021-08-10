@@ -1,8 +1,8 @@
 use crate::config;
 use anyhow::Result;
+use cadence::StatsdClient;
 use lapin::Channel;
 use sqlx::PgPool;
-use cadence::StatsdClient;
 
 mod auth;
 mod config_cache;

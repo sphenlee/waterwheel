@@ -3,8 +3,8 @@ use anyhow::Result;
 
 mod api;
 mod execute;
-mod progress;
 pub mod jwt;
+mod progress;
 pub mod tokens;
 mod trigger_time;
 pub mod triggers;

@@ -7,9 +7,9 @@ use bollard::container::{
 };
 use bollard::image::{CreateImageOptions, ListImagesOptions};
 use futures::TryStreamExt;
-use tracing::{info, trace};
 use serde::Serialize;
 use std::collections::HashMap;
+use tracing::{info, trace};
 
 #[derive(Serialize)]
 struct LogMeta<'a> {

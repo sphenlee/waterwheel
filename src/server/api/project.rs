@@ -2,15 +2,15 @@ use super::auth;
 use super::config_cache;
 use super::request_ext::RequestExt;
 use super::State;
-use crate::server::jwt;
 use crate::messages::ConfigUpdate;
+use crate::server::jwt;
 use crate::util::{is_pg_integrity_error, pg_error};
 use highnoon::{Json, Request, Responder, Response, StatusCode};
-use tracing::{info, warn};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
-use uuid::Uuid;
 use sqlx::PgPool;
+use tracing::{info, warn};
+use uuid::Uuid;
 
 /// resolve a project ID into a name
 pub async fn get_project_name(pool: &PgPool, project_id: Uuid) -> highnoon::Result<String> {
@@ -71,7 +71,11 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
         Err(err) => {
             warn!("error updating project: {}", err);
             if is_pg_integrity_error(&err) {
-                (StatusCode::CONFLICT, "a project with this name already exists").into_response()
+                (
+                    StatusCode::CONFLICT,
+                    "a project with this name already exists",
+                )
+                    .into_response()
             } else {
                 StatusCode::INTERNAL_SERVER_ERROR.into_response()
             }
@@ -124,7 +128,7 @@ pub async fn get_by_name(req: Request<State>) -> highnoon::Result<Response> {
             Some(proj) => {
                 auth::get().project(proj.id).check(&req).await?;
                 Json(proj).into_response()
-            },
+            }
         }
     } else {
         list(req).await
@@ -194,7 +198,7 @@ pub async fn get_by_id(req: Request<State>) -> highnoon::Result<Response> {
         Some(proj) => {
             auth::get().project(proj.id).check(&req).await?;
             Json(proj).into_response()
-        },
+        }
     }
 }
 

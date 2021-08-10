@@ -1,9 +1,9 @@
 use crate::amqp::get_amqp_channel;
 use crate::messages::{TaskPriority, TaskRequest, Token};
-use crate::{db, postoffice, metrics};
+use crate::{db, metrics, postoffice};
 use anyhow::Result;
+use cadence::CountedExt;
 use chrono::Utc;
-use tracing::{debug, info};
 use lapin::options::{
     BasicPublishOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
 };
@@ -11,8 +11,8 @@ use lapin::types::FieldTable;
 use lapin::{BasicProperties, ExchangeKind};
 use postage::prelude::*;
 use sqlx::Connection;
+use tracing::{debug, info};
 use uuid::Uuid;
-use cadence::CountedExt;
 
 const TASK_EXCHANGE: &str = "waterwheel.tasks";
 const TASK_QUEUE: &str = "waterwheel.tasks";
@@ -131,7 +131,8 @@ pub async fn process_executions() -> Result<!> {
             ?priority,
             "task enqueued");
 
-        statsd.incr_with_tags("tasks.enqueued")
+        statsd
+            .incr_with_tags("tasks.enqueued")
             .with_tag("priority", priority.as_str())
             .send();
     }

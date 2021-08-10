@@ -1,8 +1,8 @@
 use std::sync::atomic::AtomicI32;
 
 use anyhow::Result;
-use tracing::info;
 use once_cell::sync::Lazy;
+use tracing::info;
 use uuid::Uuid;
 
 use crate::amqp;
@@ -24,7 +24,7 @@ pub static RUNNING_TASKS: AtomicI32 = AtomicI32::new(0);
 pub static TOTAL_TASKS: AtomicI32 = AtomicI32::new(0);
 
 #[derive(Copy, Clone, serde::Deserialize)]
-#[serde(rename_all="lowercase")]
+#[serde(rename_all = "lowercase")]
 pub enum TaskEngine {
     /// Null engine always returns success - disabled in release builds
     #[cfg(debug_assertions)]

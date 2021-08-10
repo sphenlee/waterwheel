@@ -1,18 +1,17 @@
-use anyhow::Result;
-use serde::Deserialize;
-use uuid::Uuid;
-use serde::Serialize;
 use crate::config;
-use crate::server::api::request_ext::RequestExt;
-use highnoon::headers::Authorization;
-use highnoon::headers::authorization::Bearer;
-use highnoon::StatusCode;
-use tracing::debug;
-use crate::server::api::project::get_project_name;
-use crate::server::api::State;
 use crate::server::api::job::get_job_name_and_project;
+use crate::server::api::project::get_project_name;
+use crate::server::api::request_ext::RequestExt;
+use crate::server::api::State;
+use anyhow::Result;
+use highnoon::headers::authorization::Bearer;
+use highnoon::headers::Authorization;
+use highnoon::StatusCode;
+use serde::Deserialize;
+use serde::Serialize;
 use std::collections::HashMap;
-
+use tracing::debug;
+use uuid::Uuid;
 
 #[derive(Serialize, Debug)]
 struct Object {
@@ -25,7 +24,7 @@ struct Object {
 
 #[derive(Serialize, Debug)]
 pub struct Principal {
-    bearer: Option<String> // bearer token if present
+    bearer: Option<String>, // bearer token if present
 }
 
 #[derive(Serialize, Debug, Copy, Clone)]
@@ -57,17 +56,15 @@ struct OPARequest<'a> {
 
 #[derive(Deserialize)]
 struct OPAResponse {
-    result: bool
+    result: bool,
 }
 
 fn derive_principal<S: highnoon::State>(req: &highnoon::Request<S>) -> Result<Principal> {
-    let bearer = req.header::<Authorization<Bearer>>().map(|header| {
-        header.0.token().to_owned()
-    });
+    let bearer = req
+        .header::<Authorization<Bearer>>()
+        .map(|header| header.0.token().to_owned());
 
-    Ok(Principal {
-        bearer,
-    })
+    Ok(Principal { bearer })
 }
 
 fn derive_http<S: highnoon::State>(req: &highnoon::Request<S>) -> Result<Http> {
@@ -82,15 +79,20 @@ fn derive_http<S: highnoon::State>(req: &highnoon::Request<S>) -> Result<Http> {
 
     Ok(Http {
         method: req.method().to_string(),
-        headers
+        headers,
     })
 }
 
-async fn authorize(principal: Principal, action: Action, object: Object, http: Http) -> Result<bool> {
+async fn authorize(
+    principal: Principal,
+    action: Action,
+    object: Object,
+    http: Http,
+) -> Result<bool> {
     let opa = match config::get().opa_sidecar_addr.as_ref() {
         // TODO - allow by default if OPA address is not set, not very secure default
         None => return Ok(true),
-        Some(url) => url
+        Some(url) => url,
     };
 
     let url = opa.join("/v1/data/waterwheel/allow")?;
@@ -102,8 +104,8 @@ async fn authorize(principal: Principal, action: Action, object: Object, http: H
                 principal: &principal,
                 action,
                 object: &object,
-                http
-            }
+                http,
+            },
         })
         .send()
         .await?;
@@ -117,14 +119,13 @@ async fn authorize(principal: Principal, action: Action, object: Object, http: H
         debug!(?principal, ?action, ?object, "unauthorized");
     }
 
-
     Ok(result.result)
 }
 
 // TODO - playing with the ergonomics here
 pub struct Check {
     action: Action,
-    object: Option<Object>
+    object: Option<Object>,
 }
 
 impl Check {
@@ -141,7 +142,7 @@ impl Check {
 
     pub fn job(mut self, job_id: impl Into<Option<Uuid>>) -> Self {
         self.object = Some(Object {
-            project_id: None,//Some(proj_id),
+            project_id: None, //Some(proj_id),
             project_name: None,
             job_id: job_id.into(),
             job_name: None,
@@ -192,17 +193,29 @@ impl Check {
 }
 
 pub fn get() -> Check {
-    Check { action: Action::Get, object: None }
+    Check {
+        action: Action::Get,
+        object: None,
+    }
 }
 
 pub fn list() -> Check {
-    Check { action: Action::List, object: None }
+    Check {
+        action: Action::List,
+        object: None,
+    }
 }
 
 pub fn update() -> Check {
-    Check { action: Action::Update, object: None }
+    Check {
+        action: Action::Update,
+        object: None,
+    }
 }
 
 pub fn delete() -> Check {
-    Check { action: Action::Delete, object: None }
+    Check {
+        action: Action::Delete,
+        object: None,
+    }
 }

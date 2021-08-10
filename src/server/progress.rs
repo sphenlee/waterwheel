@@ -4,11 +4,11 @@ use crate::server::tokens::{increment_token, ProcessToken};
 use crate::{db, postoffice};
 use anyhow::Result;
 use futures::TryStreamExt;
-use tracing::debug;
-use lapin::options::{BasicAckOptions, BasicConsumeOptions, QueueDeclareOptions, BasicQosOptions};
+use lapin::options::{BasicAckOptions, BasicConsumeOptions, BasicQosOptions, QueueDeclareOptions};
 use lapin::types::FieldTable;
 use postage::prelude::*;
 use sqlx::{Connection, Postgres, Transaction};
+use tracing::debug;
 
 const RESULT_QUEUE: &str = "waterwheel.results";
 

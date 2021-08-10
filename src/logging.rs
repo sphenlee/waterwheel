@@ -1,16 +1,16 @@
-use anyhow::Result;
 use crate::config;
-use tracing_subscriber::{fmt, EnvFilter};
-use tracing_subscriber::prelude::*;
-use tracing_subscriber::fmt::{FormatFields, FormatEvent, FmtContext};
-use tracing_subscriber::field::RecordFields;
+use anyhow::Result;
 use chrono::SecondsFormat;
-use tracing_subscriber::registry::LookupSpan;
-use tracing::{Event, Subscriber, Level};
-use tracing::field::{Visit, Field};
-use tracing_log::NormalizeEvent;
 use colored::Colorize;
-use std::fmt::{Write, Debug, Result as FmtResult};
+use std::fmt::{Debug, Result as FmtResult, Write};
+use tracing::field::{Field, Visit};
+use tracing::{Event, Level, Subscriber};
+use tracing_log::NormalizeEvent;
+use tracing_subscriber::field::RecordFields;
+use tracing_subscriber::fmt::{FmtContext, FormatEvent, FormatFields};
+use tracing_subscriber::prelude::*;
+use tracing_subscriber::registry::LookupSpan;
+use tracing_subscriber::{fmt, EnvFilter};
 
 fn level_color(level: Level, msg: String) -> impl std::fmt::Display {
     match level {
@@ -30,12 +30,11 @@ struct SemiCompactVisitor {
 impl Visit for SemiCompactVisitor {
     fn record_debug(&mut self, field: &Field, value: &dyn Debug) {
         match field.name() {
-            "message" => {
-                self.message = format!("{:?}\n", value)
-            },
+            "message" => self.message = format!("{:?}\n", value),
             name if name.starts_with("log.") => (),
             name => {
-                self.fields.push_str(&format!("    {}: {:?}\n", name.cyan(), value));
+                self.fields
+                    .push_str(&format!("    {}: {:?}\n", name.cyan(), value));
             }
         };
     }
@@ -48,7 +47,12 @@ where
     C: Subscriber + for<'a> LookupSpan<'a>,
     N: for<'a> FormatFields<'a> + 'static,
 {
-    fn format_event(&self, ctx: &FmtContext<'_, C, N>, writer: &mut dyn Write, event: &Event<'_>) -> FmtResult {
+    fn format_event(
+        &self,
+        ctx: &FmtContext<'_, C, N>,
+        writer: &mut dyn Write,
+        event: &Event<'_>,
+    ) -> FmtResult {
         let normalized_meta = event.normalized_metadata();
         let meta = normalized_meta.as_ref().unwrap_or_else(|| event.metadata());
 
@@ -59,15 +63,9 @@ where
             meta.target(),
         );
 
-
-        write!(
-            writer,
-            "{}\n",
-            level_color(*meta.level(), header)
-        )?;
+        write!(writer, "{}\n", level_color(*meta.level(), header))?;
 
         ctx.field_format().format_fields(writer, event)?;
-
 
         Ok(())
     }

@@ -1,23 +1,23 @@
 use crate::amqp::get_amqp_channel;
 use crate::config;
-use crate::metrics;
 use crate::messages::{TaskProgress, TaskRequest, TokenState};
+use crate::metrics;
 use crate::worker::{config_cache, docker, kube, TaskEngine};
 use anyhow::Result;
 
 use futures::TryStreamExt;
-use tracing::{debug, error, info};
 use lapin::options::{
     BasicAckOptions, BasicConsumeOptions, BasicPublishOptions, BasicQosOptions,
     ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
 };
 use lapin::types::FieldTable;
 use lapin::{BasicProperties, ExchangeKind};
+use tracing::{debug, error, info};
 
 use super::{RUNNING_TASKS, TOTAL_TASKS, WORKER_ID};
+use cadence::{CountedExt, Gauged};
 use chrono::{DateTime, Utc};
 use std::sync::atomic::Ordering;
-use cadence::{CountedExt, Gauged};
 
 // TODO - queues should be configurable for task routing
 const TASK_QUEUE: &str = "waterwheel.tasks";
@@ -95,11 +95,14 @@ pub async fn process_work() -> Result<!> {
         let started_datetime = Utc::now();
 
         RUNNING_TASKS.fetch_add(1, Ordering::SeqCst);
-        statsd.gauge_with_tags("tasks.running", RUNNING_TASKS.load(Ordering::SeqCst) as u64)
+        statsd
+            .gauge_with_tags("tasks.running", RUNNING_TASKS.load(Ordering::SeqCst) as u64)
             .with_tag("worker_id", &WORKER_ID.to_string())
             .send();
-        statsd.incr_with_tags("tasks.received").with_tag("worker_id", &WORKER_ID.to_string()).send();
-
+        statsd
+            .incr_with_tags("tasks.received")
+            .with_tag("worker_id", &WORKER_ID.to_string())
+            .send();
 
         debug!(task_id=?task_req.task_id,
             trigger_datetime=?task_req.trigger_datetime.to_rfc3339(),
@@ -144,14 +147,15 @@ pub async fn process_work() -> Result<!> {
         RUNNING_TASKS.fetch_sub(1, Ordering::SeqCst);
         TOTAL_TASKS.fetch_add(1, Ordering::SeqCst);
 
-        statsd.gauge_with_tags("tasks.running", RUNNING_TASKS.load(Ordering::SeqCst) as u64)
+        statsd
+            .gauge_with_tags("tasks.running", RUNNING_TASKS.load(Ordering::SeqCst) as u64)
             .with_tag("worker_id", &WORKER_ID.to_string())
             .send();
-        statsd.incr_with_tags("tasks.total")
+        statsd
+            .incr_with_tags("tasks.total")
             .with_tag("worker_id", &WORKER_ID.to_string())
             .with_tag("result", result.as_str())
             .send();
-
 
         info!(result=result.as_str(),
             task_id=?task_req.task_id,

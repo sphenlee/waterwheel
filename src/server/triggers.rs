@@ -2,21 +2,21 @@ use crate::messages::{TaskPriority, Token};
 use crate::server::tokens::{increment_token, ProcessToken};
 use crate::server::trigger_time::TriggerTime;
 use crate::util::format_duration_approx;
-use crate::{db, postoffice, metrics};
+use crate::{db, metrics, postoffice};
 use anyhow::Result;
 use binary_heap_plus::{BinaryHeap, MinComparator};
+use cadence::Gauged;
 use chrono::{DateTime, Duration, Utc};
 use cron::Schedule;
 use futures::TryStreamExt;
-use tracing::{debug, info, trace, warn};
 use postage::prelude::*;
 use postage::stream::TryRecvError;
 use serde::{Deserialize, Serialize};
 use sqlx::types::Uuid;
-use sqlx::{Connection, Transaction, Postgres};
+use sqlx::{Connection, Postgres, Transaction};
 use std::str::FromStr;
 use tokio::time;
-use cadence::Gauged;
+use tracing::{debug, info, trace, warn};
 
 type Queue = BinaryHeap<TriggerTime, MinComparator>;
 
@@ -96,7 +96,9 @@ pub async fn process_triggers() -> Result<!> {
         // once per loop - it's for monitoring purposes anyway
         // TODO - how can we get this value to the API?
         //SERVER_STATUS.lock().await.queued_triggers = queue.len();
-        statsd.gauge_with_tags("triggers.queued", queue.len() as u64).send();
+        statsd
+            .gauge_with_tags("triggers.queued", queue.len() as u64)
+            .send();
 
         if queue.is_empty() {
             debug!("no triggers queued, waiting for a trigger update");
@@ -173,9 +175,9 @@ async fn activate_trigger(trigger_time: TriggerTime, priority: TaskPriority) -> 
 }
 
 async fn do_activate_trigger(
-        txn: &mut Transaction<'_, Postgres>,
-        trigger_time: TriggerTime) -> Result<Vec<Token>>
-{
+    txn: &mut Transaction<'_, Postgres>,
+    trigger_time: TriggerTime,
+) -> Result<Vec<Token>> {
     let pool = db::get_pool();
 
     debug!(trigger_id=?trigger_time.trigger_id,
@@ -242,7 +244,7 @@ async fn catchup_trigger(trigger: &Trigger) -> anyhow::Result<DateTime<Utc>> {
 
             let mut next = trigger.start_datetime;
             while next < earliest {
-                let mut tokens = do_activate_trigger(&mut txn,trigger.at(next)).await?;
+                let mut tokens = do_activate_trigger(&mut txn, trigger.at(next)).await?;
                 tokens_to_tx.append(&mut tokens);
                 next = next + &period;
             }

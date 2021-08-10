@@ -1,9 +1,9 @@
 use crate::circuit_breaker::CircuitBreaker;
 use anyhow::Result;
 use chrono::Duration;
-use tracing::error;
 use sqlx::postgres::PgDatabaseError;
 use std::future::Future;
+use tracing::error;
 
 /// Postgres returns errors in a weird way, sigh
 const PG_INTEGRITY_ERROR: &str = "23";

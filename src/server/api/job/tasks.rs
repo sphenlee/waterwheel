@@ -1,10 +1,10 @@
 use crate::server::api::types::{Job, Task};
 use crate::util::{is_pg_integrity_error, pg_error};
 use anyhow::Result;
-use tracing::debug;
 use sqlx::{Postgres, Transaction};
 use std::fmt::{self, Display};
 use std::str::FromStr;
+use tracing::debug;
 use uuid::Uuid;
 
 #[derive(Debug)]

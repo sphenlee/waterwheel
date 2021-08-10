@@ -1,13 +1,13 @@
 use crate::messages::{SchedulerUpdate, TaskDef, TaskPriority, Token};
 use crate::server::api::request_ext::RequestExt;
 use crate::server::api::{updates, State};
-use crate::server::tokens::ProcessToken;
-use futures::TryStreamExt;
-use chrono::{DateTime, Utc};
-use highnoon::{Json, Request, Responder, StatusCode};
-use uuid::Uuid;
-use serde::{Deserialize, Serialize};
 use crate::server::jwt;
+use crate::server::tokens::ProcessToken;
+use chrono::{DateTime, Utc};
+use futures::TryStreamExt;
+use highnoon::{Json, Request, Responder, StatusCode};
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 pub async fn clear_token(req: Request<State>) -> highnoon::Result<impl Responder> {
     let task_id = req.param("id")?.parse::<Uuid>()?;
@@ -59,7 +59,6 @@ struct ClearTokenReply {
     cleared: u64,
 }
 
-
 pub async fn clear_multiple_tokens(mut req: Request<State>) -> highnoon::Result<impl Responder> {
     let task_id = req.param("id")?.parse::<Uuid>()?;
     let params: ClearTokenParams = req.body_json().await?;
@@ -89,7 +88,7 @@ pub async fn clear_multiple_tokens(mut req: Request<State>) -> highnoon::Result<
 
         let token = Token {
             task_id,
-            trigger_datetime
+            trigger_datetime,
         };
 
         updates::send(
@@ -103,9 +102,7 @@ pub async fn clear_multiple_tokens(mut req: Request<State>) -> highnoon::Result<
 
     txn.commit().await?;
 
-    Ok(Json(ClearTokenReply {
-        cleared: count
-    }))
+    Ok(Json(ClearTokenReply { cleared: count }))
 }
 
 pub async fn get_task_def(req: Request<State>) -> highnoon::Result<impl Responder> {

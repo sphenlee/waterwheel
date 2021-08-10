@@ -1,9 +1,9 @@
 use crate::config;
 use anyhow::Result;
 use lapin::{Channel, Connection, ConnectionProperties};
-use tracing::{info, warn};
 use once_cell::sync::OnceCell;
 use tokio_amqp::LapinTokioExt;
+use tracing::{info, warn};
 
 static AMQP_CONNECTION: OnceCell<Connection> = OnceCell::new();
 

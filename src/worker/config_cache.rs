@@ -9,11 +9,11 @@ use lapin::options::{
 };
 use lapin::types::FieldTable;
 use lapin::ExchangeKind;
-use tracing::trace;
 use lru_time_cache::LruCache;
 use once_cell::sync::Lazy;
 use serde_json::Value as JsonValue;
 use tokio::sync::Mutex;
+use tracing::trace;
 use uuid::Uuid;
 
 const CONFIG_EXCHANGE: &str = "waterwheel.config";
@@ -75,7 +75,9 @@ async fn fetch_project_config(proj_id: Uuid) -> Result<JsonValue> {
     let resp = client
         .get(url.clone())
         .header(reqwest::header::AUTHORIZATION, token)
-        .send().await?.error_for_status()?;
+        .send()
+        .await?
+        .error_for_status()?;
 
     let config = resp.json().await?;
 

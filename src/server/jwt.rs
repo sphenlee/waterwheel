@@ -1,13 +1,13 @@
 use crate::config;
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
+use highnoon::{Error, Request, State, StatusCode};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation};
-use tracing::debug;
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
+use sqlx::types::Uuid;
 use std::fs;
 use std::time::{Duration, SystemTime};
-use sqlx::types::Uuid;
-use highnoon::{State, Error, StatusCode, Request};
+use tracing::debug;
 
 const WATERWHEEL_ISSUER: &str = "waterwheel";
 const STASH_AUDIENCE: &str = "waterwheel.stash";
@@ -40,8 +40,12 @@ pub fn load_keys() -> Result<()> {
             load_rsa_keys(pub_key_file, priv_key_file)
         }
         None => {
-            let secret = config::get().hmac_secret.as_deref().ok_or_else(|| anyhow!("HMAC secret set
-                (either both public and private keys must be set, or the HMAC secret must be set)"))?;
+            let secret = config::get().hmac_secret.as_deref().ok_or_else(|| {
+                anyhow!(
+                    "HMAC secret set
+                (either both public and private keys must be set, or the HMAC secret must be set)"
+                )
+            })?;
             load_hmac_secret(secret)
         }
     }
@@ -116,9 +120,10 @@ pub fn validate_stash_jwt(jwt: &str) -> Result<String> {
 }
 
 pub fn validate_config_jwt<S: State>(req: &Request<S>, id: Uuid) -> highnoon::Result<String> {
-    use highnoon::headers::{Authorization, authorization::Bearer};
+    use highnoon::headers::{authorization::Bearer, Authorization};
 
-    let bearer = req.header::<Authorization<Bearer>>()
+    let bearer = req
+        .header::<Authorization<Bearer>>()
         .ok_or_else(|| Error::http(StatusCode::FORBIDDEN))?;
 
     let sub = validate_jwt(bearer.0.token(), CONFIG_AUDIENCE)?;

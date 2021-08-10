@@ -4,8 +4,8 @@ use super::updates;
 use super::State;
 use crate::util::{is_pg_integrity_error, pg_error};
 use highnoon::{Json, Request, Responder, Response, StatusCode};
-use tracing::{info, warn};
 use serde::{Deserialize, Serialize};
+use tracing::{info, warn};
 use uuid::Uuid;
 
 mod graph;
@@ -14,15 +14,15 @@ mod tokens;
 mod triggers;
 
 use crate::messages::{ConfigUpdate, SchedulerUpdate};
+use crate::server::api::auth;
 use crate::server::api::config_cache;
 use crate::server::triggers::TriggerUpdate;
-use crate::server::api::auth;
 pub use graph::get_graph;
+use sqlx::PgPool;
 pub use tokens::{
     clear_tokens_trigger_datetime, get_tokens, get_tokens_overview, get_tokens_trigger_datetime,
 };
 pub use triggers::{get_trigger, get_trigger_times, get_triggers_by_job};
-use sqlx::PgPool;
 
 #[derive(sqlx::FromRow)]
 pub struct JobAndProject {
@@ -34,18 +34,23 @@ pub struct JobAndProject {
 /// Get the job's name, as well as it's project id and name
 /// Used by the authz so we can send all these details to OPA
 /// TODO - should API server be caching some of these values from the database?
-pub async fn get_job_name_and_project(pool: &PgPool, job_id: Uuid) -> highnoon::Result<JobAndProject> {
-    let row: Option<JobAndProject> = sqlx::query_as("
+pub async fn get_job_name_and_project(
+    pool: &PgPool,
+    job_id: Uuid,
+) -> highnoon::Result<JobAndProject> {
+    let row: Option<JobAndProject> = sqlx::query_as(
+        "
             SELECT
                 j.name AS job_name,
                 p.id AS project_id,
                 p.name AS project_name
             FROM project p
             JOIN job j ON p.id = j.project_id
-            WHERE j.id = $1")
-        .bind(&job_id)
-        .fetch_optional(pool)
-        .await?;
+            WHERE j.id = $1",
+    )
+    .bind(&job_id)
+    .fetch_optional(pool)
+    .await?;
 
     match row {
         None => Err(highnoon::Error::bad_request("job not found")),

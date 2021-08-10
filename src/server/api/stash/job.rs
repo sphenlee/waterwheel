@@ -4,8 +4,8 @@ use tracing::info;
 use uuid::Uuid;
 
 use super::{get_jwt_subject, StashData, StashName};
-use chrono::{DateTime, Utc};
 use cadence::CountedExt;
+use chrono::{DateTime, Utc};
 
 pub async fn create(mut req: Request<State>) -> highnoon::Result<impl Responder> {
     let data = req.body_bytes().await?;
@@ -87,7 +87,9 @@ pub async fn get(req: Request<State>) -> highnoon::Result<impl Responder> {
     .fetch_optional(&db)
     .await?;
 
-    req.state().statsd.incr_with_tags("stash.get")
+    req.state()
+        .statsd
+        .incr_with_tags("stash.get")
         .with_tag_value("job")
         .with_tag("job_id", &job_id.to_string())
         .send();
