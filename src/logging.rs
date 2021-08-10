@@ -8,6 +8,7 @@ use chrono::SecondsFormat;
 use tracing_subscriber::registry::LookupSpan;
 use tracing::{Event, Subscriber, Level};
 use tracing::field::{Visit, Field};
+use tracing_log::NormalizeEvent;
 use colored::Colorize;
 use std::fmt::{Write, Debug, Result as FmtResult};
 
@@ -21,21 +22,21 @@ fn level_color(level: Level, msg: String) -> impl std::fmt::Display {
     }
 }
 
-struct SemiCompactVisitor<'w> {
-    writer: &'w mut dyn Write,
-    result: FmtResult,
+struct SemiCompactVisitor {
+    fields: String,
+    message: String,
 }
 
-impl<'w> Visit for SemiCompactVisitor<'w> {
+impl Visit for SemiCompactVisitor {
     fn record_debug(&mut self, field: &Field, value: &dyn Debug) {
-        if self.result.is_err() {
-            return;
-        }
-
-        self.result = match field.name() {
-            "message" => writeln!(self.writer, "{:?}", value),
-            name if name.starts_with("log.") => Ok(()),
-            name => writeln!(self.writer, "    {}: {:?}", name.cyan(), value)
+        match field.name() {
+            "message" => {
+                self.message = format!("{:?}\n", value)
+            },
+            name if name.starts_with("log.") => (),
+            name => {
+                self.fields.push_str(&format!("    {}: {:?}\n", name.cyan(), value));
+            }
         };
     }
 }
@@ -48,25 +49,25 @@ where
     N: for<'a> FormatFields<'a> + 'static,
 {
     fn format_event(&self, ctx: &FmtContext<'_, C, N>, writer: &mut dyn Write, event: &Event<'_>) -> FmtResult {
+        let normalized_meta = event.normalized_metadata();
+        let meta = normalized_meta.as_ref().unwrap_or_else(|| event.metadata());
+
         let header = format!(
             "[{} {} {}]",
             chrono::Local::now().to_rfc3339_opts(SecondsFormat::Millis, false),
-            event.metadata().level(),
-            event.metadata().target(),
+            meta.level(),
+            meta.target(),
         );
+
 
         write!(
             writer,
-            "{} ",
-            level_color(*event.metadata().level(), header)
+            "{}\n",
+            level_color(*meta.level(), header)
         )?;
-        /*write!(writer,
-            "  (at {}@{})",
-            event.metadata().file().unwrap_or("<unknown>"),
-            event.metadata().line().unwrap_or(0)
-        )?;*/
 
         ctx.field_format().format_fields(writer, event)?;
+
 
         Ok(())
     }
@@ -75,12 +76,13 @@ where
 impl<'w> FormatFields<'w> for SemiCompact {
     fn format_fields<R: RecordFields>(&self, writer: &'w mut dyn Write, fields: R) -> FmtResult {
         let mut visitor = SemiCompactVisitor {
-            writer,
-            result: Ok(())
+            fields: String::new(),
+            message: String::new(),
         };
         fields.record(&mut visitor);
-        //writeln!(writer)?;
-        visitor.result
+        write!(writer, "{}", visitor.message.bright_white())?;
+        write!(writer, "{}", visitor.fields)?;
+        Ok(())
     }
 }
 

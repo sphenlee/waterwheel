@@ -17,7 +17,7 @@ use lapin::{BasicProperties, ExchangeKind};
 use super::{RUNNING_TASKS, TOTAL_TASKS, WORKER_ID};
 use chrono::{DateTime, Utc};
 use std::sync::atomic::Ordering;
-use cadence::{Counted, Gauged};
+use cadence::{CountedExt, Gauged};
 
 // TODO - queues should be configurable for task routing
 const TASK_QUEUE: &str = "waterwheel.tasks";

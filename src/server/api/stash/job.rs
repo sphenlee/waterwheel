@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use super::{get_jwt_subject, StashData, StashName};
 use chrono::{DateTime, Utc};
-use cadence::Counted;
+use cadence::CountedExt;
 
 pub async fn create(mut req: Request<State>) -> highnoon::Result<impl Responder> {
     let data = req.body_bytes().await?;

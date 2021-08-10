@@ -6,8 +6,8 @@ use crate::worker::WORKER_ID;
 use anyhow::Result;
 use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::core::v1::Pod;
-use kube::api::{Api, DeleteParams, ListParams, LogParams, Meta, PostParams, WatchEvent};
-use kube::Client;
+use kube::api::{Api, DeleteParams, ListParams, LogParams, PostParams, WatchEvent};
+use kube::{Client, ResourceExt};
 use tracing::{debug, info, trace, warn};
 
 pub async fn run_kube(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
@@ -24,7 +24,7 @@ pub async fn run_kube(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> 
 
     // Create the pod
     let pod = pods.create(&PostParams::default(), &pod).await?;
-    let name = Meta::name(&pod);
+    let name = pod.name();
 
     // Start a watch call for pods matching our name
     let lp = ListParams::default().fields(&format!("metadata.name={}", name));
@@ -34,12 +34,12 @@ pub async fn run_kube(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> 
     while let Some(status) = stream.try_next().await? {
         match status {
             WatchEvent::Added(pod) => {
-                debug!(pod_name=?Meta::name(&pod), "pod created");
+                debug!(pod_name=%pod.name(), "pod created");
             }
             WatchEvent::Modified(pod) => {
                 let status = pod.status.as_ref().expect("status exists on pod");
                 let phase = status.phase.clone().unwrap_or_default();
-                trace!(pod_name=?Meta::name(&pod), "pod modified, phase is '{}'", phase);
+                trace!(pod_name=%pod.name(), "pod modified, phase is '{}'", phase);
 
                 if phase == "Succeeded" {
                     result = true;
@@ -51,7 +51,7 @@ pub async fn run_kube(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> 
             }
             //WatchEvent::Deleted(o) => println!("Deleted {}", Meta::name(&o)),
             WatchEvent::Error(e) => {
-                warn!(pod_name=?name, "error from Kubernetes {:?}", e);
+                warn!(pod_name=%name, "error from Kubernetes {:?}", e);
                 return Err(e.into());
             }
             _ => {}
@@ -76,7 +76,7 @@ pub async fn run_kube(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> 
             "{}", line.trim_end());
     }
 
-    trace!(pod_name=?name, "deleting pod");
+    trace!(pod_name=%name, "deleting pod");
     let _ = pods.delete(&name, &DeleteParams::default()).await?;
 
     Ok(result)

@@ -12,7 +12,7 @@ use lapin::{BasicProperties, ExchangeKind};
 use postage::prelude::*;
 use sqlx::Connection;
 use uuid::Uuid;
-use cadence::Counted;
+use cadence::CountedExt;
 
 const TASK_EXCHANGE: &str = "waterwheel.tasks";
 const TASK_QUEUE: &str = "waterwheel.tasks";
@@ -68,7 +68,7 @@ pub async fn process_executions() -> Result<!> {
     while let Some(msg) = execute_rx.recv().await {
         let ExecuteToken(token, priority) = msg;
         debug!(task_id=?token.task_id,
-            trigger_datetime=?token.trigger_datetime.to_rfc3339(),
+            trigger_datetime=%token.trigger_datetime.to_rfc3339(),
             ?priority,
             "enqueueing");
 
@@ -127,7 +127,7 @@ pub async fn process_executions() -> Result<!> {
         txn.commit().await?;
 
         info!(task_id=?token.task_id,
-            trigger_datetime=?token.trigger_datetime.to_rfc3339(),
+            trigger_datetime=%token.trigger_datetime.to_rfc3339(),
             ?priority,
             "task enqueued");
 
