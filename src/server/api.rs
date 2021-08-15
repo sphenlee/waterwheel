@@ -3,8 +3,10 @@ use anyhow::Result;
 use cadence::StatsdClient;
 use lapin::Channel;
 use sqlx::PgPool;
+use highnoon::filter::session::{HasSession, Session};
+use crate::server::api::session::RedisSessionStore;
 
-mod auth;
+pub mod auth;
 mod config_cache;
 mod heartbeat;
 mod job;
@@ -16,6 +18,8 @@ mod task;
 pub mod types;
 mod updates;
 mod workers;
+mod session;
+mod authn;
 
 pub struct State {
     pool: PgPool,
@@ -23,9 +27,22 @@ pub struct State {
     statsd: StatsdClient,
 }
 
+#[derive(Default)]
+pub struct Context {
+    session: highnoon::filter::session::Session,
+}
+
 impl highnoon::State for State {
-    type Context = ();
-    fn new_context(&self) {}
+    type Context = Context;
+    fn new_context(&self) -> Self::Context {
+        Context::default()
+    }
+}
+
+impl HasSession for Context {
+    fn session(&mut self) -> &mut Session {
+        &mut self.session
+    }
 }
 
 #[allow(unused)]
@@ -54,6 +71,9 @@ pub async fn serve() -> Result<()> {
     let mut app = highnoon::App::new(state);
     app.with(highnoon::filter::Log);
 
+    let session_store = RedisSessionStore::new(config::get().redis_url.as_ref())?;
+    app.with(highnoon::filter::session::SessionFilter::new(session_store).with_cookie_name("ww.session"));
+
     // basic healthcheck to see if waterwheel is up
     app.at("/healthcheck").get(|_req| async { Ok("OK") });
 
@@ -61,6 +81,9 @@ pub async fn serve() -> Result<()> {
 
     // worker heartbeats
     app.at("/api/heartbeat").post(heartbeat::post);
+
+    // login
+    app.at("/api/login").post(authn::login);
 
     // project
     app.at("/api/projects")
