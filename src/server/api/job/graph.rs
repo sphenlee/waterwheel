@@ -1,5 +1,5 @@
 use crate::server::api::request_ext::RequestExt;
-use crate::server::api::State;
+use crate::server::api::{State, auth};
 use chrono::{DateTime, Utc};
 use highnoon::{Json, Request, Responder};
 use serde::{Deserialize, Serialize};
@@ -34,6 +34,8 @@ struct QueryGraph {
 
 pub async fn get_graph(req: Request<State>) -> highnoon::Result<impl Responder> {
     let job_id = req.param("id")?.parse::<Uuid>()?;
+
+    auth::get().job(job_id).check(&req).await?;
 
     let q: QueryGraph = req.query()?;
 

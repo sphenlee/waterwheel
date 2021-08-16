@@ -10,10 +10,10 @@ use highnoon::StatusCode;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
-use tracing::debug;
+use tracing::{debug, warn};
 use uuid::Uuid;
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, Default)]
 struct Object {
     project_id: Option<Uuid>,
     project_name: Option<String>,
@@ -95,7 +95,7 @@ async fn authorize(
         Some(url) => url,
     };
 
-    let url = opa.join("/v1/data/waterwheel/allow")?;
+    let url = opa.join("/v1/data/waterwheel/authorize")?;
 
     let reply = reqwest::Client::new()
         .post(url)
@@ -116,7 +116,7 @@ async fn authorize(
     if result.result {
         debug!(?principal, ?action, ?object, "authorized");
     } else {
-        debug!(?principal, ?action, ?object, "unauthorized");
+        warn!(?principal, ?action, ?object, "unauthorized");
     }
 
     Ok(result.result)
@@ -125,46 +125,30 @@ async fn authorize(
 // TODO - playing with the ergonomics here
 pub struct Check {
     action: Action,
-    object: Option<Object>,
+    object: Object,
 }
 
 impl Check {
     pub fn project(mut self, project_id: impl Into<Option<Uuid>>) -> Self {
-        self.object = Some(Object {
-            project_id: project_id.into(),
-            project_name: None,
-            job_id: None,
-            job_name: None,
-            kind: "project".to_owned(),
-        });
+        self.object.project_id = project_id.into();
+        self.object.kind = "project".to_owned();
         self
     }
 
     pub fn job(mut self, job_id: impl Into<Option<Uuid>>) -> Self {
-        self.object = Some(Object {
-            project_id: None, //Some(proj_id),
-            project_name: None,
-            job_id: job_id.into(),
-            job_name: None,
-            kind: "job".to_owned(),
-        });
+        self.object.job_id = job_id.into();
+        self.object.kind = "job".to_owned();
         self
     }
 
     pub fn kind(mut self, kind: impl Into<String>) -> Self {
-        self.object = Some(Object {
-            project_id: None,
-            project_name: None,
-            job_id: None,
-            job_name: None,
-            kind: kind.into(),
-        });
+        self.object.kind = kind.into();
         self
     }
 
     pub async fn check(self, req: &highnoon::Request<State>) -> highnoon::Result<()> {
         let principal = derive_principal(req)?;
-        let mut object = self.object.expect("authorization object uninitialised");
+        let mut object = self.object;
 
         // TODO - DB query on every auth decision; maybe cache project/job id -> name mappings?
         let pool = req.get_pool();
@@ -195,27 +179,27 @@ impl Check {
 pub fn get() -> Check {
     Check {
         action: Action::Get,
-        object: None,
+        object: Default::default(),
     }
 }
 
 pub fn list() -> Check {
     Check {
         action: Action::List,
-        object: None,
+        object: Default::default(),
     }
 }
 
 pub fn update() -> Check {
     Check {
         action: Action::Update,
-        object: None,
+        object: Default::default(),
     }
 }
 
 pub fn delete() -> Check {
     Check {
         action: Action::Delete,
-        object: None,
+        object: Default::default(),
     }
 }

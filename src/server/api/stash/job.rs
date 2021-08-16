@@ -1,4 +1,4 @@
-use crate::server::api::{request_ext::RequestExt, State};
+use crate::server::api::{request_ext::RequestExt, State, auth};
 use highnoon::{Json, Request, Responder, StatusCode};
 use tracing::info;
 use uuid::Uuid;
@@ -13,6 +13,8 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<impl Responder>
     let job_id = req.param("id")?.parse::<Uuid>()?;
     let trigger_datetime = req.param("trigger_datetime")?.parse::<DateTime<Utc>>()?;
     let key = req.param("key")?;
+
+    auth::update().job(job_id).kind("stash").check(&req).await?;
 
     let db = req.get_pool();
 
@@ -40,6 +42,8 @@ pub async fn list(req: Request<State>) -> highnoon::Result<impl Responder> {
 
     let job_id = req.param("id")?.parse::<Uuid>()?;
     let trigger_datetime = req.param("trigger_datetime")?.parse::<DateTime<Utc>>()?;
+
+    auth::list().job(job_id).kind("stash").check(&req).await?;
 
     let rows: Vec<StashName> = sqlx::query_as(
         "SELECT name
@@ -103,6 +107,8 @@ pub async fn delete(req: Request<State>) -> highnoon::Result<impl Responder> {
     let job_id = req.param("id")?.parse::<Uuid>()?;
     let trigger_datetime = req.param("trigger_datetime")?.parse::<DateTime<Utc>>()?;
     let key = req.param("key")?;
+
+    auth::delete().job(job_id).kind("stash").check(&req).await?;
 
     let _done = sqlx::query(
         "DELETE

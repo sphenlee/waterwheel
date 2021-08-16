@@ -1,5 +1,5 @@
 use crate::server::api::request_ext::RequestExt;
-use crate::server::api::State;
+use crate::server::api::{State, auth};
 use chrono::{DateTime, Utc};
 use highnoon::{Json, Request, Responder, Response, StatusCode};
 use serde::{Deserialize, Serialize};
@@ -16,6 +16,8 @@ struct WorkerState {
 }
 
 pub async fn list(req: Request<State>) -> highnoon::Result<impl Responder> {
+    auth::list().kind("workers").check(&req).await?;
+
     let workers: Vec<WorkerState> = sqlx::query_as(
         "SELECT
             id AS uuid,
@@ -69,6 +71,8 @@ struct GetWorkerTask {
 
 pub async fn tasks(req: Request<State>) -> highnoon::Result<Response> {
     let id = req.param("id")?.parse::<Uuid>()?;
+
+    auth::get().kind("workers").check(&req).await?;
 
     let q = req.query::<QueryWorker>()?;
 

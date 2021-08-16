@@ -1,19 +1,18 @@
 package waterwheel
 
-default allow = false
+default authorize = false
 
-is_readonly {
-    input.action = "Get"
-}
-is_readonly {
-    input.action = "List"
-}
-
-allow {
+authorize {
     is_readonly
 }
 
-allow {
-    input.http["x-waterwheel-user"] = "admin"
+authorize {
+    input.http["x-waterwheel-user"] == "admin"
 }
 
+is_readonly {
+    input.action == "Get"
+}
+is_readonly {
+    input.action == "List"
+}

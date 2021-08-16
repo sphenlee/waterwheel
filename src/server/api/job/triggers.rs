@@ -1,6 +1,6 @@
 use crate::server::api::request_ext::RequestExt;
 use crate::server::api::types::{period_from_string, Job, Trigger};
-use crate::server::api::State;
+use crate::server::api::{State, auth};
 use chrono::{DateTime, Utc};
 use highnoon::{Json, Request, Responder};
 use serde::Serialize;
@@ -97,6 +97,8 @@ pub struct GetTriggerByJob {
 pub async fn get_triggers_by_job(req: Request<State>) -> highnoon::Result<impl Responder> {
     let job_id = req.param("id")?.parse::<Uuid>()?;
 
+    auth::get().job(job_id).check(&req).await?;
+
     let triggers: Vec<GetTriggerByJob> = sqlx::query_as(
         "SELECT
             id AS trigger_id,
@@ -132,6 +134,8 @@ pub struct GetTrigger {
 pub async fn get_trigger(req: Request<State>) -> highnoon::Result<impl Responder> {
     let trigger_id = req.param("id")?.parse::<Uuid>()?;
 
+    // TODO auth check
+
     let triggers: Option<GetTrigger> = sqlx::query_as(
         "SELECT
             g.id AS trigger_id,
@@ -164,6 +168,8 @@ pub struct GetTriggerTimes {
 
 pub async fn get_trigger_times(req: Request<State>) -> highnoon::Result<impl Responder> {
     let trigger_id = req.param("id")?.parse::<Uuid>()?;
+
+    // TODO auth check
 
     let triggers: Vec<GetTriggerTimes> = sqlx::query_as(
         "WITH these_triggers AS (

@@ -1,6 +1,6 @@
 use crate::messages::{SchedulerUpdate, Token};
 use crate::server::api::request_ext::RequestExt;
-use crate::server::api::{updates, State};
+use crate::server::api::{updates, State, auth};
 use crate::server::tokens::ProcessToken;
 use chrono::{DateTime, Utc};
 use highnoon::{Json, Request, Responder};
@@ -29,6 +29,8 @@ struct GetToken {
 async fn get_tokens_common(req: Request<State>) -> highnoon::Result<Vec<GetToken>> {
     let job_id = req.param("id")?.parse::<Uuid>()?;
     let q = req.query::<QueryToken>()?;
+
+    auth::get().job(job_id).check(&req).await?;
 
     let states: Option<Vec<_>> = q.state.as_ref().map(|s| s.split(',').collect());
 
@@ -147,6 +149,8 @@ pub async fn get_tokens_trigger_datetime(req: Request<State>) -> highnoon::Resul
     let job_id = req.param("id")?.parse::<Uuid>()?;
     let trigger_datetime = req.param("trigger_datetime")?.parse::<DateTime<Utc>>()?;
 
+    auth::get().job(job_id).check(&req).await?;
+
     let tokens: Vec<GetToken> = sqlx::query_as(
         "SELECT
             t.id AS task_id,
@@ -179,6 +183,8 @@ pub async fn clear_tokens_trigger_datetime(
 ) -> highnoon::Result<impl Responder> {
     let job_id = req.param("id")?.parse::<Uuid>()?;
     let trigger_datetime = req.param("trigger_datetime")?.parse::<DateTime<Utc>>()?;
+
+    auth::delete().job(job_id).check(&req).await?;
 
     let task_ids: Vec<(Uuid,)> = sqlx::query_as(
         "UPDATE token k

@@ -7,6 +7,8 @@ use tracing::trace;
 pub async fn post(mut req: Request<State>) -> highnoon::Result<impl Responder> {
     let beat: WorkerHeartbeat = req.body_json().await?;
 
+    // TODO - should heartbeats be JWT protected?
+
     trace!(uuid=?beat.uuid, "received heartbeat");
 
     sqlx::query(

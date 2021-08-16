@@ -13,7 +13,7 @@ pub async fn clear_token(req: Request<State>) -> highnoon::Result<impl Responder
     let task_id = req.param("id")?.parse::<Uuid>()?;
     let trigger_datetime = req.param("trigger_datetime")?.parse::<DateTime<Utc>>()?;
 
-    //auth::update().job()
+    // TODO auth check
 
     let token = Token {
         task_id,
@@ -62,6 +62,8 @@ struct ClearTokenReply {
 pub async fn clear_multiple_tokens(mut req: Request<State>) -> highnoon::Result<impl Responder> {
     let task_id = req.param("id")?.parse::<Uuid>()?;
     let params: ClearTokenParams = req.body_json().await?;
+
+    // TODO auth check
 
     let pool = req.get_pool();
     let mut txn = pool.begin().await?;

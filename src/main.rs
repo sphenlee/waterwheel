@@ -25,6 +25,7 @@ async fn main() -> Result<()> {
         .setting(clap::AppSettings::SubcommandRequiredElseHelp)
         .subcommand(
             clap::App::new("scheduler")
+                .alias("server")
                 .about("launch the scheduler process")
                 .after_help(
                     "There should only be one scheduler active at a time.

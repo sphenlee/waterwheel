@@ -273,6 +273,8 @@ pub async fn list_jobs(req: Request<State>) -> highnoon::Result<impl Responder> 
     let id_str = req.param("id")?;
     let id = Uuid::parse_str(&id_str)?;
 
+    auth::list().project(id).check(&req).await?;
+
     let jobs: Vec<ListJob> = sqlx::query_as(
         "SELECT
             id AS job_id,
