@@ -6,6 +6,7 @@ log4rs.yaml
 waterwheel.log
 ui/node_modules/
 ui/dist/
+sample/authn/node_modules/
 logs/
 *.pem
 .musl-cargo-cache/
