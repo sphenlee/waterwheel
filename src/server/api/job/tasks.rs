@@ -1,11 +1,15 @@
+use crate::server::api::{State, auth};
+use crate::server::api::request_ext::RequestExt;
 use crate::server::api::types::{Job, Task};
 use crate::util::{is_pg_integrity_error, pg_error};
 use anyhow::Result;
+use highnoon::{Request, Responder, Json};
 use sqlx::{Postgres, Transaction};
 use std::fmt::{self, Display};
 use std::str::FromStr;
 use tracing::debug;
 use uuid::Uuid;
+use serde::Serialize;
 
 #[derive(Debug)]
 enum ReferenceKind {
@@ -288,4 +292,35 @@ async fn create_task_edge(
     } else {
         Ok(())
     }
+}
+
+
+#[derive(Serialize, sqlx::FromRow)]
+struct ListTask {
+    task_id: Uuid,
+    name: String,
+}
+
+pub async fn list_tasks(req: Request<State>) -> highnoon::Result<impl Responder> {
+    let id_str = req.param("id")?;
+    let id = Uuid::parse_str(&id_str)?;
+
+    auth::list().job(id).check(&req).await?;
+
+    let tasks: Vec<ListTask> = sqlx::query_as(
+        "SELECT
+            id AS task_id,
+            name
+        FROM task
+        WHERE job_id = $1
+        ORDER BY name
+        LIMIT 200",
+    )
+    .bind(&id)
+    .fetch_all(&req.get_pool())
+    .await?;
+
+    // TODO - check for job_id not found
+
+    Ok(Json(tasks))
 }

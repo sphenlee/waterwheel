@@ -102,6 +102,8 @@ pub async fn serve() -> Result<()> {
     app.at("/api/jobs/:id")
         .get(job::get_by_id)
         .delete(job::delete);
+    app.at("/api/jobs/:id/tasks")
+        .get(job::list_tasks);
     app.at("/api/jobs/:id/paused")
         .get(job::get_paused)
         .put(job::set_paused);
