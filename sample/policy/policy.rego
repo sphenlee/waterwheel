@@ -7,7 +7,7 @@ authorize {
 }
 
 authorize {
-    input.http["x-waterwheel-user"] == "admin"
+    input.http["x-seal-mechanism"] == "seal/formlogin"
 }
 
 is_readonly {

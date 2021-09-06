@@ -12,15 +12,24 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<impl Responder>
 
     let job_id = req.param("id")?.parse::<Uuid>()?;
     let trigger_datetime = req.param("trigger_datetime")?.parse::<DateTime<Utc>>()?;
+    let task_id = get_jwt_subject(&req)?.parse::<Uuid>()?;
     let key = req.param("key")?;
 
-    auth::update().job(job_id).kind("stash").check(&req).await?;
+    // don't check authz here - job stash are expected to be created by tasks
+    // and so we want to check permissions using the Stash JWT
+    //auth::update().job(job_id).kind("stash").check(&req).await?;
 
     let db = req.get_pool();
 
     sqlx::query(
         "INSERT INTO job_stash(job_id, trigger_datetime, name, data)
-        VALUES ($1, $2, $3, $4)
+        SELECT $1, $2, $3, $4
+        WHERE (
+            SELECT TRUE
+            FROM task
+            WHERE id = $5
+            AND job_id = $1
+        )
         ON CONFLICT (job_id, trigger_datetime, name)
         DO UPDATE
         SET data = $4",
@@ -29,6 +38,7 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<impl Responder>
     .bind(&trigger_datetime)
     .bind(&key)
     .bind(&data)
+    .bind(&task_id)
     .execute(&db)
     .await?;
 

@@ -4,7 +4,6 @@ use cadence::StatsdClient;
 use lapin::Channel;
 use sqlx::PgPool;
 use highnoon::filter::session::{HasSession, Session};
-use crate::server::api::session::RedisSessionStore;
 
 pub mod auth;
 mod config_cache;
@@ -18,8 +17,6 @@ mod task;
 pub mod types;
 mod updates;
 mod workers;
-mod session;
-mod authn;
 
 pub struct State {
     pool: PgPool,
@@ -71,9 +68,6 @@ pub async fn serve() -> Result<()> {
     let mut app = highnoon::App::new(state);
     app.with(highnoon::filter::Log);
 
-    let session_store = RedisSessionStore::new(config::get().redis_url.as_ref())?;
-    app.with(highnoon::filter::session::SessionFilter::new(session_store).with_cookie_name("ww.session"));
-
     // basic healthcheck to see if waterwheel is up
     app.at("/healthcheck").get(|_req| async { Ok("OK") });
 
@@ -81,9 +75,6 @@ pub async fn serve() -> Result<()> {
 
     // worker heartbeats
     app.at("/api/heartbeat").post(heartbeat::post);
-
-    // login
-    app.at("/api/login").post(authn::login);
 
     // project
     app.at("/api/projects")

@@ -5,15 +5,16 @@ import { Layout, Breadcrumb } from 'antd';
 
 const { Content } = Layout;
 
-import TopMenu from './components/TopMenu.jsx'
 import Home from './pages/Home.jsx';
-import Projects from './pages/Projects.jsx';
-import Project from './pages/Project.jsx';
 import Job from './pages/Job.jsx';
+import Login from './pages/Login.jsx';
+import Project from './pages/Project.jsx';
+import Projects from './pages/Projects.jsx';
 import Tokens from './pages/Tokens.jsx';
+import TopMenu from './components/TopMenu.jsx'
+import Triggers from './pages/Triggers.jsx';
 import Worker from './pages/Worker.jsx';
 import Workers from './pages/Workers.jsx';
-import Triggers from './pages/Triggers.jsx';
 
 class App extends Component {
   render() {
@@ -31,6 +32,7 @@ class App extends Component {
             <Route path="/jobs/:id" component={Job} />
             <Route path="/workers/:id" component={Worker} />
             <Route path="/workers" component={Workers} />
+            <Route path="/login" component={Login} />
             <Route path="/" component={Home} />
           </Switch>
 
