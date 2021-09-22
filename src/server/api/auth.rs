@@ -1,6 +1,5 @@
 use crate::config;
-use crate::server::api::job::get_job_name_and_project;
-use crate::server::api::project::get_project_name;
+use crate::server::api::job::get_job_project_id;
 use crate::server::api::request_ext::RequestExt;
 use crate::server::api::State;
 use anyhow::Result;
@@ -16,9 +15,7 @@ use uuid::Uuid;
 #[derive(Serialize, Debug, Default)]
 struct Object {
     project_id: Option<Uuid>,
-    project_name: Option<String>,
     job_id: Option<Uuid>,
-    job_name: Option<String>,
     kind: String,
 }
 
@@ -122,7 +119,6 @@ async fn authorize(
     Ok(result.result)
 }
 
-// TODO - playing with the ergonomics here
 pub struct Check {
     action: Action,
     object: Object,
@@ -135,8 +131,9 @@ impl Check {
         self
     }
 
-    pub fn job(mut self, job_id: impl Into<Option<Uuid>>) -> Self {
+    pub fn job(mut self, job_id: impl Into<Option<Uuid>>, proj_id: impl Into<Option<Uuid>>) -> Self {
         self.object.job_id = job_id.into();
+        self.object.project_id = proj_id.into();
         self.object.kind = "job".to_owned();
         self
     }
@@ -150,22 +147,16 @@ impl Check {
         let principal = derive_principal(req)?;
         let mut object = self.object;
 
-        // TODO - DB query on every auth decision; maybe cache project/job id -> name mappings?
-        let pool = req.get_pool();
-
-        if let Some(proj_id) = object.project_id {
-            let name = get_project_name(&pool, proj_id).await?;
-            object.project_name = Some(name);
-        }
-
         if let Some(job_id) = object.job_id {
-            let jp = get_job_name_and_project(&pool, job_id).await?;
-            object.project_id = Some(jp.project_id);
-            object.project_name = Some(jp.project_name);
-            object.job_name = Some(jp.job_name);
+            if object.project_id.is_none() {
+                let pool = req.get_pool();
+                let project_id = get_job_project_id(&pool, job_id).await?;
+                object.project_id = Some(project_id);
+            }
         }
 
         let http = derive_http(&req)?;
+        // NOTE - this potentially logs credentials so don't leave it uncommented
         //debug!("http context", { http: Value::from_debug(&http) });
 
         if authorize(principal, self.action, object, http).await? {

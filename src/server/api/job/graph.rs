@@ -35,7 +35,7 @@ struct QueryGraph {
 pub async fn get_graph(req: Request<State>) -> highnoon::Result<impl Responder> {
     let job_id = req.param("id")?.parse::<Uuid>()?;
 
-    auth::get().job(job_id).check(&req).await?;
+    auth::get().job(job_id, None).check(&req).await?;
 
     let q: QueryGraph = req.query()?;
 

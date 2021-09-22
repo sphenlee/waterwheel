@@ -53,7 +53,7 @@ pub async fn list(req: Request<State>) -> highnoon::Result<impl Responder> {
     let job_id = req.param("id")?.parse::<Uuid>()?;
     let trigger_datetime = req.param("trigger_datetime")?.parse::<DateTime<Utc>>()?;
 
-    auth::list().job(job_id).kind("stash").check(&req).await?;
+    auth::list().job(job_id, None).kind("stash").check(&req).await?;
 
     let rows: Vec<StashName> = sqlx::query_as(
         "SELECT name
@@ -118,7 +118,7 @@ pub async fn delete(req: Request<State>) -> highnoon::Result<impl Responder> {
     let trigger_datetime = req.param("trigger_datetime")?.parse::<DateTime<Utc>>()?;
     let key = req.param("key")?;
 
-    auth::delete().job(job_id).kind("stash").check(&req).await?;
+    auth::delete().job(job_id, None).kind("stash").check(&req).await?;
 
     let _done = sqlx::query(
         "DELETE

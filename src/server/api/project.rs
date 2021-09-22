@@ -8,22 +8,8 @@ use crate::util::{is_pg_integrity_error, pg_error};
 use highnoon::{Json, Request, Responder, Response, StatusCode};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
-use sqlx::PgPool;
 use tracing::{info, warn};
 use uuid::Uuid;
-
-/// resolve a project ID into a name
-pub async fn get_project_name(pool: &PgPool, project_id: Uuid) -> highnoon::Result<String> {
-    let row: Option<(String,)> = sqlx::query_as("SELECT name FROM project WHERE id = $1")
-        .bind(&project_id)
-        .fetch_optional(pool)
-        .await?;
-
-    match row {
-        None => Err(highnoon::Error::bad_request("project not found")),
-        Some((name,)) => Ok(name),
-    }
-}
 
 #[derive(Serialize, Deserialize)]
 struct NewProject {

@@ -67,6 +67,9 @@ CREATE TABLE IF NOT EXISTS task_run (
     state VARCHAR
 );
 
+CREATE INDEX IF NOT EXISTS task_run_by_state
+    ON task_run(state, finish_datetime, task_id);
+
 CREATE TABLE IF NOT EXISTS trigger_edge (
     trigger_id UUID NOT NULL REFERENCES trigger(id),
     task_id UUID NOT NULL REFERENCES task(id),

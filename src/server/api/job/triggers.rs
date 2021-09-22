@@ -97,7 +97,7 @@ pub struct GetTriggerByJob {
 pub async fn get_triggers_by_job(req: Request<State>) -> highnoon::Result<impl Responder> {
     let job_id = req.param("id")?.parse::<Uuid>()?;
 
-    auth::get().job(job_id).check(&req).await?;
+    auth::get().job(job_id, None).check(&req).await?;
 
     let triggers: Vec<GetTriggerByJob> = sqlx::query_as(
         "SELECT

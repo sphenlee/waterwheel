@@ -305,7 +305,7 @@ pub async fn list_tasks(req: Request<State>) -> highnoon::Result<impl Responder>
     let id_str = req.param("id")?;
     let id = Uuid::parse_str(&id_str)?;
 
-    auth::list().job(id).check(&req).await?;
+    auth::list().job(id, None).check(&req).await?;
 
     let tasks: Vec<ListTask> = sqlx::query_as(
         "SELECT

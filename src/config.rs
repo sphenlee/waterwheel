@@ -8,7 +8,6 @@ use reqwest::Url;
 pub struct Config {
     pub db_url: String,
     pub amqp_addr: String,
-    pub redis_url: String,
     pub server_addr: String,
     pub server_bind: String,
     pub worker_bind: String,

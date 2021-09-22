@@ -20,29 +20,14 @@ pub use self::tokens::{
 };
 pub use self::triggers::{get_trigger, get_trigger_times, get_triggers_by_job};
 
-#[derive(sqlx::FromRow)]
-pub struct JobAndProject {
-    pub job_name: String,
-    pub project_id: Uuid,
-    pub project_name: String,
-}
-
-/// Get the job's name, as well as it's project id and name
-/// Used by the authz so we can send all these details to OPA
-/// TODO - should API server be caching some of these values from the database?
-pub async fn get_job_name_and_project(
+pub async fn get_job_project_id(
     pool: &PgPool,
     job_id: Uuid,
-) -> highnoon::Result<JobAndProject> {
-    let row: Option<JobAndProject> = sqlx::query_as(
-        "
-            SELECT
-                j.name AS job_name,
-                p.id AS project_id,
-                p.name AS project_name
-            FROM project p
-            JOIN job j ON p.id = j.project_id
-            WHERE j.id = $1",
+) -> highnoon::Result<Uuid> {
+    let row: Option<(Uuid,)> = sqlx::query_as(
+        "SELECT project_id
+        FROM job
+        WHERE id = $1",
     )
     .bind(&job_id)
     .fetch_optional(pool)
@@ -50,7 +35,20 @@ pub async fn get_job_name_and_project(
 
     match row {
         None => Err(highnoon::Error::bad_request("job not found")),
-        Some(jp) => Ok(jp),
+        Some((project_id,)) => Ok(project_id),
+    }
+}
+
+/// resolve a project name into an ID
+pub async fn get_project_id(pool: &PgPool, name: &str) -> highnoon::Result<Uuid> {
+    let row: Option<(Uuid,)> = sqlx::query_as("SELECT id FROM project WHERE name = $1")
+        .bind(name)
+        .fetch_optional(pool)
+        .await?;
+
+    match row {
+        None => Err(highnoon::Error::bad_request("project not found")),
+        Some((id,)) => Ok(id),
     }
 }
 
@@ -59,7 +57,8 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
 
     let job: Job = req.body_json().await?;
 
-    auth::update().job(job.uuid).check(&req).await?;
+    let project_id = get_project_id(&pool, &job.project).await?;
+    auth::update().job(job.uuid, project_id).check(&req).await?;
 
     let mut txn = pool.begin().await?;
 
@@ -67,16 +66,14 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
         "INSERT INTO job(
             id, name, project_id, description, paused, raw_definition
         ) VALUES (
-            $1, $2,
-            (SELECT id FROM project WHERE name = $3),
-            $4,
+            $1, $2, $3, $4,
             COALESCE($5, FALSE),
             $6
         )
         ON CONFLICT(id)
         DO UPDATE
         SET name = $2,
-            project_id = (SELECT id FROM project WHERE name = $3),
+            project_id = $3,
             description = $4,
             paused = COALESCE($5, job.paused),
             raw_definition = $6",
@@ -85,7 +82,7 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
     let res = query
         .bind(&job.uuid)
         .bind(&job.name)
-        .bind(&job.project)
+        .bind(&project_id)
         .bind(&job.description)
         .bind(&job.paused)
         .bind(serde_json::to_string(&job)?)
@@ -173,7 +170,7 @@ pub async fn get_by_name(req: Request<State>) -> highnoon::Result<impl Responder
     .await?;
 
     if let Some(job) = maybe_job {
-        auth::get().job(job.id).check(&req).await?;
+        auth::get().job(job.id, job.project_id).check(&req).await?;
         Json(job).into_response()
     } else {
         StatusCode::NOT_FOUND.into_response()
@@ -238,7 +235,7 @@ pub async fn get_by_id(req: Request<State>) -> highnoon::Result<impl Responder> 
     .await?;
 
     if let Some(job) = maybe_job {
-        auth::get().job(job.id).check(&req).await?;
+        auth::get().job(job.id, job.project_id).check(&req).await?;
         Json(job).into_response()
     } else {
         StatusCode::NOT_FOUND.into_response()
@@ -248,7 +245,7 @@ pub async fn get_by_id(req: Request<State>) -> highnoon::Result<impl Responder> 
 pub async fn delete(req: Request<State>) -> highnoon::Result<StatusCode> {
     let id = req.param("id")?.parse::<Uuid>()?;
 
-    auth::delete().job(id).check(&req).await?;
+    auth::delete().job(id, None).check(&req).await?;
 
     // TODO - this breaks because of foreign key constraints
     // should we even allow deleting a job?
@@ -280,10 +277,8 @@ pub async fn delete(req: Request<State>) -> highnoon::Result<StatusCode> {
 pub async fn get_paused(req: Request<State>) -> highnoon::Result<impl Responder> {
     let id = req.param("id")?.parse::<Uuid>()?;
 
-    auth::get().job(id).check(&req).await?;
-
-    let row: Option<(bool,)> = sqlx::query_as(
-        "SELECT paused
+    let row: Option<(bool, Uuid)> = sqlx::query_as(
+        "SELECT paused, project_id
         FROM job
         WHERE id = $1",
     )
@@ -292,7 +287,10 @@ pub async fn get_paused(req: Request<State>) -> highnoon::Result<impl Responder>
     .await?;
 
     match row {
-        Some((paused,)) => Response::ok().json(paused),
+        Some((paused, proj_id)) => {
+            auth::get().job(id, proj_id).check(&req).await?;
+            Response::ok().json(paused)
+        },
         None => Ok(Response::status(StatusCode::NOT_FOUND)),
     }
 }
@@ -305,7 +303,7 @@ struct Paused {
 pub async fn set_paused(mut req: Request<State>) -> impl Responder {
     let id = req.param("id")?.parse::<Uuid>()?;
 
-    auth::update().job(id).check(&req).await?;
+    auth::update().job(id, None).check(&req).await?;
 
     let Paused { paused } = req.body_json().await?;
 
