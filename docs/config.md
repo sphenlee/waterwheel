@@ -113,8 +113,9 @@ Default is unset, in order to disable authorization checks you must also set
 ### WATERWHEEL_NO_AUTHZ
 
 Set to `true` to disable authorization checks for API actions. This will *not* 
-disable the authen/z checks between workers and the server which are used 
-for controlling access to stash variables.
+disable the authn/z checks between workers and the server which are used 
+for controlling access to stash variables. This value must be `true` if the 
+OPA sidecar address is unset, and is not recommended in production.
 
 # Logging and debugging
 
@@ -148,6 +149,7 @@ Minimal:
     WATERWHEEL_DB_URL=postgres://postgres:${POSTGRES_PASSWORD}@localhost/
     WATERWHEEL_SERVER_ADDR=http://localhost:8080/
     WATERWHEEL_HMAC_SECRET=${SECRET_DATA}
+    WATERWHEEL_NO_AUTHZ=true
 
 Everything:
 
@@ -155,6 +157,7 @@ Everything:
 
     WATERWHEEL_DB_URL=postgres://postgres:${POSTGRES_PASSWORD}@localhost/
     WATERWHEEL_SERVER_ADDR=http://localhost:8080/
+    WATERWHEEL_OPA_SIDECAR_ADDR=http://localhost:8181/
     WATERWHEEL_SERVER_BIND=127.0.0.1:8080
     WATERWHEEL_WORKER_BIND=127.0.0.1:0
     WATERWHEEL_MAX_TASKS=8

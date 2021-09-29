@@ -1,0 +1,26 @@
+{
+  "uuid": "51c35e5d-e777-4797-b91b-2526bd4bafdc",
+  "project": "test_project",
+  "name": "simple_job",
+  "description": "a simple job to test that waterwheel is working",
+  "paused": false,
+  "triggers": [
+    {
+      "name": "daily",
+      "start": "2021-09-30T00:00:00Z",
+      "period": "1d"
+    }
+  ],
+  "tasks": [
+    {
+      "name": "step0",
+      "docker": {
+        "image": "bash:latest",
+        "args": ["-c", "echo 'waterwheel is working!'"]
+      },
+      "depends": [
+        "trigger/daily"
+      ]
+    }
+  ]
+}

@@ -11,10 +11,16 @@ A job has a UUID and a name. The UUID uniquely identifies the job, but the name
 is used when jobs refer to each other. The UUID must be unique within the entire
 Waterwheel deployment; the name must be unique within a project.
 
+A job also includes the name of project it is contained within.
+
 ## Metadata
 
 Jobs have a description field which is freeform text. It's likely more 
 metadata fields will be added over time.
+
+There is a paused flag to temporarily prevent all triggers from firing. When 
+a job is unpaused it will catch up on any triggers that were skipped while 
+being paused.
 
 ## Triggers
 
@@ -33,4 +39,32 @@ Triggers also have a name which is used to refer to them in tasks.
 
 ## Tasks
 
-Tasks represent work to be executed. A task is executed when it 
+Tasks represent work to be executed. A task specifies a Docker image, 
+optional arguments and environment variables.
+
+Tasks also specify their upstream dependencies which may be triggers or 
+other tasks. When the upstream trigger fires, or the upstream tasks succeeds 
+it will create a token for this task. Dependencies may also include 
+failure tasks which will generate a token upon failing.
+
+Dependencies are specified by name using 2, 3 or 4 slash separated parts. 
+The parts are an optional project name, optional job name, one of the 
+keywords 'task' or 'trigger' and finally the task or trigger name. If 
+project is omitted it defaults to the same project as the current job. If 
+job is omitted it defaults to the current job.
+
+Examples of dependency values:
+
+```
+demo_project/demo_job/task/step1
+other_job/trigger/daily
+task/step2
+trigger/every_hour
+```
+
+The threshold number of tokens needed to activate a task may be specified. If 
+not, it will be determined as either the number of upstream success dependencies
+(i.e. not including the failure dependencies) or 1 if there are only failure 
+dependencies.
+
+The full JSONSchema for Jobs is [here](./job-schema.json).

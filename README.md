@@ -7,6 +7,7 @@ Developing Locally
 --------------------
 
 Waterwheel is built with Rust and Cargo.
+Command automation uses [Just](https://github.com/casey/just#packages).
 
 Create a `.env` file with the mandatory config settings:
 
@@ -17,12 +18,13 @@ POSTGRES_PASSWORD=password
 WATERWHEEL_DB_URL=postgres://postgres:${POSTGRES_PASSWORD}@localhost/
 WATERWHEEL_SERVER_ADDR=http://localhost:8080/
 WATERWHEEL_HMAC_SECRET=shared secret
+WATERWHEEL_NO_AUTHZ=true
 ```
 
 Now launch the services (Postgres and RabbitMQ):
 
 ```
-docker-compose up -d
+just up
 ```
 
 The web interface is built with npm and webpack (and nvm for installing node).
@@ -61,4 +63,4 @@ cargo build --release
 stat ./target/release/waterwheel
 ```
 
-> Many of these commands are in a Justfile, see https://github.com/casey/just#packages
+> Other commands are available in the Justfile. Run `just help` for a list.
