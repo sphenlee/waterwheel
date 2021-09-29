@@ -29,10 +29,9 @@ build:
     @# even if no Rust code has changed either)
     cargo build --release
 
-# deploy waterwheel using docker stack
-deploy-stack: build
+# build Waterwheel into a docker image for local use
+package: build
     docker build . -t waterwheel:local
-    docker stack deploy -c docker-stack.yml waterwheel-stack
 
 # connect to the database interactively
 psql:

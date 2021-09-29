@@ -9,7 +9,7 @@ use highnoon::StatusCode;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
-use tracing::{debug, warn};
+use tracing::{debug, warn, error};
 use uuid::Uuid;
 
 #[derive(Serialize, Debug, Default)]
@@ -85,11 +85,12 @@ async fn authorize(
     action: Action,
     object: Object,
     http: Http,
-) -> Result<bool> {
-    let opa = match config::get().opa_sidecar_addr.as_ref() {
-        // TODO - allow by default if OPA address is not set, not very secure default
-        None => return Ok(true),
-        Some(url) => url,
+) -> highnoon::Result<bool> {
+    let opa = if let Some(opa) = config::get().opa_sidecar_addr.as_ref() {
+        opa
+    } else {
+        error!("OPA sidecar address is unset (to disable authz you must set `WATERWHEEL_NO_AUTHZ=true`)");
+        return Ok(false);
     };
 
     let url = opa.join("/v1/data/waterwheel/authorize")?;
@@ -144,6 +145,10 @@ impl Check {
     }
 
     pub async fn check(self, req: &highnoon::Request<State>) -> highnoon::Result<()> {
+        if config::get().no_authz {
+            return Ok(())
+        }
+
         let principal = derive_principal(req)?;
         let mut object = self.object;
 

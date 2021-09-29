@@ -18,6 +18,7 @@ pub struct Config {
     pub public_key: Option<String>,
     pub private_key: Option<String>,
     pub opa_sidecar_addr: Option<Url>,
+    pub no_authz: bool,
     pub statsd_server: Option<String>,
     pub json_log: bool,
     pub log: String,

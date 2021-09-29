@@ -107,24 +107,14 @@ For more information about configuring OPA see [Authorization](./authz.md)
 
     WATERWHEEL_OPA_SIDECAR_ADDR=http://localhost:8181/
 
-Default is unset, which currently disables authorization checks (this may 
-change to avoid accidentally skipping checks if the variable is misspelled or 
-otherwise accidentally not set).
+Default is unset, in order to disable authorization checks you must also set
+`WATERWHEEL_NO_AUTHZ=true`.
 
-### WATERWHEEL_HEADER_IDENTITY
-The name of the HTTP header that the authentication proxy will use to store
-the identity of the authenticated principal. If unset defaults to using the
-`Authorization` header and expecting a `Bearer` token.
+### WATERWHEEL_NO_AUTHZ
 
-    WATERWHEEL_HEADER_IDENTITY=X-Principal-Identity
-
-### WATERWHEEL_HEADER_AUTHORITY
-The name of the HTTP header than the authentication proxy will use to store
-the authority vouching for the principal's authenticity. If unset, the authority
-is set to `bearer` (indicating that the identity is vouching for their own
-authenticity by bearing the token).
-
-    WATERWHEEL_HEADER_AUTHORITY=X-Authority
+Set to `true` to disable authorization checks for API actions. This will *not* 
+disable the authen/z checks between workers and the server which are used 
+for controlling access to stash variables.
 
 # Logging and debugging
 

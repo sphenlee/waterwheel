@@ -20,10 +20,10 @@ pub async fn status(req: Request<State>) -> highnoon::Result<impl Responder> {
                 SELECT COUNT(1)
                 FROM worker
             ) AS num_workers,
-            (
+            COALESCE((
                 SELECT SUM(running_tasks)
                 FROM worker
-            ) AS running_tasks",
+            ), 0) AS running_tasks",
     )
     .fetch_one(&req.get_pool())
     .await?;

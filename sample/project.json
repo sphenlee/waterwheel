@@ -6,7 +6,8 @@
     "kubernetes_pod_merge": {
       "metadata": {
         "annotations": {
-          "atlassian.com/business_unit": "Data Platform"
+          "business_unit": "Data Platform",
+          "service_name": "waterwheel-job-execution"
         }
       }
     }

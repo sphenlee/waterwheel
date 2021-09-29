@@ -3,11 +3,7 @@ package waterwheel
 default authorize = false
 
 authorize {
-    is_readonly
-}
-
-authorize {
-    input.http["x-seal-mechanism"] == "seal/formlogin"
+    true
 }
 
 is_readonly {

@@ -1,5 +1,7 @@
 use crate::util::spawn_retry;
+use crate::config;
 use anyhow::Result;
+use tracing::warn;
 
 mod api;
 mod execute;
@@ -21,6 +23,10 @@ pub async fn run_scheduler() -> Result<()> {
 }
 
 pub async fn run_api() -> Result<()> {
+    if config::get().no_authz {
+        warn!("authorization is disabled, this is not recommended in production");
+    }
+
     jwt::load_keys()?;
 
     api::serve().await?;
