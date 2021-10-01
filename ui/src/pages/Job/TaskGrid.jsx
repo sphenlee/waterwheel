@@ -1,6 +1,6 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
-import { Table, Select, notification, Popconfirm, Row, Button } from 'antd';
+import { Table, Select, notification, Popconfirm, Row, Button, DatePicker, Space } from 'antd';
 import { geekblue, lime, red, grey, orange } from '@ant-design/colors';
 import axios from 'axios';
 import styled from 'styled-components';
@@ -135,15 +135,15 @@ class TaskGrid extends Component {
         }
     }
 
-    previous() {
-        this.setState((state) => ({
-            before: state.last,
-        }));
-    }
-
-    current() {
+    gotoCurrent() {
         this.setState({
             before: null,
+        });
+    }
+
+    onDatePicked(date) {
+        this.setState({
+            before: date.toISOString()
         });
     }
 
@@ -162,12 +162,10 @@ class TaskGrid extends Component {
 
         let last = resp.data.tokens[resp.data.tokens.length - 1].trigger_datetime;
         
-        this.setState((state) => (state.before == before) ?
-            {
-                data: resp.data,
-                last: last,
-            } : {}
-        );
+        this.setState({
+            data: resp.data,
+            last: last,
+        });
     }
 
     componentDidMount() {
@@ -195,11 +193,10 @@ class TaskGrid extends Component {
         return (
             <Fragment>
                 <Row>
-                    <Button>
-                        <LeftOutlined onClick={() => this.previous()}/>
-                    </Button>
-                    <Button>
-                        <DoubleRightOutlined onClick={() => this.current()}/>
+                    <DatePicker onChange={(date) => this.onDatePicked(date)} />
+                    <Space />
+                    <Button onClick={() => this.gotoCurrent()} icon={<DoubleRightOutlined />}>
+                        Latest
                     </Button>
                 </Row>
                 <Row>
