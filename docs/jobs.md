@@ -3,7 +3,7 @@
 A job is the basic unit that can be created in Waterwheel.
 A job is made up of identification, metadata, triggers and tasks.
 
-An example job: [demo.yml](../sample/jobs/demo.yml)
+An example job: [simple.json](../sample/jobs/simple.json)
 
 ## Identification
 

@@ -13,7 +13,7 @@ def put_secret(key, value):
     headers = {
         'Authorization': 'Bearer ' + WW_JWT
     }
-    resp = requests.put(f'{WW_SERVER_ADDR}api/jobs/{WW_JOB}/stash/{WW_TRIGGER}/{key}', headers=headers, data=value)
+    resp = requests.put(f'{WW_SERVER_ADDR}int-api/jobs/{WW_JOB}/stash/{WW_TRIGGER}/{key}', headers=headers, data=value)
     resp.raise_for_status()
 
 
@@ -21,7 +21,7 @@ def get_secret(path):
     headers = {
         'Authorization': 'Bearer ' + WW_JWT
     }
-    resp = requests.get(f'{WW_SERVER_ADDR}api/{path}', headers=headers)
+    resp = requests.get(f'{WW_SERVER_ADDR}int-api/{path}', headers=headers)
     resp.raise_for_status()
     return resp.text
 

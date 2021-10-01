@@ -11,7 +11,7 @@ use std::sync::atomic::Ordering;
 
 pub async fn heartbeat() -> Result<!> {
     let server_addr = config::get().server_addr.as_ref();
-    let url = Url::parse(server_addr)?.join("api/heartbeat")?;
+    let url = Url::parse(server_addr)?.join("int-api/heartbeat")?;
 
     let client = reqwest::Client::new();
 

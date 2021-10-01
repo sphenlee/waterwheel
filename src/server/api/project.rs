@@ -207,9 +207,6 @@ pub async fn get_config(req: Request<State>) -> highnoon::Result<impl Responder>
     .fetch_optional(&req.get_pool())
     .await?;
 
-    // two layers of option - outer layer is None if the project is not found
-    // inner layer if the project has no config
-
     if let Some(proj_conf) = row {
         Json(proj_conf).into_response()
     } else {

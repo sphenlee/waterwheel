@@ -1,15 +1,16 @@
 Waterwheel Internals
 ====================
 
-Waterwheel is composed of three separate processes - the scheduler, worker and API.
+Waterwheel is composed of three logically separate processes - the scheduler, 
+worker and API.
 These communicate via the message queue (RabbitMQ) and HTTP only. The
 scheduler and API access the database (PostgreSQL) to store state, but the
 worker has no access to this.
 
-> Originally the scheduler and API were a single process called the server.
-> There may still be some accidental references to this in various places.
-> The server was split to enable scaling - the scheduler must be a singleton 
-> process, whereas the API can be replicated.
+> The scheduler process also hosts an API process and is also referred to as 
+> the Server process. The API process can be launched independently to enable
+> high availability and scaling. There must only be a single scheduler process
+> running.
 
 ![Architecture Diagram](./waterwheel_architecture.png)
 

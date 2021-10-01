@@ -103,7 +103,7 @@ provided, or an HMAC secret must be provided.
 
 ### WATERWHEEL_OPA_SIDECAR_ADDR
 The address of the OPA sidecar used for authorization decisions.
-For more information about configuring OPA see [Authorization](./authz.md)
+For more information about configuring OPA see [Authorization](./auth.md)
 
     WATERWHEEL_OPA_SIDECAR_ADDR=http://localhost:8181/
 

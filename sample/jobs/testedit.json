@@ -3,7 +3,7 @@
   "project": "test_project",
   "name": "test_edit",
   "description": "a simple job to test that task edits are broadcast correctly",
-  "paused": false,
+  "paused": true,
   "triggers": [
     {
       "name": "every_minute",

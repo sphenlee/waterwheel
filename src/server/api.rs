@@ -74,7 +74,7 @@ pub async fn serve() -> Result<()> {
     app.at("/api/status").get(status::status);
 
     // worker heartbeats
-    app.at("/api/heartbeat").post(heartbeat::post);
+    app.at("/int-api/heartbeat").post(heartbeat::post);
 
     // project
     app.at("/api/projects")
@@ -84,15 +84,17 @@ pub async fn serve() -> Result<()> {
     app.at("/api/projects/:id")
         .get(project::get_by_id)
         .delete(project::delete);
-    app.at("/api/projects/:id/config").get(project::get_config);
     app.at("/api/projects/:id/jobs").get(project::list_jobs);
+
+    app.at("/int-api/projects/:id/config").get(project::get_config);
 
     // project stash
     app.at("/api/projects/:id/stash").get(stash::project::list);
     app.at("/api/projects/:id/stash/:key")
         .put(stash::project::create)
-        .get(stash::project::get)
         .delete(stash::project::delete);
+
+    app.at("/int-api/projects/:id/stash/:key").get(stash::project::get);
 
     // job
     app.at("/api/jobs")
@@ -124,9 +126,9 @@ pub async fn serve() -> Result<()> {
         .get(job::get_trigger); // TODO - move to /api/triggers/:id
 
     // job stash
-    app.at("/api/jobs/:id/stash/:trigger_datetime/")
+    app.at("/int-api/jobs/:id/stash/:trigger_datetime/")
         .get(stash::job::list);
-    app.at("/api/jobs/:id/stash/:trigger_datetime/:key")
+    app.at("/int-api/jobs/:id/stash/:trigger_datetime/:key")
         .put(stash::job::create)
         .get(stash::job::get)
         .delete(stash::job::delete);
@@ -136,7 +138,7 @@ pub async fn serve() -> Result<()> {
         .post(task::clear_multiple_tokens);
     app.at("/api/tasks/:id/tokens/:trigger_datetime")
         .put(task::clear_token);
-    app.at("/api/tasks/:id").get(task::get_task_def);
+    app.at("/int-api/tasks/:id").get(task::get_task_def);
 
     // trigger times
     app.at("/api/triggers/:id").get(job::get_trigger_times);
@@ -149,8 +151,9 @@ pub async fn serve() -> Result<()> {
     app.at("/api/stash").get(stash::global::list);
     app.at("/api/stash/:key")
         .put(stash::global::create)
-        .get(stash::global::get)
         .delete(stash::global::delete);
+
+    app.at("/int-api/stash/:key").get(stash::global::get);
 
     // web UI
 
