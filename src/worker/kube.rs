@@ -1,4 +1,3 @@
-use crate::config;
 use crate::messages::{TaskDef, TaskRequest};
 use crate::worker::config_cache::get_project_config;
 use crate::worker::env;
@@ -7,18 +6,18 @@ use anyhow::Result;
 use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::core::v1::Pod;
 use kube::api::{Api, DeleteParams, ListParams, LogParams, PostParams, WatchEvent};
-use kube::{Client, ResourceExt};
+use kube::{Client, ResourceExt, Config};
 use tracing::{debug, info, trace, warn};
+use std::convert::TryFrom;
 
 pub async fn run_kube(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
-    let ns = &config::get().kube_namespace;
-
     trace!("loading kubernetes config");
-    let client = Client::try_default().await?;
+    let config = Config::infer().await?;
+    trace!("kubernetes namespace {}", config.default_namespace);
+    let client = Client::try_from(config)?;
 
     trace!("connecting to kubernetes...");
-    let pods: Api<Pod> = Api::namespaced(client, ns);
-    trace!("connected to kubernetes namespace {}", ns);
+    let pods: Api<Pod> = Api::default_namespaced(client);
 
     let pod = make_pod(task_req, task_def).await?;
 

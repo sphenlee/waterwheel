@@ -13,7 +13,6 @@ pub struct Config {
     pub worker_bind: String,
     pub max_tasks: u32,
     pub task_engine: TaskEngine,
-    pub kube_namespace: String,
     pub hmac_secret: Option<String>,
     pub public_key: Option<String>,
     pub private_key: Option<String>,

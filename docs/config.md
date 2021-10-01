@@ -71,18 +71,6 @@ When using the `kubernetes` engine Waterwheel expects a `kubeconfig` file in
 the usual location: either the file specified by the `KUBECONFIG` 
 environment variable or `$HOME/.kube/config` otherwise.
 
-### WATERWHEEL_KUBE_NAMESPACE
-When using the `kubernetes` engine this will set the namespace for all API 
-requests.
-
-    WATERWHEEL_KUBE_NAMESPACE=my-ns
-
-Default is `default`
-
-> The `kube` crate used by Waterwheel does not honour the default namespace 
-> set in the `kubeconfig` file. This environment variable can be removed 
-> once there is support for it. 
-
 # Security Settings
 
 ### WATERWHEEL_HMAC_SECRET
