@@ -15,7 +15,7 @@ class ActivateToken extends Component {
     async createToken() {
         const { task_id, trigger_datetime } = this.props;
         this.setState({ loading: true });
-        await axios.put(`/api/tasks/${task_id}/tokens/${trigger_datetime}`);
+        await axios.put(`/api/tasks/${task_id}/tokens/${trigger_datetime}`, {});
         this.setState({ loading: false });
         notification.success({
             message: 'Task Activated',

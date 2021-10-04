@@ -9,9 +9,15 @@ use highnoon::{Json, Request, Responder, StatusCode};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-pub async fn clear_token(req: Request<State>) -> highnoon::Result<impl Responder> {
+#[derive(Deserialize)]
+struct ClearTokenParams {
+    priority: Option<TaskPriority>,
+}
+
+pub async fn clear_token(mut req: Request<State>) -> highnoon::Result<impl Responder> {
     let task_id = req.param("id")?.parse::<Uuid>()?;
     let trigger_datetime = req.param("trigger_datetime")?.parse::<DateTime<Utc>>()?;
+    let params: ClearTokenParams = req.body_json().await?;
 
     // TODO auth check
 
@@ -36,9 +42,11 @@ pub async fn clear_token(req: Request<State>) -> highnoon::Result<impl Responder
     .execute(&mut txn)
     .await?;
 
+    let priority = params.priority.unwrap_or(TaskPriority::High);
+
     updates::send(
         req.get_channel(),
-        SchedulerUpdate::ProcessToken(ProcessToken::Activate(token, TaskPriority::High)),
+        SchedulerUpdate::ProcessToken(ProcessToken::Activate(token, priority)),
     )
     .await?;
 
@@ -48,7 +56,8 @@ pub async fn clear_token(req: Request<State>) -> highnoon::Result<impl Responder
 }
 
 #[derive(Deserialize)]
-struct ClearTokenParams {
+struct ClearMultipleTokensParams {
+    priority: Option<TaskPriority>,
     first: Option<DateTime<Utc>>,
     last: Option<DateTime<Utc>>,
     only_failed: Option<bool>,
@@ -61,7 +70,7 @@ struct ClearTokenReply {
 
 pub async fn clear_multiple_tokens(mut req: Request<State>) -> highnoon::Result<impl Responder> {
     let task_id = req.param("id")?.parse::<Uuid>()?;
-    let params: ClearTokenParams = req.body_json().await?;
+    let params: ClearMultipleTokensParams = req.body_json().await?;
 
     // TODO auth check
 
@@ -84,6 +93,8 @@ pub async fn clear_multiple_tokens(mut req: Request<State>) -> highnoon::Result<
     .bind(params.only_failed.unwrap_or(false))
     .fetch(&mut txn);
 
+    let priority = params.priority.unwrap_or(TaskPriority::BackFill);
+
     let mut count = 0u64;
     while let Some((trigger_datetime,)) = cursor.try_next().await? {
         count += 1;
@@ -95,7 +106,7 @@ pub async fn clear_multiple_tokens(mut req: Request<State>) -> highnoon::Result<
 
         updates::send(
             req.get_channel(),
-            SchedulerUpdate::ProcessToken(ProcessToken::Activate(token, TaskPriority::High)),
+            SchedulerUpdate::ProcessToken(ProcessToken::Activate(token, priority)),
         )
         .await?;
     }

@@ -105,6 +105,7 @@ pub struct TaskProgress {
 
 #[repr(u8)]
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize, Deserialize)]
+#[serde(rename_all="lowercase")]
 pub enum TaskPriority {
     BackFill = 0,
     Low = 1,

@@ -63,7 +63,7 @@ function iconForState(task) {
 }
 
 async function activateToken(trigger_datetime, task_id) {
-    await axios.put(`/api/tasks/${task_id}/tokens/${trigger_datetime}`);
+    await axios.put(`/api/tasks/${task_id}/tokens/${trigger_datetime}`, {});
     notification.success({
         message: 'Task Activated',
         description: 'The task has been activated and will run shortly.',
