@@ -1,4 +1,4 @@
-use crate::util::spawn_retry;
+use crate::util::spawn_or_crash;
 use crate::config;
 use anyhow::Result;
 use tracing::warn;
@@ -13,11 +13,11 @@ pub mod triggers;
 mod updates;
 
 pub async fn run_scheduler() -> Result<()> {
-    spawn_retry("triggers", triggers::process_triggers);
-    spawn_retry("tokens", tokens::process_tokens);
-    spawn_retry("executions", execute::process_executions);
-    spawn_retry("progress", progress::process_progress);
-    spawn_retry("updates", updates::process_updates);
+    spawn_or_crash("triggers", triggers::process_triggers);
+    spawn_or_crash("tokens", tokens::process_tokens);
+    spawn_or_crash("executions", execute::process_executions);
+    spawn_or_crash("progress", progress::process_progress);
+    spawn_or_crash("updates", updates::process_updates);
 
     Ok(())
 }

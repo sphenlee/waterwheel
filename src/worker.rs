@@ -8,7 +8,7 @@ use uuid::Uuid;
 use crate::amqp;
 use crate::config;
 use crate::server::jwt;
-use crate::util::spawn_retry;
+use crate::util::{spawn_retry, spawn_or_crash};
 use std::str::FromStr;
 
 mod config_cache;
@@ -58,12 +58,14 @@ pub async fn run_worker() -> Result<()> {
 
     let max_tasks: u32 = config::get().max_tasks;
 
+    heartbeat::wait_for_server().await;
+
     for i in 0..max_tasks {
         spawn_retry(&format!("worker-{}", i), work::process_work);
     }
 
-    spawn_retry("config_updates", config_cache::process_updates);
-    spawn_retry("heartbeat", heartbeat::heartbeat);
+    spawn_or_crash("config_updates", config_cache::process_updates);
+    spawn_or_crash("heartbeat", heartbeat::heartbeat);
 
     info!("worker id {}", *WORKER_ID);
 

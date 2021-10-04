@@ -55,3 +55,21 @@ where
         std::process::exit(1);
     });
 }
+
+/// execute a future and if it returns (Ok or Err) then crash
+pub fn spawn_or_crash<F, Fut>(name: impl Into<String>, func: F)
+    where
+        F: Fn() -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = Result<!>> + Send + 'static,
+{
+    let name = name.into();
+
+    let _ = tokio::spawn(async move {
+        match func().await {
+            Ok(_) => unreachable!("func never returns"),
+            Err(err) => error!("task {} failed: {:?}", name, err),
+        }
+        error!("task {} failed, aborting!", name);
+        std::process::exit(1);
+    });
+}
