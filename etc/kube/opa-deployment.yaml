@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f ../docker-stack.yml
+    kompose.version: 1.24.0 (4a2a0458)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: opa
+  name: opa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: opa
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f ../docker-stack.yml
+        kompose.version: 1.24.0 (4a2a0458)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: opa
+    spec:
+      containers:
+        - args:
+            - run
+            - --server
+            - -b
+            - /policy
+          image: openpolicyagent/opa
+          name: opa
+          ports:
+            - containerPort: 8181
+          resources: {}
+          volumeMounts:
+            - mountPath: /policy/policy.rego
+              name: opa-policy
+              subPath: policy.rego
+      restartPolicy: Always
+      volumes:
+        - configMap:
+            items:
+              - key: policy.rego
+                path: policy.rego
+            name: opa-policy
+          name: opa-policy
+status: {}

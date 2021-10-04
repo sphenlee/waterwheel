@@ -1,0 +1,29 @@
+# role and binding aren't created by kompose
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+
+metadata:
+  name: waterwheel-worker
+
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "watch", "list", "create", "update", "patch", "delete"] # TODO - limit this a bit
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+
+metadata:
+  name: waterwheel-worker
+
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: waterwheel
+
+roleRef:
+  kind: Role
+  name: waterwheel-worker
+  apiGroup: rbac.authorization.k8s.io

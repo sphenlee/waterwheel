@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f ../docker-stack.yml
+    kompose.version: 1.24.0 (4a2a0458)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: ww-worker
+  name: ww-worker
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      io.kompose.service: ww-worker
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f ../docker-stack.yml
+        kompose.version: 1.24.0 (4a2a0458)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: ww-worker
+    spec:
+      containers:
+        - args:
+            - worker
+          env:
+            - name: WATERWHEEL_AMQP_ADDR
+              value: amqp://amqp//
+            - name: WATERWHEEL_DB_URL
+              value: postgres://postgres:supersecret@db/
+            - name: WATERWHEEL_HMAC_SECRET
+              value: wwsharedsecret
+            - name: WATERWHEEL_NO_AUTHZ
+              value: "true"
+            - name: WATERWHEEL_SERVER_ADDR
+              value: http://ww-api-tcp/
+            - name: WATERWHEEL_SERVER_BIND
+              value: 0.0.0.0:8080
+            - name: WATERWHEEL_TASK_ENGINE
+              value: kubernetes
+          image: waterwheel:local
+          name: ww-worker
+          resources: {}
+      restartPolicy: Always
+status: {}

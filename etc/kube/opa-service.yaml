@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f ../docker-stack.yml
+    kompose.version: 1.24.0 (4a2a0458)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: opa
+  name: opa
+spec:
+  ports:
+    - name: "8181"
+      port: 8181
+      targetPort: 8181
+  selector:
+    io.kompose.service: opa
+status:
+  loadBalancer: {}

@@ -1,5 +1,5 @@
-# This file deploys a full Waterwheel environment using docker stack.
-# To deploy use `just deploy-stack`
+# A docker compose file for creating a full Waterwheel environment
+# Convert it into Kubernetes files using kompose
 
 version: '3.4'
 
@@ -10,9 +10,19 @@ x-definitions:
       - WATERWHEEL_DB_URL=postgres://postgres:$POSTGRES_PASSWORD@db/
       - WATERWHEEL_AMQP_ADDR=amqp://amqp//
       - WATERWHEEL_HMAC_SECRET=wwsharedsecret
-      - WATERWHEEL_SERVER_ADDR=http://172.19.0.1/
+      - WATERWHEEL_SERVER_ADDR=http://ww-api-tcp/
       - WATERWHEEL_SERVER_BIND=0.0.0.0:8080
-    restart: on-failure
+      - WATERWHEEL_TASK_ENGINE=kubernetes
+      # TODO - disable authz because there is no authn yet
+      #- WATERWHEEL_OPA_SIDECAR_ADDR=http://opa:8181/
+      - WATERWHEEL_NO_AUTHZ=true
+
+volumes:
+  dbdata:
+
+configs:
+  opa-policy:
+    file: "./policy/policy.rego"
 
 services:
   amqp:
@@ -29,8 +39,21 @@ services:
       - POSTGRES_PASSWORD
     ports:
       - "5432:5432"
+    volumes:
+      - type: volume
+        source: dbdata
+        target: /var/lib/postgresql/data
     logging:
       driver: none
+
+  opa:
+    image: openpolicyagent/opa
+    ports:
+      - "8181:8181"
+    configs:
+      - source: opa-policy
+        target: /policy/policy.rego
+    command: [ "run", "--server", "-b", "/policy" ]
 
   ww-scheduler:
     <<: *waterwheel
@@ -39,8 +62,9 @@ services:
   ww-worker:
     <<: *waterwheel
     command: [ "worker" ]
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      mode: replicated
+      replicas: 4
 
   ww-api:
     <<: *waterwheel
@@ -50,3 +74,5 @@ services:
     deploy:
       mode: replicated
       replicas: 2
+    labels:
+      kompose.service.type: LoadBalancer

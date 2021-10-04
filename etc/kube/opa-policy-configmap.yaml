@@ -1,0 +1,23 @@
+apiVersion: v1
+data:
+  policy.rego: |
+    package waterwheel
+
+    default authorize = false
+
+    authorize {
+        true
+    }
+
+    is_readonly {
+        input.action == "Get"
+    }
+    is_readonly {
+        input.action == "List"
+    }
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: opa
+  name: opa-policy

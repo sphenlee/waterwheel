@@ -3,8 +3,9 @@ from requests.status_codes import codes
 import json
 import yaml
 import pathlib
+import os
 
-WATERWHEEL_HOST = 'http://localhost:8080'
+WATERWHEEL_HOST = os.environ.get('WATERWHEEL_ADDR', 'http://localhost:8080/')
 
 session = requests.session()
 
