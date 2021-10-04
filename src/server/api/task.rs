@@ -10,14 +10,14 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Deserialize)]
-struct ClearTokenParams {
+struct ActivateTokenParams {
     priority: Option<TaskPriority>,
 }
 
-pub async fn clear_token(mut req: Request<State>) -> highnoon::Result<impl Responder> {
+pub async fn activate_token(mut req: Request<State>) -> highnoon::Result<impl Responder> {
     let task_id = req.param("id")?.parse::<Uuid>()?;
     let trigger_datetime = req.param("trigger_datetime")?.parse::<DateTime<Utc>>()?;
-    let params: ClearTokenParams = req.body_json().await?;
+    let params: ActivateTokenParams = req.body_json().await?;
 
     // TODO auth check
 
@@ -56,7 +56,7 @@ pub async fn clear_token(mut req: Request<State>) -> highnoon::Result<impl Respo
 }
 
 #[derive(Deserialize)]
-struct ClearMultipleTokensParams {
+struct ActivateMultipleTokensParams {
     priority: Option<TaskPriority>,
     first: Option<DateTime<Utc>>,
     last: Option<DateTime<Utc>>,
@@ -64,13 +64,13 @@ struct ClearMultipleTokensParams {
 }
 
 #[derive(Serialize)]
-struct ClearTokenReply {
+struct ActivateTokenReply {
     cleared: u64,
 }
 
-pub async fn clear_multiple_tokens(mut req: Request<State>) -> highnoon::Result<impl Responder> {
+pub async fn activate_multiple_tokens(mut req: Request<State>) -> highnoon::Result<impl Responder> {
     let task_id = req.param("id")?.parse::<Uuid>()?;
-    let params: ClearMultipleTokensParams = req.body_json().await?;
+    let params: ActivateMultipleTokensParams = req.body_json().await?;
 
     // TODO auth check
 
@@ -115,7 +115,7 @@ pub async fn clear_multiple_tokens(mut req: Request<State>) -> highnoon::Result<
 
     txn.commit().await?;
 
-    Ok(Json(ClearTokenReply { cleared: count }))
+    Ok(Json(ActivateTokenReply { cleared: count }))
 }
 
 pub async fn get_task_def(req: Request<State>) -> highnoon::Result<impl Responder> {
