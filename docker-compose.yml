@@ -1,7 +1,7 @@
 # this file launch just the services needed to run waterwheel locally
 # launch this using `just up` to develop and debug without having to build the Docker image
 
-version: '2.0'
+version: '3.1'
 
 services:
   amqp:
@@ -22,5 +22,5 @@ services:
     ports:
       - "8181:8181"
     volumes:
-      - "$PWD/sample/policy:/policy"
+      - "$PWD/etc/policy:/policy"
     command: ["run", "--server", "-b", "/policy"]

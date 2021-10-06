@@ -35,7 +35,7 @@ package: build
 
 # connect to the database interactively
 psql:
-    psql postgres://postgres:${POSTGRES_PASSWORD}@localhost/
+    psql ${WATERWHEEL_DB_URL}
 
 # run a cargo command in a musl environment
 musl +ARGS:
