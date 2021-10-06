@@ -1,5 +1,3 @@
-use std::sync::atomic::AtomicI32;
-
 use anyhow::Result;
 use once_cell::sync::Lazy;
 use tracing::info;
@@ -10,6 +8,7 @@ use crate::config;
 use crate::server::jwt;
 use crate::util::{spawn_retry, spawn_or_crash};
 use std::str::FromStr;
+use crate::counter::Counter;
 
 mod config_cache;
 mod docker;
@@ -20,8 +19,8 @@ mod work;
 
 static WORKER_ID: Lazy<Uuid> = Lazy::new(Uuid::new_v4);
 
-pub static RUNNING_TASKS: AtomicI32 = AtomicI32::new(0);
-pub static TOTAL_TASKS: AtomicI32 = AtomicI32::new(0);
+pub static RUNNING_TASKS: Counter = Counter::new();
+pub static TOTAL_TASKS: Counter = Counter::new();
 
 #[derive(Copy, Clone, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]

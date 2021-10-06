@@ -17,7 +17,6 @@ use tracing::{debug, error, info};
 use super::{RUNNING_TASKS, TOTAL_TASKS, WORKER_ID};
 use cadence::{CountedExt, Gauged};
 use chrono::{DateTime, Utc};
-use std::sync::atomic::Ordering;
 
 // TODO - queues should be configurable for task routing
 const TASK_QUEUE: &str = "waterwheel.tasks";
@@ -94,9 +93,9 @@ pub async fn process_work() -> Result<!> {
 
         let started_datetime = Utc::now();
 
-        RUNNING_TASKS.fetch_add(1, Ordering::SeqCst);
+        let running_task_guard = RUNNING_TASKS.boost();
         statsd
-            .gauge_with_tags("tasks.running", RUNNING_TASKS.load(Ordering::SeqCst) as u64)
+            .gauge_with_tags("tasks.running", RUNNING_TASKS.get() as u64)
             .with_tag("worker_id", &WORKER_ID.to_string())
             .send();
         statsd
@@ -144,11 +143,11 @@ pub async fn process_work() -> Result<!> {
 
         let finished_datetime = Utc::now();
 
-        RUNNING_TASKS.fetch_sub(1, Ordering::SeqCst);
-        TOTAL_TASKS.fetch_add(1, Ordering::SeqCst);
+        TOTAL_TASKS.inc();
+        drop(running_task_guard);
 
         statsd
-            .gauge_with_tags("tasks.running", RUNNING_TASKS.load(Ordering::SeqCst) as u64)
+            .gauge_with_tags("tasks.running", RUNNING_TASKS.get() as u64)
             .with_tag("worker_id", &WORKER_ID.to_string())
             .send();
         statsd

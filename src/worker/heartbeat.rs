@@ -19,8 +19,9 @@ pub async fn post_heartbeat(client: &reqwest::Client) -> Result<Response> {
             uuid: *WORKER_ID,
             addr: "TODO".to_owned(),
             last_seen_datetime: Utc::now(),
-            running_tasks: RUNNING_TASKS.load(Ordering::Relaxed),
-            total_tasks: TOTAL_TASKS.load(Ordering::Relaxed),
+            running_tasks: RUNNING_TASKS.get(),
+            total_tasks: TOTAL_TASKS.get(),
+            version: GIT_VERSION.to_owned(),
         })
         .send()
         .await?;
