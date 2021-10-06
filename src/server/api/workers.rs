@@ -9,6 +9,7 @@ use uuid::Uuid;
 struct WorkerState {
     pub uuid: Uuid,
     pub addr: String,
+    pub version: String,
     pub last_seen_datetime: DateTime<Utc>,
     pub running_tasks: i32,
     pub total_tasks: i32,
@@ -22,6 +23,7 @@ pub async fn list(req: Request<State>) -> highnoon::Result<impl Responder> {
         "SELECT
             id AS uuid,
             addr,
+            version,
             last_seen_datetime,
             running_tasks,
             total_tasks,
@@ -51,6 +53,7 @@ struct GetWorker {
     total_tasks: i32,
     tasks: Vec<GetWorkerTask>,
     status: String,
+    version: String,
 }
 
 #[derive(Serialize, sqlx::FromRow)]
@@ -110,6 +113,7 @@ pub async fn tasks(req: Request<State>) -> highnoon::Result<Response> {
         "SELECT
             id AS uuid,
             addr,
+            version,
             last_seen_datetime,
             running_tasks,
             total_tasks,
@@ -131,6 +135,7 @@ pub async fn tasks(req: Request<State>) -> highnoon::Result<Response> {
             total_tasks: worker.total_tasks,
             tasks,
             status: worker.status,
+            version: worker.version,
         })
     } else {
         Ok(Response::status(StatusCode::NOT_FOUND))

@@ -137,6 +137,7 @@ pub struct WorkerHeartbeat {
     pub last_seen_datetime: DateTime<Utc>,
     pub running_tasks: i32,
     pub total_tasks: i32,
+    pub version: String,
 }
 
 /// message sent from the API to the scheduler

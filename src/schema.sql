@@ -53,7 +53,8 @@ CREATE TABLE IF NOT EXISTS worker (
     addr VARCHAR,
     last_seen_datetime TIMESTAMP WITH TIME ZONE NOT NULL,
     running_tasks INT,
-    total_tasks INT
+    total_tasks INT,
+    version VARCHAR
 );
 
 CREATE TABLE IF NOT EXISTS task_run (

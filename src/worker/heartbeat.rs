@@ -1,13 +1,12 @@
-use crate::config;
+use crate::{config, GIT_VERSION};
 use crate::messages::WorkerHeartbeat;
 use anyhow::Result;
 
 use chrono::Utc;
-use tracing::{debug, trace, warn, error};
+use tracing::{debug, trace, warn, error, info};
 
 use super::{RUNNING_TASKS, TOTAL_TASKS, WORKER_ID};
 use reqwest::{StatusCode, Url, Response};
-use std::sync::atomic::Ordering;
 
 pub async fn post_heartbeat(client: &reqwest::Client) -> Result<Response> {
     let server_addr = config::get().server_addr.as_ref();
@@ -36,7 +35,7 @@ pub async fn heartbeat() -> Result<!> {
         trace!("posting heartbeat");
         match post_heartbeat(&client).await {
             Ok(resp) if resp.status() == StatusCode::OK => {
-                trace!("heartbeat: OK")
+                trace!("heartbeat: OK");
             }
             Ok(resp) => {
                 let status = resp.status();
@@ -45,7 +44,7 @@ pub async fn heartbeat() -> Result<!> {
                 debug!("heartbeat: {}", body);
             }
             Err(err) => {
-                warn!("failed to send heartbeat to the server: {}", err)
+                warn!("failed to send heartbeat to the server: {}", err);
             }
         };
 
@@ -72,7 +71,8 @@ pub async fn wait_for_server() {
                 debug!("heartbeat: {}", body);
             }
             Err(err) => {
-                warn!("failed to send heartbeat to the server: {}", err);
+                info!("waiting for server...");
+                debug!("failed to send heartbeat to the server: {}", err);
             }
         }
 
@@ -85,5 +85,5 @@ pub async fn wait_for_server() {
         tokio::time::sleep(std::time::Duration::from_secs(5)).await;
     }
 
-    trace!("server received initial heartbeat, starting work");
+    info!("server received initial heartbeat, starting work");
 }

@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
 
 import { Layout, Breadcrumb } from 'antd';
 
-const { Content } = Layout;
+const { Content, Footer } = Layout;
 
 import Home from './pages/Home.jsx';
 import Job from './pages/Job.jsx';
@@ -36,6 +36,9 @@ class App extends Component {
             <Route path="/" component={Home} />
           </Switch>
 
+          <Footer style={{ textAlign: 'center' }}>
+            Waterwheel - {VERSION}
+          </Footer>
         </Layout>
       </Router>
     );

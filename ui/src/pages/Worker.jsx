@@ -14,6 +14,7 @@ import Moment from 'react-moment';
 import Body from '../components/Body.jsx';
 import State from '../components/State.jsx';
 import RelDate from '../components/Date.jsx';
+import WorkerStatus from '../components/WorkerStatus.jsx';
 
 const { Content } = Layout;
 
@@ -112,6 +113,8 @@ class Worker extends Component {
                 last_seen_datetime: resp.data.last_seen_datetime,
                 running_tasks: resp.data.running_tasks,
                 total_tasks: resp.data.total_tasks,
+                version: resp.data.version,
+                status: resp.data.status,
             });
         } catch(e) {
             console.log(e);
@@ -128,7 +131,7 @@ class Worker extends Component {
     render() {
         const { history, match } = this.props;
         const { id } = match.params;
-        const { tasks, last_seen_datetime, running_tasks, total_tasks } = this.state;
+        const { tasks, last_seen_datetime, running_tasks, total_tasks, version, status } = this.state;
 
         return (
             <Layout>
@@ -142,7 +145,12 @@ class Worker extends Component {
                         <PageHeader
                             onBack={() => history.goBack()}
                             title={`Worker ${id}`}
-                            subTitle={'A worker'}
+                            subTitle={
+                                <Fragment>
+                                    <WorkerStatus status={status} />
+                                    Version: {version}
+                                </Fragment>
+                            }
                             extra={
                                 <Button onClick={() => this.fetchWorker(id)}>
                                     Refresh

@@ -13,6 +13,9 @@ pub mod postoffice;
 mod server;
 pub mod util;
 mod worker;
+pub mod counter;
+
+pub const GIT_VERSION: &str = git_version::git_version!();
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -22,6 +25,7 @@ async fn main() -> Result<()> {
 
     let app = clap::App::new("waterwheel")
         .author("Steve Lee <sphen.lee@gmail.com>")
+        .version(GIT_VERSION)
         .setting(clap::AppSettings::SubcommandRequiredElseHelp)
         .subcommand(
             clap::App::new("scheduler")
