@@ -53,7 +53,7 @@ struct OPARequest<'a> {
 
 #[derive(Deserialize)]
 struct OPAResponse {
-    result: bool,
+    result: Option<bool>,
 }
 
 fn derive_principal<S: highnoon::State>(req: &highnoon::Request<S>) -> Result<Principal> {
@@ -111,13 +111,13 @@ async fn authorize(
     let result: OPAResponse = reply.json().await?;
 
     // purposely don't log the HTTP object as it contains raw headers which could contain tokens or cookies
-    if result.result {
+    if result.result.unwrap_or(false) {
         debug!(?principal, ?action, ?object, "authorized");
     } else {
         warn!(?principal, ?action, ?object, "unauthorized");
     }
 
-    Ok(result.result)
+    Ok(result.result.unwrap_or(false))
 }
 
 pub struct Check {
