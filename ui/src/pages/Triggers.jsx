@@ -45,25 +45,13 @@ class Triggers extends Component {
         this.columns = makeColumns(props.match.params.job_id);
 
         this.state = {
-            trigger: {},
-            times: []
-        }
-    }
-
-    async fetchTimes(trigger_id) {
-        try {
-            let resp = await axios.get(`/api/triggers/${trigger_id}`);
-            this.setState({
-                times: resp.data,
-            });
-        } catch(e) {
-            console.log(e);
+            trigger: {}
         }
     }
 
     async fetchTrigger(job_id, trigger_id) {
         try {
-            let resp = await axios.get(`/api/jobs/${job_id}/triggers/${trigger_id}`);
+            let resp = await axios.get(`/api/triggers/${trigger_id}`);
             this.setState({
                 trigger: resp.data,
             });
@@ -76,9 +64,8 @@ class Triggers extends Component {
         const { job_id, trigger_id } = this.props.match.params;
 
         this.fetchTrigger(job_id, trigger_id);
-        this.fetchTimes(trigger_id);
 
-        this.interval = setInterval(() => this.fetchTimes(trigger_id), 5000);
+        this.interval = setInterval(() => this.fetchTrigger(job_id, trigger_id), 5000);
     }
 
     componentWillUnmount() {
@@ -88,7 +75,7 @@ class Triggers extends Component {
     render() {
         const { history, match } = this.props;
         const { job_id, trigger_id } = match.params;
-        const { trigger, times } = this.state;
+        const { trigger } = this.state;
 
         return (
             <Layout>
@@ -106,7 +93,7 @@ class Triggers extends Component {
                             title={trigger.trigger_name}
                             subTitle={`Trigger in ${trigger.job_name}`}
                         />
-                        <Table columns={this.columns} dataSource={times} pagination={{position: ['bottomLeft']}}/>
+                        <Table columns={this.columns} dataSource={trigger.times} pagination={{position: ['bottomLeft']}}/>
                     </Body>
                 </Content>
             </Layout>

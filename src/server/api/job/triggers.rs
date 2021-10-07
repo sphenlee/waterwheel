@@ -3,7 +3,7 @@ use crate::server::api::types::{period_from_string, Job, Trigger};
 use crate::server::api::{State, auth};
 use chrono::{DateTime, Utc};
 use highnoon::{Json, Request, Responder};
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use sqlx::{Postgres, Transaction};
 use std::str::FromStr;
 use thiserror::Error;
@@ -121,8 +121,14 @@ pub async fn get_triggers_by_job(req: Request<State>) -> highnoon::Result<impl R
     Ok(Json(triggers))
 }
 
+#[derive(Deserialize)]
+pub struct GetTriggerQuery {
+    before: Option<DateTime<Utc>>,
+    limit: Option<i32>,
+}
+
 #[derive(Serialize, sqlx::FromRow)]
-pub struct GetTrigger {
+pub struct GetTriggerInfo {
     pub trigger_id: Uuid,
     pub trigger_name: String,
     pub job_id: Uuid,
@@ -131,12 +137,29 @@ pub struct GetTrigger {
     pub project_name: String,
 }
 
-pub async fn get_trigger(req: Request<State>) -> highnoon::Result<impl Responder> {
+#[derive(Serialize, sqlx::FromRow)]
+pub struct TriggerTime {
+    trigger_datetime: DateTime<Utc>,
+    success: i64,
+    active: i64,
+    failure: i64,
+    waiting: i64,
+}
+
+#[derive(Serialize)]
+pub struct GetTrigger {
+    #[serde(flatten)]
+    pub info: GetTriggerInfo,
+    pub times: Vec<TriggerTime>,
+}
+
+pub async fn get_trigger(mut req: Request<State>) -> highnoon::Result<impl Responder> {
     let trigger_id = req.param("id")?.parse::<Uuid>()?;
 
-    // TODO auth check
+    let query: GetTriggerQuery = req.query()?;
 
-    let triggers: Option<GetTrigger> = sqlx::query_as(
+    // TODO auth check
+    let info: Option<GetTriggerInfo> = sqlx::query_as(
         "SELECT
             g.id AS trigger_id,
             g.name AS trigger_name,
@@ -153,33 +176,22 @@ pub async fn get_trigger(req: Request<State>) -> highnoon::Result<impl Responder
     .fetch_optional(&req.get_pool())
     .await?;
 
-    Ok(Json(triggers))
-}
+    let info = info.ok_or_else(|| highnoon::Error::http(None::<&str>))?; // weird irrelevant type for None required here
 
-#[derive(Serialize, sqlx::FromRow)]
-pub struct GetTriggerTimes {
-    trigger_datetime: DateTime<Utc>,
-    name: String,
-    success: i64,
-    active: i64,
-    failure: i64,
-    waiting: i64,
-}
+    auth::get().job(info.job_id, info.project_id).kind("trigger").check(&mut req).await?;
 
-pub async fn get_trigger_times(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let trigger_id = req.param("id")?.parse::<Uuid>()?;
-
-    // TODO auth check
-
-    let triggers: Vec<GetTriggerTimes> = sqlx::query_as(
+    let times: Vec<TriggerTime> = sqlx::query_as(
         "WITH these_triggers AS (
-            SELECT
+            SELECT DISTINCT
                 k.trigger_datetime AS trigger_datetime,
                 g.name AS name
             FROM trigger g
             JOIN trigger_edge te ON g.id = te.trigger_id
             JOIN token k ON k.task_id = te.task_id
             WHERE g.id = $1
+            AND ($2 IS NULL OR k.trigger_datetime < $2)
+            ORDER BY k.trigger_datetime DESC
+            LIMIT $3
         ),
         these_tokens AS (
             SELECT
@@ -203,12 +215,16 @@ pub async fn get_trigger_times(req: Request<State>) -> highnoon::Result<impl Res
         GROUP BY trigger_datetime,
             name
         ORDER BY trigger_datetime DESC
-        LIMIT 100
         ",
     )
     .bind(&trigger_id)
+    .bind(&query.before)
+    .bind(query.limit.unwrap_or(100))
     .fetch_all(&req.get_pool())
     .await?;
 
-    Ok(Json(triggers))
+    Ok(Json(GetTrigger {
+        info,
+        times
+    }))
 }

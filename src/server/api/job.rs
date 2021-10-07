@@ -18,7 +18,7 @@ pub use self::tasks::list_tasks;
 pub use self::tokens::{
     clear_tokens_trigger_datetime, get_tokens, get_tokens_overview, get_tokens_trigger_datetime,
 };
-pub use self::triggers::{get_trigger, get_trigger_times, get_triggers_by_job};
+pub use self::triggers::{get_trigger, get_triggers_by_job};
 
 pub async fn get_job_project_id(
     pool: &PgPool,

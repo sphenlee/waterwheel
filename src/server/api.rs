@@ -109,6 +109,7 @@ pub async fn serve() -> Result<()> {
     app.at("/api/jobs/:id/paused")
         .get(job::get_paused)
         .put(job::set_paused);
+    app.at("/api/jobs/:id/graph").get(job::get_graph);
 
     // job tokens
     app.at("/api/jobs/:id/tokens").get(job::get_tokens);
@@ -121,9 +122,6 @@ pub async fn serve() -> Result<()> {
     // job triggers
     app.at("/api/jobs/:id/triggers")
         .get(job::get_triggers_by_job);
-    app.at("/api/jobs/:id/graph").get(job::get_graph);
-    app.at("/api/jobs/:job_id/triggers/:id")
-        .get(job::get_trigger); // TODO - move to /api/triggers/:id
 
     // job stash
     app.at("/int-api/jobs/:id/stash/:trigger_datetime/")
@@ -141,7 +139,7 @@ pub async fn serve() -> Result<()> {
     app.at("/int-api/tasks/:id").get(task::get_task_def);
 
     // trigger times
-    app.at("/api/triggers/:id").get(job::get_trigger_times);
+    app.at("/api/triggers/:id").get(job::get_trigger);
 
     // workers
     app.at("/api/workers").get(workers::list);
