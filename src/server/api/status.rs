@@ -19,10 +19,12 @@ pub async fn status(req: Request<State>) -> highnoon::Result<impl Responder> {
             (
                 SELECT COUNT(1)
                 FROM worker
+                WHERE CURRENT_TIMESTAMP - last_seen_datetime < INTERVAL '15 minutes'
             ) AS num_workers,
             COALESCE((
                 SELECT SUM(running_tasks)
                 FROM worker
+                WHERE CURRENT_TIMESTAMP - last_seen_datetime < INTERVAL '15 minutes'
             ), 0) AS running_tasks",
     )
     .fetch_one(&req.get_pool())
