@@ -183,12 +183,10 @@ pub async fn get_trigger(mut req: Request<State>) -> highnoon::Result<impl Respo
     let times: Vec<TriggerTime> = sqlx::query_as(
         "WITH these_triggers AS (
             SELECT DISTINCT
-                k.trigger_datetime AS trigger_datetime,
-                g.name AS name
-            FROM trigger g
-            JOIN trigger_edge te ON g.id = te.trigger_id
+                k.trigger_datetime AS trigger_datetime
+            FROM trigger_edge te
             JOIN token k ON k.task_id = te.task_id
-            WHERE g.id = $1
+            WHERE te.trigger_id = $1
             AND ($2 IS NULL OR k.trigger_datetime < $2)
             ORDER BY k.trigger_datetime DESC
             LIMIT $3
@@ -196,7 +194,7 @@ pub async fn get_trigger(mut req: Request<State>) -> highnoon::Result<impl Respo
         these_tokens AS (
             SELECT
                 x.trigger_datetime AS trigger_datetime,
-                x.name AS name,
+                g.name AS name,
                 k.state AS state
             FROM these_triggers x
             JOIN token k ON k.trigger_datetime = x.trigger_datetime
