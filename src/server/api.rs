@@ -1,7 +1,6 @@
 use crate::config;
 use anyhow::Result;
 use cadence::StatsdClient;
-use highnoon::filter::session::{HasSession, Session};
 use lapin::Channel;
 use sqlx::PgPool;
 
@@ -24,21 +23,10 @@ pub struct State {
     statsd: StatsdClient,
 }
 
-#[derive(Default)]
-pub struct Context {
-    session: highnoon::filter::session::Session,
-}
-
 impl highnoon::State for State {
-    type Context = Context;
+    type Context = ();
     fn new_context(&self) -> Self::Context {
-        Context::default()
-    }
-}
-
-impl HasSession for Context {
-    fn session(&mut self) -> &mut Session {
-        &mut self.session
+        Self::Context::default()
     }
 }
 
