@@ -1,9 +1,9 @@
-use crate::{config, GIT_VERSION};
 use crate::messages::WorkerHeartbeat;
+use crate::{config, GIT_VERSION};
 use anyhow::Result;
 
 use chrono::Utc;
-use tracing::{debug, trace, warn, error};
+use tracing::{debug, error, trace, warn};
 
 use super::{RUNNING_TASKS, TOTAL_TASKS, WORKER_ID};
 use reqwest::{StatusCode, Url};
@@ -71,7 +71,10 @@ pub async fn wait_for_server() {
     let mut retries = 5;
     loop {
         trace!("sending heartbeat");
-        if post_heartbeat(&client).await.expect("error posting heartbeat") {
+        if post_heartbeat(&client)
+            .await
+            .expect("error posting heartbeat")
+        {
             break;
         }
 

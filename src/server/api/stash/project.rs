@@ -1,4 +1,4 @@
-use crate::server::api::{request_ext::RequestExt, State, auth};
+use crate::server::api::{auth, request_ext::RequestExt, State};
 use highnoon::{Json, Request, Responder, StatusCode};
 use tracing::info;
 use uuid::Uuid;
@@ -12,7 +12,11 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<impl Responder>
     let proj_id = req.param("id")?.parse::<Uuid>()?;
     let key = req.param("key")?;
 
-    auth::update().project(proj_id).kind("stash").check(&req).await?;
+    auth::update()
+        .project(proj_id)
+        .kind("stash")
+        .check(&req)
+        .await?;
 
     let db = req.get_pool();
 
@@ -39,7 +43,11 @@ pub async fn list(req: Request<State>) -> highnoon::Result<impl Responder> {
 
     let proj_id = req.param("id")?.parse::<Uuid>()?;
 
-    auth::list().project(proj_id).kind("stash").check(&req).await?;
+    auth::list()
+        .project(proj_id)
+        .kind("stash")
+        .check(&req)
+        .await?;
 
     let rows: Vec<StashName> = sqlx::query_as(
         "SELECT name
@@ -96,7 +104,11 @@ pub async fn delete(req: Request<State>) -> highnoon::Result<impl Responder> {
     let proj_id = req.param("id")?.parse::<Uuid>()?;
     let key = req.param("key")?;
 
-    auth::delete().project(proj_id).kind("stash").check(&req).await?;
+    auth::delete()
+        .project(proj_id)
+        .kind("stash")
+        .check(&req)
+        .await?;
 
     let _done = sqlx::query(
         "DELETE

@@ -1,13 +1,13 @@
 use std::sync::atomic::{AtomicI32, Ordering};
 
 pub struct Counter {
-    count: AtomicI32
+    count: AtomicI32,
 }
 
 impl Counter {
     pub const fn new() -> Self {
         Self {
-            count: AtomicI32::new(0)
+            count: AtomicI32::new(0),
         }
     }
 

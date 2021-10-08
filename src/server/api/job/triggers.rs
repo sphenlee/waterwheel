@@ -1,9 +1,9 @@
 use crate::server::api::request_ext::RequestExt;
 use crate::server::api::types::{period_from_string, Job, Trigger};
-use crate::server::api::{State, auth};
+use crate::server::api::{auth, State};
 use chrono::{DateTime, Utc};
 use highnoon::{Json, Request, Responder};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use sqlx::{Postgres, Transaction};
 use std::str::FromStr;
 use thiserror::Error;
@@ -178,7 +178,11 @@ pub async fn get_trigger(mut req: Request<State>) -> highnoon::Result<impl Respo
 
     let info = info.ok_or_else(|| highnoon::Error::http(None::<&str>))?; // weird irrelevant type for None required here
 
-    auth::get().job(info.job_id, info.project_id).kind("trigger").check(&mut req).await?;
+    auth::get()
+        .job(info.job_id, info.project_id)
+        .kind("trigger")
+        .check(&mut req)
+        .await?;
 
     let times: Vec<TriggerTime> = sqlx::query_as(
         "WITH these_triggers AS (
@@ -221,8 +225,5 @@ pub async fn get_trigger(mut req: Request<State>) -> highnoon::Result<impl Respo
     .fetch_all(&req.get_pool())
     .await?;
 
-    Ok(Json(GetTrigger {
-        info,
-        times
-    }))
+    Ok(Json(GetTrigger { info, times }))
 }

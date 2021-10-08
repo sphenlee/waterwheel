@@ -5,6 +5,7 @@ use anyhow::Result;
 mod amqp;
 pub mod circuit_breaker;
 pub mod config;
+pub mod counter;
 mod db;
 mod logging;
 pub mod messages;
@@ -13,7 +14,6 @@ pub mod postoffice;
 mod server;
 pub mod util;
 mod worker;
-pub mod counter;
 
 pub const GIT_VERSION: &str = git_version::git_version!();
 

@@ -5,10 +5,10 @@ use uuid::Uuid;
 
 use crate::amqp;
 use crate::config;
-use crate::server::jwt;
-use crate::util::{spawn_retry, spawn_or_crash};
-use std::str::FromStr;
 use crate::counter::Counter;
+use crate::server::jwt;
+use crate::util::{spawn_or_crash, spawn_retry};
+use std::str::FromStr;
 
 mod config_cache;
 mod docker;

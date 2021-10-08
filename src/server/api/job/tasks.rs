@@ -1,15 +1,15 @@
-use crate::server::api::{State, auth};
 use crate::server::api::request_ext::RequestExt;
 use crate::server::api::types::{Job, Task};
+use crate::server::api::{auth, State};
 use crate::util::{is_pg_integrity_error, pg_error};
 use anyhow::Result;
-use highnoon::{Request, Responder, Json};
+use highnoon::{Json, Request, Responder};
+use serde::Serialize;
 use sqlx::{Postgres, Transaction};
 use std::fmt::{self, Display};
 use std::str::FromStr;
 use tracing::debug;
 use uuid::Uuid;
-use serde::Serialize;
 
 #[derive(Debug)]
 enum ReferenceKind {
@@ -293,7 +293,6 @@ async fn create_task_edge(
         Ok(())
     }
 }
-
 
 #[derive(Serialize, sqlx::FromRow)]
 struct ListTask {

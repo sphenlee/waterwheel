@@ -6,9 +6,9 @@ use anyhow::Result;
 use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::core::v1::Pod;
 use kube::api::{Api, DeleteParams, ListParams, LogParams, PostParams, WatchEvent};
-use kube::{Client, ResourceExt, Config};
-use tracing::{debug, info, trace, warn};
+use kube::{Client, Config, ResourceExt};
 use std::convert::TryFrom;
+use tracing::{debug, info, trace, warn};
 
 pub async fn run_kube(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
     trace!("loading kubernetes config");

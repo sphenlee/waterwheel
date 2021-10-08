@@ -1,6 +1,6 @@
 use crate::messages::{SchedulerUpdate, Token};
 use crate::server::api::request_ext::RequestExt;
-use crate::server::api::{updates, State, auth};
+use crate::server::api::{auth, updates, State};
 use crate::server::tokens::ProcessToken;
 use chrono::{DateTime, Utc};
 use highnoon::{Json, Request, Responder};

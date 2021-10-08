@@ -1,4 +1,4 @@
-use crate::server::api::{request_ext::RequestExt, State, auth};
+use crate::server::api::{auth, request_ext::RequestExt, State};
 use highnoon::{Json, Request, Responder, StatusCode};
 use tracing::info;
 

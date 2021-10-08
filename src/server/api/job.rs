@@ -1,12 +1,12 @@
-use crate::util::{is_pg_integrity_error, pg_error};
 use crate::messages::{ConfigUpdate, SchedulerUpdate};
-use crate::server::api::{auth, config_cache, updates, State, types::Job, request_ext::RequestExt};
+use crate::server::api::{auth, config_cache, request_ext::RequestExt, types::Job, updates, State};
 use crate::server::triggers::TriggerUpdate;
+use crate::util::{is_pg_integrity_error, pg_error};
 use highnoon::{Json, Request, Responder, Response, StatusCode};
 use serde::{Deserialize, Serialize};
+use sqlx::PgPool;
 use tracing::{info, warn};
 use uuid::Uuid;
-use sqlx::PgPool;
 
 mod graph;
 mod tasks;
@@ -20,10 +20,7 @@ pub use self::tokens::{
 };
 pub use self::triggers::{get_trigger, get_triggers_by_job};
 
-pub async fn get_job_project_id(
-    pool: &PgPool,
-    job_id: Uuid,
-) -> highnoon::Result<Uuid> {
+pub async fn get_job_project_id(pool: &PgPool, job_id: Uuid) -> highnoon::Result<Uuid> {
     let row: Option<(Uuid,)> = sqlx::query_as(
         "SELECT project_id
         FROM job
@@ -290,7 +287,7 @@ pub async fn get_paused(req: Request<State>) -> highnoon::Result<impl Responder>
         Some((paused, proj_id)) => {
             auth::get().job(id, proj_id).check(&req).await?;
             Response::ok().json(paused)
-        },
+        }
         None => Ok(Response::status(StatusCode::NOT_FOUND)),
     }
 }

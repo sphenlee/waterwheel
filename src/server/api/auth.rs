@@ -9,7 +9,7 @@ use highnoon::StatusCode;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
-use tracing::{debug, warn, error};
+use tracing::{debug, error, warn};
 use uuid::Uuid;
 
 #[derive(Serialize, Debug, Default)]
@@ -132,7 +132,11 @@ impl Check {
         self
     }
 
-    pub fn job(mut self, job_id: impl Into<Option<Uuid>>, proj_id: impl Into<Option<Uuid>>) -> Self {
+    pub fn job(
+        mut self,
+        job_id: impl Into<Option<Uuid>>,
+        proj_id: impl Into<Option<Uuid>>,
+    ) -> Self {
         self.object.job_id = job_id.into();
         self.object.project_id = proj_id.into();
         self.object.kind = "job".to_owned();
@@ -146,7 +150,7 @@ impl Check {
 
     pub async fn check(self, req: &highnoon::Request<State>) -> highnoon::Result<()> {
         if config::get().no_authz {
-            return Ok(())
+            return Ok(());
         }
 
         let principal = derive_principal(req)?;

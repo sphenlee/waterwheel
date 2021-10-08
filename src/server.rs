@@ -1,5 +1,5 @@
-use crate::util::spawn_or_crash;
 use crate::config;
+use crate::util::spawn_or_crash;
 use anyhow::Result;
 use tracing::warn;
 

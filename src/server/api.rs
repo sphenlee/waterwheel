@@ -1,9 +1,9 @@
 use crate::config;
 use anyhow::Result;
 use cadence::StatsdClient;
+use highnoon::filter::session::{HasSession, Session};
 use lapin::Channel;
 use sqlx::PgPool;
-use highnoon::filter::session::{HasSession, Session};
 
 pub mod auth;
 mod config_cache;
@@ -86,7 +86,8 @@ pub async fn serve() -> Result<()> {
         .delete(project::delete);
     app.at("/api/projects/:id/jobs").get(project::list_jobs);
 
-    app.at("/int-api/projects/:id/config").get(project::get_config);
+    app.at("/int-api/projects/:id/config")
+        .get(project::get_config);
 
     // project stash
     app.at("/api/projects/:id/stash").get(stash::project::list);
@@ -94,7 +95,8 @@ pub async fn serve() -> Result<()> {
         .put(stash::project::create)
         .delete(stash::project::delete);
 
-    app.at("/int-api/projects/:id/stash/:key").get(stash::project::get);
+    app.at("/int-api/projects/:id/stash/:key")
+        .get(stash::project::get);
 
     // job
     app.at("/api/jobs")
@@ -104,8 +106,7 @@ pub async fn serve() -> Result<()> {
     app.at("/api/jobs/:id")
         .get(job::get_by_id)
         .delete(job::delete);
-    app.at("/api/jobs/:id/tasks")
-        .get(job::list_tasks);
+    app.at("/api/jobs/:id/tasks").get(job::list_tasks);
     app.at("/api/jobs/:id/paused")
         .get(job::get_paused)
         .put(job::set_paused);

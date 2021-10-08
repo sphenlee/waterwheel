@@ -58,9 +58,9 @@ where
 
 /// execute a future and if it returns (Ok or Err) then crash
 pub fn spawn_or_crash<F, Fut>(name: impl Into<String>, func: F)
-    where
-        F: Fn() -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = Result<!>> + Send + 'static,
+where
+    F: Fn() -> Fut + Send + Sync + 'static,
+    Fut: Future<Output = Result<!>> + Send + 'static,
 {
     let name = name.into();
 
