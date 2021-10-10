@@ -12,6 +12,7 @@ import TokenTable from './Job/TokenTable.jsx';
 import Triggers from './Job/Triggers.jsx';
 import Graph from '../components/Graph.jsx';
 import TaskGrid from './Job/TaskGrid.jsx';
+import Duration from './Job/Duration.jsx';
 
 const { Content } = Layout;
 
@@ -111,6 +112,9 @@ class Job extends Component {
                             </Tabs.TabPane>
                             <Tabs.TabPane tab="Tokens" key="tokens">
                                 <TokenTable id={job_id}/>
+                            </Tabs.TabPane>
+                            <Tabs.TabPane tab="Duration" key="duration">
+                                <Duration id={job_id} />
                             </Tabs.TabPane>
                             <Tabs.TabPane tab="Definition" key="definition">
                                 <JSONPretty data={job.raw_definition} />

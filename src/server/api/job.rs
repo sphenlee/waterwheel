@@ -12,6 +12,7 @@ mod graph;
 mod tasks;
 mod tokens;
 mod triggers;
+mod duration;
 
 pub use self::graph::get_graph;
 pub use self::tasks::list_tasks;
@@ -19,6 +20,7 @@ pub use self::tokens::{
     clear_tokens_trigger_datetime, get_tokens, get_tokens_overview, get_tokens_trigger_datetime,
 };
 pub use self::triggers::{get_trigger, get_triggers_by_job};
+pub use self::duration::get_duration;
 
 pub async fn get_job_project_id(pool: &PgPool, job_id: Uuid) -> highnoon::Result<Uuid> {
     let row: Option<(Uuid,)> = sqlx::query_as(

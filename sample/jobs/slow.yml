@@ -1,0 +1,48 @@
+uuid: 'ea67523f-dcc5-423d-810f-aa4a0ed1080e'
+
+project: test_project
+name: slow_job
+description: a job with tasks that have more realistic duations
+paused: false
+
+triggers:
+  - name: daily
+    start: '2021-10-01T00:00:00Z'
+    period: '1d'
+
+tasks:
+  - name: start
+    docker:
+      image: bash
+      args:
+        - "-c"
+        - "echo starting"
+    depends:
+      - trigger/daily
+
+  - name: step1
+    docker:
+      image: bash
+      args:
+        - "-c"
+        - "sleep 2h"
+    depends:
+      - task/start
+
+  - name: success
+    docker:
+      image: bash
+      args:
+        - "-c"
+        - "echo success"
+    depends:
+      - task/step1
+
+  - name: fail
+    docker:
+      image: bash
+      args:
+        - "-c"
+        - "failed"
+    depends_failure:
+      - task/step1

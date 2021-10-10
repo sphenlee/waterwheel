@@ -1,0 +1,94 @@
+import React, { Component, Fragment } from "react";
+import { Row, Col, Button, DatePicker, Space } from 'antd';
+import axios from 'axios';
+import { Line } from '@ant-design/charts';
+
+import {
+  DoubleRightOutlined,
+} from '@ant-design/icons';
+
+const config = {
+    xField: 'trigger_datetime',
+    yField: 'duration',
+    seriesField: 'task_name',
+    yAxis: {
+        title: {
+            text: 'Task Duration (s)'
+        }
+    },
+    xAxis: {
+        title: {
+            text: 'Trigger Date'
+        }
+    }
+  };
+
+class Duration extends Component {
+    constructor(props) {
+        super(props);
+
+        this.state = {
+            data: null,
+            limit: 25,
+            before: null,
+        }
+    }
+
+    gotoCurrent() {
+        this.setState({
+            before: null,
+        });
+    }
+
+    onDatePicked(date) {
+        this.setState({
+            before: date.toISOString()
+        });
+    }
+
+    async fetchDuration() {
+        const { id } = this.props;
+        const { limit, before } = this.state;
+
+        let params = {
+            limit: limit,
+            before: before,
+        };
+
+        let resp = await axios.get(`/api/jobs/${id}/duration`, {
+                params: params
+        });
+
+        this.setState({
+            data: resp.data,
+        });
+    }
+
+    componentDidMount() {
+        this.fetchDuration()
+    }
+
+    render() {
+        const { id }  = this.props;
+        const { data } = this.state;
+
+        return (
+            <Fragment>
+                <Row>
+                    <DatePicker onChange={(date) => this.onDatePicked(date)} />
+                    <Space />
+                    <Button onClick={() => this.gotoCurrent()} icon={<DoubleRightOutlined />}>
+                        Latest
+                    </Button>
+                </Row>
+                <Row>
+                    <Col span={24}>
+                        <Line loading={data === null} data={data?.duration ?? []} {...config} />
+                    </Col>
+                </Row>
+            </Fragment>
+        );
+    }
+}
+
+export default Duration;

@@ -99,6 +99,7 @@ pub async fn serve() -> Result<()> {
         .get(job::get_paused)
         .put(job::set_paused);
     app.at("/api/jobs/:id/graph").get(job::get_graph);
+    app.at("/api/jobs/:id/duration").get(job::get_duration);
 
     // job tokens
     app.at("/api/jobs/:id/tokens").get(job::get_tokens);

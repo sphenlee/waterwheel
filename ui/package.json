@@ -28,6 +28,7 @@
     "webpack-cli": "^4.8.0"
   },
   "dependencies": {
+    "@ant-design/charts": "^1.2.14",
     "@ant-design/colors": "^4.0.5",
     "antd": "^4.16.13",
     "axios": "^0.21.4",
