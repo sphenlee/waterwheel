@@ -141,7 +141,7 @@ pub struct GetTriggerInfo {
 pub struct TriggerTime {
     trigger_datetime: DateTime<Utc>,
     success: i64,
-    active: i64,
+    running: i64,
     failure: i64,
     waiting: i64,
 }
@@ -210,9 +210,9 @@ pub async fn get_trigger(mut req: Request<State>) -> highnoon::Result<impl Respo
             trigger_datetime,
             name,
             sum(CASE WHEN state = 'success' THEN 1 ELSE 0 END) AS success,
-            sum(CASE WHEN state = 'active' THEN 1 ELSE 0 END) AS active,
+            sum(CASE WHEN state = 'running' THEN 1 ELSE 0 END) AS running,
             sum(CASE WHEN state = 'failure' THEN 1 ELSE 0 END) AS failure,
-            sum(CASE WHEN state = 'waiting' THEN 1 ELSE 0 END) AS waiting
+            sum(CASE WHEN state = 'active' OR state = 'waiting' THEN 1 ELSE 0 END) AS waiting
         FROM these_tokens
         GROUP BY trigger_datetime,
             name

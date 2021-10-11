@@ -127,6 +127,7 @@ struct ProjectExtra {
     pub name: String,
     pub description: String,
     pub num_jobs: i64,
+    // TODO - harmonise these with the ListProject call
     pub active_tasks: i64,
     pub failed_tasks_last_hour: i64,
     pub succeeded_tasks_last_hour: i64,
@@ -152,7 +153,7 @@ pub async fn get_by_id(req: Request<State>) -> highnoon::Result<Response> {
                 JOIN task t ON t.job_id = j.id
                 JOIN task_run tr ON tr.task_id = t.id
                 WHERE j.project_id = $1
-                AND tr.state = 'active'
+                AND tr.state = 'running'
             ) AS active_tasks,
             (
                 SELECT count(1)
@@ -245,34 +246,80 @@ pub async fn delete(req: Request<State>) -> highnoon::Result<StatusCode> {
     }
 }
 
+#[derive(Deserialize)]
+struct ListJobQuery {
+    limit: Option<u32>,
+    after: Option<String>,
+}
+
 #[derive(Serialize, sqlx::FromRow)]
 struct ListJob {
     job_id: Uuid,
     name: String,
     description: String,
+    paused: bool,
+    success: i64,
+    running: i64,
+    failure: i64,
+    waiting: i64,
 }
 
 pub async fn list_jobs(req: Request<State>) -> highnoon::Result<impl Responder> {
     let id_str = req.param("id")?;
     let id = Uuid::parse_str(&id_str)?;
 
+    let query: ListJobQuery = req.query()?;
+
     auth::list().project(id).check(&req).await?;
 
     let jobs: Vec<ListJob> = sqlx::query_as(
-        "SELECT
+        "WITH these_runs AS (
+            SELECT
+                t.job_id AS job_id,
+                tr.state AS state
+            FROM job j
+            JOIN task t ON j.id = t.job_id
+            LEFT OUTER JOIN task_run tr ON tr.task_id = t.id
+            WHERE j.project_id = $1
+            AND (
+                tr.finish_datetime IS NULL
+                OR CURRENT_TIMESTAMP - tr.finish_datetime < INTERVAL '1 hour'
+                )
+        ),
+        job_stats AS (
+            SELECT
+                job_id,
+                sum(CASE WHEN state = 'success' THEN 1 ELSE 0 END) AS success,
+                sum(CASE WHEN state = 'running' THEN 1 ELSE 0 END) AS running,
+                sum(CASE WHEN state = 'failure' THEN 1 ELSE 0 END) AS failure,
+                sum(CASE
+                        WHEN state = 'active' OR state = 'waiting' THEN 1
+                        ELSE 0
+                    END) AS waiting
+            FROM these_runs
+            GROUP BY job_id
+        )
+        SELECT
             id AS job_id,
             name,
-            description
-        FROM job
+            description,
+            paused,
+            coalesce(success, 0) AS success,
+            coalesce(running, 0) AS running,
+            coalesce(failure, 0) AS failure,
+            coalesce(waiting, 0) AS waiting
+        FROM job j
+        LEFT OUTER JOIN job_stats js ON j.id = js.job_id
         WHERE project_id = $1
+        AND ($2 IS NULL OR name > $2)
         ORDER BY name
-        LIMIT 200",
-    )
-    .bind(&id)
-    .fetch_all(&req.get_pool())
-    .await?;
-
-    // TODO - check for project_id not found
+        LIMIT $3",
+        )
+        .bind(&id)
+        .bind(query.after.as_ref())
+        .bind(query.limit.unwrap_or(50))
+        .fetch_all(&req.get_pool())
+        .await?;
 
     Ok(Json(jobs))
 }

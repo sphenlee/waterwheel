@@ -26,10 +26,10 @@ function makeColumns(job_id) {
         key: 'status',
         render: (text, record) => (
                 <Fragment>
+                    <Badge count={record.waiting} style={{background: grey[7]}} title="Waiting"/>
+                    <Badge count={record.running} style={{background: geekblue[7]}} title="Active"/>
                     <Badge count={record.success} style={{background: lime[7]}} title="Success"/>
                     <Badge count={record.failure} style={{background: red[7]}} title="Failure"/>
-                    <Badge count={record.waiting} style={{background: grey[7]}} title="Waiting"/>
-                    <Badge count={record.active} style={{background: geekblue[7]}} title="Active"/>
                 </Fragment>
             )
 

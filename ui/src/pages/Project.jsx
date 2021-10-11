@@ -1,7 +1,8 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
-import { List, Avatar, Layout, Breadcrumb, PageHeader, Row, Col, Statistic  } from 'antd';
+import { List, Avatar, Layout, Breadcrumb, PageHeader, Row, Col, Statistic, Badge, Tag  } from 'antd';
 import { geekblue, lime, red, grey, yellow } from '@ant-design/colors';
+import { PauseOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
 import Body from '../components/Body.jsx';
@@ -14,9 +15,8 @@ class Project extends Component {
         super(props);
 
         this.state = {
-            loading: false,
             proj: {},
-            jobs: []
+            jobs: null
         };
     }
 
@@ -24,21 +24,15 @@ class Project extends Component {
         const {match} = this.props;
         
         try {
-            this.setState({
-                loading: true
-            });
             let proj = await axios.get(`/api/projects/${match.params.id}`);
             let jobs = await axios.get(`/api/projects/${match.params.id}/jobs`);
             this.setState({
-                loading: false,
                 proj: proj.data,
                 jobs: jobs.data,
             });
         } catch(e) {
             console.log(e);
             this.setState({
-                loading: false,
-                proj:{},
                 jobs: []
             });
         }
@@ -46,7 +40,14 @@ class Project extends Component {
 
     componentDidMount() {
         this.fetchProject()
+
+        this.interval = setInterval(() => this.fetchProject(), 5000);
     }
+
+    componentWillUnmount() {
+        clearInterval(this.interval);
+    }
+
 
     render() {
         const { history } = this.props;
@@ -71,7 +72,7 @@ class Project extends Component {
                                 <Statistic title="Jobs" value={proj.num_jobs} />
                             </Col>
                             <Col span={6}>
-                                <Statistic title="Active Tasks"
+                                <Statistic title="Running Tasks"
                                     valueStyle={{color: geekblue[5]}}
                                     value={proj.active_tasks} />
                             </Col>
@@ -87,22 +88,52 @@ class Project extends Component {
                             </Col>
                             <Col span={24} />
                         </Row>
-                        <List
-                            itemLayout="vertical"
-                            dataSource={this.state.jobs}
-                            loading={this.state.loading}
-                            renderItem={item => (
-                                <List.Item>
-                                    <List.Item.Meta
-                                        avatar={<Avatar shape="square">{item.avatar}</Avatar>}
-                                        title={<Link to={`/jobs/${item.job_id}`}>
-                                            {item.name}
-                                        </Link>}
-                                        description={item.description}
-                                    />
-                                </List.Item>
-                            )}
-                        />
+                        <Row>
+                            <Col span={12}>
+                                <List
+                                    size="large"
+                                    itemLayout="vertical"
+                                    dataSource={this.state.jobs ?? []}
+                                    loading={this.state.jobs === null}
+                                    renderItem={item => (
+                                        <List.Item
+                                            key={item.job_id}
+                                            actions={[
+                                                <Fragment>
+                                                    <Badge count={item.waiting}
+                                                        style={{background: grey[7]}}
+                                                        overflowCount={999}
+                                                        title="Waiting"/>
+                                                    <Badge count={item.running}
+                                                        style={{background: geekblue[7]}}
+                                                        overflowCount={999}
+                                                        title="Running"/>
+                                                    <Badge count={item.success}
+                                                        style={{background: lime[7]}}
+                                                        overflowCount={999}
+                                                        title="Success"/>
+                                                    <Badge count={item.failure}
+                                                        style={{background: red[7]}}
+                                                        overflowCount={999}
+                                                        title="Failure"/>
+                                                </Fragment>,
+                                                (item.paused &&
+                                                    <Tag color="warning" icon={<PauseOutlined />}>paused</Tag>)
+                                            ]}
+                                        >
+                                            <List.Item.Meta
+                                                avatar={<Avatar shape="square">{item.avatar}</Avatar>}
+                                                title={<Link to={`/jobs/${item.job_id}`}>
+                                                        {item.name}
+                                                    </Link>}
+                                                description={item.description}
+                                            />
+
+                                        </List.Item>
+                                    )}
+                                />
+                            </Col>
+                        </Row>
                     </Body>
                 </Content>
             </Layout>

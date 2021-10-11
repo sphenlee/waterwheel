@@ -1,6 +1,6 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
-import { List, Avatar, Layout, Breadcrumb } from 'antd';
+import { List, Avatar, Layout, Breadcrumb, Row, Col } from 'antd';
 import axios from 'axios';
 
 import Body from '../components/Body.jsx';
@@ -50,22 +50,26 @@ class Projects extends Component {
                         <Breadcrumb.Item><Link to="/projects">Projects</Link></Breadcrumb.Item>
                     </Breadcrumb>
                     <Body>
-                        <List
-                            itemLayout="vertical"
-                            dataSource={this.state.data}
-                            loading={this.state.loading}
-                            renderItem={item => (
-                                <List.Item>
-                                    <List.Item.Meta
-                                        avatar={<Avatar shape="square">{item.avatar}</Avatar>}
-                                        title={<Link to={`/projects/${item.id}`}>
-                                            {item.name}
-                                        </Link>}
-                                        description={item.description}
-                                    />
-                                </List.Item>
-                            )}
-                        />
+                        <Row>
+                            <Col span={12}>
+                                <List
+                                    itemLayout="vertical"
+                                    dataSource={this.state.data}
+                                    loading={this.state.loading}
+                                    renderItem={item => (
+                                        <List.Item>
+                                            <List.Item.Meta
+                                                avatar={<Avatar shape="square">{item.avatar}</Avatar>}
+                                                title={<Link to={`/projects/${item.id}`}>
+                                                    {item.name}
+                                                </Link>}
+                                                description={item.description}
+                                            />
+                                        </List.Item>
+                                    )}
+                                />
+                            </Col>
+                        </Row>
                     </Body>
                 </Content>
             </Layout>
