@@ -35,20 +35,16 @@ class Duration extends Component {
     }
 
     gotoCurrent() {
-        this.setState({
-            before: null,
-        });
+        this.fetchDuration(null);
     }
 
     onDatePicked(date) {
-        this.setState({
-            before: date.toISOString()
-        });
+        this.fetchDuration(date.toISOString());
     }
 
-    async fetchDuration() {
+    async fetchDuration(before) {
         const { id } = this.props;
-        const { limit, before } = this.state;
+        const { limit } = this.state;
 
         let params = {
             limit: limit,
@@ -65,7 +61,7 @@ class Duration extends Component {
     }
 
     componentDidMount() {
-        this.fetchDuration()
+        this.gotoCurrent();
     }
 
     render() {
