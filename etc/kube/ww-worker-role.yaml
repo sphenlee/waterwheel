@@ -1,5 +1,3 @@
-# role and binding aren't created by kompose
-
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 
@@ -21,7 +19,6 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: default
-    namespace: waterwheel
 
 roleRef:
   kind: Role

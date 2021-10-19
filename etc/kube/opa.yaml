@@ -1,27 +1,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  annotations:
-    kompose.cmd: kompose convert -f ../docker-stack.yml
-    kompose.version: 1.24.0 (4a2a0458)
-  creationTimestamp: null
   labels:
-    io.kompose.service: opa
+    app: opa
   name: opa
 spec:
   replicas: 1
   selector:
     matchLabels:
-      io.kompose.service: opa
-  strategy: {}
+      app: opa
   template:
     metadata:
-      annotations:
-        kompose.cmd: kompose convert -f ../docker-stack.yml
-        kompose.version: 1.24.0 (4a2a0458)
-      creationTimestamp: null
       labels:
-        io.kompose.service: opa
+        app: opa
     spec:
       containers:
         - args:
@@ -47,3 +38,45 @@ spec:
             name: opa-policy
           name: opa-policy
 status: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: opa
+  name: opa
+spec:
+  ports:
+    - name: "8181"
+      port: 8181
+      targetPort: 8181
+  selector:
+    app: opa
+status:
+  loadBalancer: {}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  labels:
+    app: opa
+  name: opa-policy
+data:
+  policy.rego: |
+    package waterwheel
+
+    default authorize = false
+
+    authorize {
+        true
+    }
+
+    is_readonly {
+        input.action == "Get"
+    }
+    is_readonly {
+        input.action == "List"
+    }

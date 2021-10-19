@@ -1,0 +1,124 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  name: ww-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ww-api
+  template:
+    metadata:
+      labels:
+        app: ww-api
+    spec:
+      containers:
+        - name: ww-api
+          image: waterwheel:local
+          args:
+            - api
+          env:
+            - name: WATERWHEEL_AMQP_ADDR
+              value: amqp://amqp//
+            - name: WATERWHEEL_DB_URL
+              value: postgres://postgres:supersecret@db/
+            - name: WATERWHEEL_HMAC_SECRET
+              value: wwsharedsecret
+            - name: WATERWHEEL_NO_AUTHZ
+              value: "true"
+            - name: WATERWHEEL_SERVER_ADDR
+              value: http://ww-api/
+            - name: WATERWHEEL_SERVER_BIND
+              value: 0.0.0.0:8080
+            - name: WATERWHEEL_TASK_ENGINE
+              value: kubernetes
+            - name: WATERWHEEL_STATSD_SERVER
+              value: localhost:8125
+          ports:
+            - containerPort: 8080
+
+        - name: seal
+          image: sealproxy:local
+          args:
+            - -c
+            - /etc/sealproxy/sealproxy.yml
+          env:
+            - name: SEALPROXY_LOG
+              value: warn,sealproxy=trace
+          ports:
+            - containerPort: 8081
+          volumeMounts:
+            - mountPath: /etc/sealproxy/sealproxy.yml
+              name: sealproxy-config
+              subPath: sealproxy.yml
+            - mountPath: /etc/sealproxy/pubkey
+              name: sealproxy-pubkey
+            - mountPath: /etc/sealproxy/tls
+              name: sealproxy-tls
+
+        - name: telegraf
+          image: telegraf:1.18
+          env:
+            - name: INFLUX_TOKEN
+              value: my-super-secret-influx-token
+          ports:
+            - containerPort: 8125
+              name: statsd
+              protocol: UDP
+          volumeMounts:
+            - name: telegraf-conf
+              mountPath: "/etc/telegraf"
+              readOnly: true
+
+      restartPolicy: Always
+      volumes:
+        - name: sealproxy-config
+          configMap:
+            name: sealproxy-config
+        - name: sealproxy-pubkey
+          secret:
+            secretName: sealproxy-pubkey
+        - name: sealproxy-tls
+          secret:
+            secretName: sealproxy-tls
+        - name: telegraf-conf
+          configMap:
+            name: telegraf-conf
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: ww-api
+  name: ww-api
+spec:
+  ports:
+    - name: "80"
+      port: 80
+      targetPort: 8081
+  selector:
+    app: ww-api
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app: ww-api
+  name: ww-api
+spec:
+  rules:
+    - host: waterwheel.kube
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: ww-api
+                port:
+                  number: 80
+

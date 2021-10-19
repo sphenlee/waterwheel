@@ -1,0 +1,39 @@
+server:
+  bind: 0.0.0.0:8081
+  tls:
+    cert_file: /etc/sealproxy/tlscert/tls.crt
+    key_file: /etc/sealproxy/tlskey/tls.key
+
+filters:
+  - anonymous:
+      paths:
+        - "/static/**"
+        - "/heathcheck"
+        - "/int-api/**"
+
+  - form_login:
+      path: /login
+      success_redirect: /
+      failure_redirect: /login
+      user_base: &userbase
+        user_pass:
+          users:
+            - ["admin", "password"]
+            - ["user", "123456"]
+
+  - cookie_session:
+      public_key_file: /etc/sealproxy/public/public.pem
+
+  - redirect:
+      location: /login
+      paths:
+        - "/**"
+        - "/"
+      not_paths:
+        - "/api/**"
+
+session:
+  private_key: /etc/sealproxy/private/private.pem
+
+target:
+  url: http://ww-api:8080/

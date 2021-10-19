@@ -2,18 +2,12 @@
 # Installs influxdb and telegraf
 
 ---
-apiVersion: v1
-kind: Namespace
-metadata:
-    name: influxdb
----
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
     labels:
         app: influxdb
     name: influxdb
-    namespace: influxdb
 spec:
     replicas: 1
     selector:
@@ -26,8 +20,21 @@ spec:
                 app: influxdb
         spec:
             containers:
-              - image: influxdb:2.0.4
+              - image: influxdb:2.0.9
                 name: influxdb
+                env:
+                  - name: DOCKER_INFLUXDB_INIT_MODE
+                    value: setup
+                  - name: DOCKER_INFLUXDB_INIT_USERNAME
+                    value: waterwheel
+                  - name: DOCKER_INFLUXDB_INIT_PASSWORD
+                    value: waterwheel
+                  - name: DOCKER_INFLUXDB_INIT_ORG
+                    value: waterwheel
+                  - name: DOCKER_INFLUXDB_INIT_BUCKET
+                    value: waterwheel
+                  - name: DOCKER_INFLUXDB_INIT_ADMIN_TOKEN
+                    value: my-super-secret-influx-token
                 ports:
                   - containerPort: 8086
                     name: influxdb
@@ -37,7 +44,6 @@ spec:
     volumeClaimTemplates:
       - metadata:
             name: data
-            namespace: influxdb
         spec:
             accessModes:
               - ReadWriteOnce
@@ -49,7 +55,6 @@ apiVersion: v1
 kind: Service
 metadata:
     name: influxdb
-    namespace: influxdb
 spec:
     type: NodePort
     ports:
@@ -60,11 +65,28 @@ spec:
         app: influxdb
 
 ---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: influxdb
+spec:
+  rules:
+    - host: influx.kube
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: influxdb
+                port:
+                  number: 8086
+
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: telegraf-conf
-  namespace: influxdb
 data:
   telegraf.conf: |
     [agent]
@@ -77,61 +99,6 @@ data:
 
     [[outputs.influxdb_v2]]
     urls = ["http://influxdb:8086"]
-    token = "<token here>"
+    token = "$INFLUX_TOKEN"
     organization = "waterwheel"
     bucket = "waterwheel"
-    
-
----
-apiVersion: apps/v1
-kind: DaemonSet
-metadata:
-    labels:
-        app: telegraf
-    name: telegraf
-    namespace: influxdb
-spec:
-    selector:
-        matchLabels:
-            app: telegraf
-    template:
-        metadata:
-            labels:
-                app: telegraf
-        spec:
-            tolerations:
-              - key: node-role.kubernetes.io/master
-                effect: NoSchedule
-            containers:
-              - name: telegraf
-                image: telegraf:1.18
-                ports:
-                  - containerPort: 8125
-                    name: statsd
-                    protocol: UDP
-                volumeMounts:
-                  - name: config
-                    mountPath: "/etc/telegraf"
-                    readOnly: true
-            volumes:
-              - name: config
-                #namespace: influxdb
-                configMap:
-                    name: telegraf-conf
-
-
----
-apiVersion: v1
-kind: Service
-metadata:
-    name: telegraf
-    namespace: influxdb
-spec:
-    type: NodePort
-    ports:
-      - name: statsd
-        protocol: UDP
-        port: 8125
-    selector:
-        app: telegraf
-    

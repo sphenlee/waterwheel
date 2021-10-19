@@ -46,11 +46,3 @@ musl +ARGS:
         -it \
         clux/muslrust:nightly \
         cargo {{ARGS}}
-
-# Refresh the kubernetes deployment files from the docker compose source
-kube-refresh:
-    cd etc/kube/ && kompose convert -f ../docker-stack.yml
-
-# Deploy waterwheel to kubernetes
-kube-deploy: kube-refresh
-    cd etc/kube/ && kubectl apply -f .

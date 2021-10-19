@@ -1,30 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  annotations:
-    kompose.cmd: kompose convert -f ../docker-stack.yml
-    kompose.version: 1.24.0 (4a2a0458)
-  creationTimestamp: null
   labels:
-    io.kompose.service: ww-worker
+    app: ww-worker
   name: ww-worker
 spec:
   replicas: 4
   selector:
     matchLabels:
-      io.kompose.service: ww-worker
-  strategy: {}
+      app: ww-worker
   template:
     metadata:
-      annotations:
-        kompose.cmd: kompose convert -f ../docker-stack.yml
-        kompose.version: 1.24.0 (4a2a0458)
-      creationTimestamp: null
       labels:
-        io.kompose.service: ww-worker
+        app: ww-worker
     spec:
       containers:
-        - args:
+        - name: ww-worker
+          image: waterwheel:local
+          args:
             - worker
           env:
             - name: WATERWHEEL_AMQP_ADDR
@@ -36,13 +29,30 @@ spec:
             - name: WATERWHEEL_NO_AUTHZ
               value: "true"
             - name: WATERWHEEL_SERVER_ADDR
-              value: http://ww-api-tcp/
+              value: http://ww-api/
             - name: WATERWHEEL_SERVER_BIND
               value: 0.0.0.0:8080
             - name: WATERWHEEL_TASK_ENGINE
               value: kubernetes
-          image: waterwheel:local
-          name: ww-worker
-          resources: {}
+            - name: WATERWHEEL_STATSD_SERVER
+              value: localhost:8125
+
+        - name: telegraf
+          image: telegraf:1.18
+          env:
+            - name: INFLUX_TOKEN
+              value: my-super-secret-influx-token
+          ports:
+            - containerPort: 8125
+              name: statsd
+              protocol: UDP
+          volumeMounts:
+            - name: telegraf-conf
+              mountPath: "/etc/telegraf"
+              readOnly: true
+
       restartPolicy: Always
-status: {}
+      volumes:
+        - name: telegraf-conf
+          configMap:
+            name: telegraf-conf
