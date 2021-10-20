@@ -2,11 +2,9 @@ target/
 .idea/
 .env
 .cargo/
-log4rs.yaml
-waterwheel.log
 ui/node_modules/
 ui/dist/
-sample/authn/node_modules/
-logs/
 *.pem
+*.crt
+*.key
 .musl-cargo-cache/
