@@ -103,7 +103,8 @@ pub async fn process_work() -> Result<!> {
             .with_tag("worker_id", &WORKER_ID.to_string())
             .send();
 
-        debug!(task_id=?task_req.task_id,
+        debug!(task_run_id=?task_req.task_run_id,
+            task_id=?task_req.task_id,
             trigger_datetime=?task_req.trigger_datetime.to_rfc3339(),
             started_datetime=?started_datetime.to_rfc3339(),
             priority=?task_req.priority,
@@ -130,7 +131,8 @@ pub async fn process_work() -> Result<!> {
                 Ok(true) => TokenState::Success,
                 Ok(false) => TokenState::Failure,
                 Err(err) => {
-                    error!(task_id=?task_req.task_id,
+                    error!(task_run_id=?task_req.task_run_id,
+                        task_id=?task_req.task_id,
                         trigger_datetime=?task_req.trigger_datetime.to_rfc3339(),
                         "failed to run task: {:#}", err);
                     TokenState::Error
@@ -157,6 +159,7 @@ pub async fn process_work() -> Result<!> {
             .send();
 
         info!(result=result.as_str(),
+            task_run_id=?task_req.task_run_id,
             task_id=?task_req.task_id,
             trigger_datetime=?task_req.trigger_datetime.to_rfc3339(),
             started_datetime=?started_datetime.to_rfc3339(),
@@ -170,10 +173,11 @@ pub async fn process_work() -> Result<!> {
             BasicProperties::default(),
         )
         .await?;
+        debug!(task_run_id=?task_req.task_run_id, "task result published");
 
         chan.basic_ack(msg.delivery_tag, BasicAckOptions::default())
             .await?;
-        debug!("task acked");
+        debug!(task_run_id=?task_req.task_run_id, "task acked");
     }
 
     unreachable!("consumer stopped consuming")

@@ -5,10 +5,10 @@ use crate::worker::WORKER_ID;
 use anyhow::Result;
 use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::core::v1::Pod;
-use kube::api::{Api, DeleteParams, ListParams, LogParams, PostParams, WatchEvent};
+use kube::api::{Api, DeleteParams, PostParams};
 use kube::{Client, Config, ResourceExt};
 use std::convert::TryFrom;
-use tracing::{debug, info, trace, warn};
+use tracing::{trace, warn};
 
 pub async fn run_kube(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
     trace!("loading kubernetes config");
@@ -25,17 +25,16 @@ pub async fn run_kube(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> 
     let pod = pods.create(&PostParams::default(), &pod).await?;
     let name = pod.name();
 
-    // Start a watch call for pods matching our name
-    let lp = ListParams::default().fields(&format!("metadata.name={}", name));
-    let mut stream = pods.watch(&lp, "0").await?.boxed();
+    let mut watcher = kube_runtime::watcher::watch_object(pods.clone(), &name).boxed();
 
     let mut result = false;
-    while let Some(status) = stream.try_next().await? {
-        match status {
-            WatchEvent::Added(pod) => {
-                debug!(pod_name=%pod.name(), "pod created");
-            }
-            WatchEvent::Modified(pod) => {
+    while let Some(maybe_pod) = watcher.try_next().await? {
+        match maybe_pod {
+            None => {
+                warn!(pod_name=%name, "pod was deleted externally");
+                anyhow::bail!("pod was deleted externally");
+            },
+            Some(pod) => {
                 let status = pod.status.as_ref().expect("status exists on pod");
                 let phase = status.phase.clone().unwrap_or_default();
                 trace!(pod_name=%pod.name(), "pod modified, phase is '{}'", phase);
@@ -48,32 +47,26 @@ pub async fn run_kube(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> 
                     break;
                 }
             }
-            //WatchEvent::Deleted(o) => println!("Deleted {}", Meta::name(&o)),
-            WatchEvent::Error(e) => {
-                warn!(pod_name=%name, "error from Kubernetes {:?}", e);
-                return Err(e.into());
-            }
-            _ => {}
         }
     }
 
-    let mut logs = pods
-        .log_stream(
-            &name,
-            &LogParams {
-                //previous: true,
-                follow: true,
-                ..LogParams::default()
-            },
-        )
-        .await?;
-
-    while let Some(log) = logs.try_next().await? {
-        // TODO - kubernetes probably doesn't need this, logs can be shipped from the cluster
-        let line = String::from_utf8_lossy(&*log);
-        info!(target: "container_logs",
-            "{}", line.trim_end());
-    }
+    // let mut logs = pods
+    //     .log_stream(
+    //         &name,
+    //         &LogParams {
+    //             //previous: true,
+    //             follow: true,
+    //             ..LogParams::default()
+    //         },
+    //     )
+    //     .await?;
+    //
+    // while let Some(log) = logs.try_next().await? {
+    //     // TODO - kubernetes probably doesn't need this, logs can be shipped from the cluster
+    //     let line = String::from_utf8_lossy(&*log);
+    //     info!(target: "container_logs",
+    //         "{}", line.trim_end());
+    // }
 
     trace!(pod_name=%name, "deleting pod");
     let _ = pods.delete(&name, &DeleteParams::default()).await?;
