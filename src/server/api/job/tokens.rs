@@ -20,8 +20,6 @@ struct QueryToken {
 struct GetToken {
     task_id: Uuid,
     task_name: String,
-    threshold: i32,
-    count: i32,
     trigger_datetime: DateTime<Utc>,
     state: String,
 }
@@ -39,8 +37,6 @@ async fn get_tokens_common(req: Request<State>) -> highnoon::Result<Vec<GetToken
             SELECT
                 t.id AS task_id,
                 t.name AS task_name,
-                t.threshold AS threshold,
-                k.count AS count,
                 k.trigger_datetime AS trigger_datetime,
                 k.state AS state
             FROM task t
@@ -58,8 +54,6 @@ async fn get_tokens_common(req: Request<State>) -> highnoon::Result<Vec<GetToken
         SELECT
             task_id,
             task_name,
-            threshold,
-            count,
             tt.trigger_datetime AS trigger_datetime,
             state
         FROM these_tokens tt

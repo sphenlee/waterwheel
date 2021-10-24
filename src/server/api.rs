@@ -16,6 +16,7 @@ mod task;
 pub mod types;
 mod updates;
 mod workers;
+mod task_logs;
 
 pub struct State {
     pool: PgPool,
@@ -109,6 +110,9 @@ pub async fn serve() -> Result<()> {
         .get(job::get_tokens_trigger_datetime)
         .delete(job::clear_tokens_trigger_datetime);
 
+    // job runs
+    app.at("/api/jobs/:id/runs/:trigger_datetime").get(job::list_job_all_task_runs);
+
     // job triggers
     app.at("/api/jobs/:id/triggers")
         .get(job::get_triggers_by_job);
@@ -123,10 +127,19 @@ pub async fn serve() -> Result<()> {
 
     // tasks
     app.at("/api/tasks/:id/tokens")
+        // TODO - auth issues
+        //.get(task::get_task_def)
         .post(task::activate_multiple_tokens);
     app.at("/api/tasks/:id/tokens/:trigger_datetime")
         .put(task::activate_token);
     app.at("/int-api/tasks/:id").get(task::get_task_def);
+
+    // task runs
+    app.at("/api/tasks/:id/runs/:trigger_datetime")
+        .get(job::list_task_runs);
+
+    // task logs
+    app.at("/api/tasks/:id/logs").ws(task_logs::logs);
 
     // trigger times
     app.at("/api/triggers/:id").get(job::get_trigger);

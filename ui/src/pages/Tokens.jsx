@@ -1,9 +1,9 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
 import { Table, Layout, Breadcrumb, PageHeader, Button, notification, Popconfirm,
-        Row, Col } from 'antd';
+        Row, Col, Drawer } from 'antd';
 
-import { ExclamationCircleOutlined } from '@ant-design/icons';
+import { ExclamationCircleOutlined, EllipsisOutlined } from '@ant-design/icons';
 
 import axios from 'axios';
 
@@ -11,56 +11,49 @@ import Body from '../components/Body.jsx';
 import State from '../components/State.jsx';
 import Graph from '../components/Graph.jsx';
 import ActivateToken from '../components/ActivateToken.jsx';
+import TokenRuns from './TokenRuns.jsx';
 
 const { Content } = Layout;
-
-
-
-function makeColumns(job_id) {
-    return [
-      /*{
-        title: 'Trigger Time',
-        dataIndex: 'trigger_datetime',
-        key: 'trigger_datetime',
-        render: (text, record) => (
-                <Link to={`/jobs/${job_id}/tokens/${record.trigger_datetime}`}>
-                    {text}
-                </Link>
-            )
-      },*/{
-        title: 'Task',
-        dataIndex: 'task_name',
-        key: 'task_name',
-      },{
-        title: 'Count',
-        dataIndex: 'count',
-      },{
-        title: 'Threshold',
-        dataIndex: 'threshold',
-      },{
-        title: 'State',
-        dataIndex: 'state',
-        render: text => <State state={text} />,
-      },{
-        title: '',
-        dataIndex: 'task_id',
-        key: 'task_id',
-        render: (text, record) => <ActivateToken task_id={record.task_id} trigger_datetime={record.trigger_datetime} />,
-      }
-    ];
-}
-
 
 class Tokens extends Component {
     constructor(props) {
         super(props);
 
-        this.columns = makeColumns(props.match.params.id);
+        this.columns = this.makeColumns(props.match.params.id);
 
         this.state = {
             job: {},
-            tokens: []
+            tokens: [],
+            drawer_task_id: null,
         }
+    }
+
+    makeColumns(job_id) {
+        return [
+          {
+            title: 'Task',
+            dataIndex: 'task_name',
+            key: 'task_name',
+          },{
+            title: 'State',
+            dataIndex: 'state',
+            render: text => <State state={text} />,
+          },{
+            title: '',
+            dataIndex: 'task_id',
+            key: 'task_id',
+            render: (text, record) => <ActivateToken task_id={record.task_id} trigger_datetime={record.trigger_datetime} />,
+          },{
+            title: '',
+            dataIndex: 'task_id',
+            key: 'task_id',
+            render: (text, record) => <Button
+                icon={<EllipsisOutlined/>}
+                onClick={() => {
+                    this.drawOpen(record);
+                }}/>,
+          }
+        ];
     }
 
     async fetchTokens(id, trigger_datetime) {
@@ -106,6 +99,19 @@ class Tokens extends Component {
         }
     }
 
+    drawerClose() {
+        this.setState({
+            drawer_task_id: null
+        });
+    }
+
+    drawOpen(record) {
+        console.log(record);
+        this.setState({
+            drawer_task_id: record.task_id
+        });
+    }
+
     componentDidMount() {
         const {id, trigger_datetime} = this.props.match.params;
 
@@ -122,7 +128,7 @@ class Tokens extends Component {
     render() {
         const { history, match } = this.props;
         const {id, trigger_datetime} = match.params;
-        const { job, tokens } = this.state;
+        const { job, tokens, drawer_task_id } = this.state;
 
         return (
             <Layout>
@@ -155,15 +161,23 @@ class Tokens extends Component {
                             ]}
                         />
                         <Row>
-                            <Col span={16}>
-                                <Table key="1" columns={this.columns} dataSource={tokens} pagination={{position: ['bottomLeft']}}/>
+                            <Col span={12}>
+                                <Table key="1" columns={this.columns} dataSource={tokens}
+                                    pagination={{position: ['bottomLeft']}}
+                                    />
                             </Col>
-                            <Col span={8}>
+                            <Col span={12}>
                                 <Graph key="2" id={id} trigger_datetime={trigger_datetime} />
                             </Col>
                         </Row>
                     </Body>
                 </Content>
+
+                <TokenRuns
+                        task_id={drawer_task_id}
+                        trigger_datetime={trigger_datetime}
+                        onClose={() => this.drawerClose()}
+                        visible={drawer_task_id !== null} />
             </Layout>
         );
     }

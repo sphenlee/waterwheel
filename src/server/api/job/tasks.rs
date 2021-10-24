@@ -301,10 +301,9 @@ struct ListTask {
 }
 
 pub async fn list_tasks(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let id_str = req.param("id")?;
-    let id = Uuid::parse_str(&id_str)?;
+    let job_id: Uuid = req.param("id")?.parse()?;
 
-    auth::list().job(id, None).check(&req).await?;
+    auth::list().job(job_id, None).check(&req).await?;
 
     let tasks: Vec<ListTask> = sqlx::query_as(
         "SELECT
@@ -315,7 +314,7 @@ pub async fn list_tasks(req: Request<State>) -> highnoon::Result<impl Responder>
         ORDER BY name
         LIMIT 200",
     )
-    .bind(&id)
+    .bind(&job_id)
     .fetch_all(&req.get_pool())
     .await?;
 

@@ -24,16 +24,6 @@ function makeColumns(job_id) {
         key: 'task_name',
         render: text => text,
       },{
-        title: 'Count',
-        dataIndex: 'count',
-        key: 'count',
-        render: text => text,
-      },{
-        title: 'Threshold',
-        dataIndex: 'threshold',
-        key: 'threshold',
-        render: text => text,
-      },{
         title: 'State',
         dataIndex: 'state',
         key: 'state',
