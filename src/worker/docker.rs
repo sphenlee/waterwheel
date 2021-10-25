@@ -2,30 +2,25 @@ use crate::messages::{TaskDef, TaskRequest};
 use crate::worker::env;
 use anyhow::Result;
 use bollard::container::{
-    Config, CreateContainerOptions, LogsOptions, RemoveContainerOptions, StartContainerOptions,
+    Config, CreateContainerOptions, RemoveContainerOptions, StartContainerOptions,
     WaitContainerOptions,
 };
 use bollard::image::{CreateImageOptions, ListImagesOptions};
 use futures::TryStreamExt;
-use serde::Serialize;
 use std::collections::HashMap;
-use tracing::{info, trace};
+use tracing::{trace};
+use crate::worker::engine::TaskEngineImpl;
 
-#[derive(Serialize)]
-struct LogMeta<'a> {
-    project_id: &'a str,
-    job_id: &'a str,
-    task_id: &'a str,
-    trigger_datetime: &'a str,
+pub struct DockerEngine;
+
+#[async_trait::async_trait]
+impl TaskEngineImpl for DockerEngine {
+    async fn run_task(&self, task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
+        run_docker(task_req, task_def).await
+    }
 }
 
-#[derive(Serialize)]
-struct LogMessage<'a> {
-    meta: &'a LogMeta<'a>,
-    msg: &'a str,
-}
-
-pub async fn run_docker(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
+async fn run_docker(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
     let docker = bollard::Docker::connect_with_local_defaults()?;
 
     let env = env::get_env_string(&task_req, &task_def)?;
@@ -93,33 +88,33 @@ pub async fn run_docker(task_req: TaskRequest, task_def: TaskDef) -> Result<bool
 
     trace!(id=?container.id, "started container");
 
-    // ____________________________________________________
-    // streams the logs back
-    let mut logs = docker.logs(
-        &container.id,
-        Some(LogsOptions::<&str> {
-            follow: true,
-            stdout: true,
-            stderr: true,
-            ..LogsOptions::default()
-        }),
-    );
-
-    let log_meta = LogMeta {
-        project_id: &task_def.project_id.to_string(),
-        job_id: &task_def.job_id.to_string(),
-        task_id: &task_def.task_id.to_string(),
-        trigger_datetime: &task_req.trigger_datetime.to_rfc3339(),
-    };
-
-    while let Some(line) = logs.try_next().await? {
-        info!(target: "container_logs",
-            project_id=?log_meta.project_id,
-            job_id=?log_meta.job_id,
-            task_id=?log_meta.task_id,
-            trigger_datetime=?log_meta.trigger_datetime,
-            "{}", line);
-    }
+    // // ____________________________________________________
+    // // streams the logs back
+    // let mut logs = docker.logs(
+    //     &container.id,
+    //     Some(LogsOptions::<&str> {
+    //         follow: true,
+    //         stdout: true,
+    //         stderr: true,
+    //         ..LogsOptions::default()
+    //     }),
+    // );
+    //
+    // let log_meta = LogMeta {
+    //     project_id: &task_def.project_id.to_string(),
+    //     job_id: &task_def.job_id.to_string(),
+    //     task_id: &task_def.task_id.to_string(),
+    //     trigger_datetime: &task_req.trigger_datetime.to_rfc3339(),
+    // };
+    //
+    // while let Some(line) = logs.try_next().await? {
+    //     info!(target: "container_logs",
+    //         project_id=?log_meta.project_id,
+    //         job_id=?log_meta.job_id,
+    //         task_id=?log_meta.task_id,
+    //         trigger_datetime=?log_meta.trigger_datetime,
+    //         "{}", line);
+    // }
 
     // ____________________________________________________
     // wait for it to terminate

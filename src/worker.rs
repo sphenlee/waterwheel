@@ -8,7 +8,6 @@ use crate::config;
 use crate::counter::Counter;
 use crate::server::jwt;
 use crate::util::{spawn_or_crash, spawn_retry};
-use std::str::FromStr;
 
 mod config_cache;
 mod docker;
@@ -16,39 +15,13 @@ pub mod env;
 mod heartbeat;
 mod kube;
 mod work;
+pub mod engine;
 
 static WORKER_ID: Lazy<Uuid> = Lazy::new(Uuid::new_v4);
 
 pub static RUNNING_TASKS: Counter = Counter::new();
 pub static TOTAL_TASKS: Counter = Counter::new();
 
-#[derive(Copy, Clone, serde::Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum TaskEngine {
-    /// Null engine always returns success - disabled in release builds
-    #[cfg(debug_assertions)]
-    Null,
-    /// Use a local docker instance (TODO - allow remote docker)
-    Docker,
-    /// Use a remote Kubernetes cluster
-    Kubernetes,
-}
-
-impl FromStr for TaskEngine {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            #[cfg(debug_assertions)]
-            "null" => Ok(TaskEngine::Null),
-            "docker" => Ok(TaskEngine::Docker),
-            "kubernetes" => Ok(TaskEngine::Kubernetes),
-            _ => Err(anyhow::Error::msg(
-                "invalid engine, valid options: docker, kubernetes",
-            )),
-        }
-    }
-}
 
 pub async fn run_worker() -> Result<()> {
     jwt::load_keys()?;

@@ -2,7 +2,7 @@ use crate::amqp::get_amqp_channel;
 use crate::config;
 use crate::messages::{TaskProgress, TaskRequest, TokenState};
 use crate::metrics;
-use crate::worker::{config_cache, docker, kube, TaskEngine};
+use crate::worker::config_cache;
 use anyhow::Result;
 
 use futures::TryStreamExt;
@@ -11,7 +11,7 @@ use lapin::options::{
     ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
 };
 use lapin::types::FieldTable;
-use lapin::{BasicProperties, ExchangeKind};
+use lapin::{BasicProperties, ExchangeKind, Consumer};
 use tracing::{debug, error, info};
 
 use super::{RUNNING_TASKS, TOTAL_TASKS, WORKER_ID};
@@ -24,9 +24,8 @@ const TASK_QUEUE: &str = "waterwheel.tasks";
 const RESULT_EXCHANGE: &str = "waterwheel.results";
 const RESULT_QUEUE: &str = "waterwheel.results";
 
-pub async fn process_work() -> Result<!> {
+async fn setup() -> Result<Consumer> {
     let chan = get_amqp_channel().await?;
-    let statsd = metrics::get_client();
 
     // declare queue for consuming incoming messages
     let mut args = FieldTable::default();
@@ -40,7 +39,7 @@ pub async fn process_work() -> Result<!> {
         },
         args,
     )
-    .await?;
+        .await?;
 
     // declare outgoing exchange and queue for progress reports
     chan.exchange_declare(
@@ -52,7 +51,7 @@ pub async fn process_work() -> Result<!> {
         },
         FieldTable::default(),
     )
-    .await?;
+        .await?;
 
     chan.queue_declare(
         RESULT_QUEUE,
@@ -62,7 +61,7 @@ pub async fn process_work() -> Result<!> {
         },
         FieldTable::default(),
     )
-    .await?;
+        .await?;
 
     chan.queue_bind(
         RESULT_QUEUE,
@@ -71,11 +70,11 @@ pub async fn process_work() -> Result<!> {
         QueueBindOptions::default(),
         FieldTable::default(),
     )
-    .await?;
+        .await?;
 
     chan.basic_qos(1, BasicQosOptions::default()).await?;
 
-    let mut consumer = chan
+    let consumer = chan
         .basic_consume(
             TASK_QUEUE,
             "worker",
@@ -84,7 +83,15 @@ pub async fn process_work() -> Result<!> {
         )
         .await?;
 
-    let engine = config::get().task_engine;
+    Ok(consumer)
+}
+
+pub async fn process_work() -> Result<!> {
+    let statsd = metrics::get_client();
+
+    let mut consumer = setup().await?;
+
+    let engine = config::get().task_engine.get_impl()?;
 
     while let Some((chan, msg)) = consumer.try_next().await? {
         let task_req: TaskRequest = serde_json::from_slice(&msg.data)?;
@@ -120,14 +127,9 @@ pub async fn process_work() -> Result<!> {
             )
             .await?;
 
-            let res = match engine {
-                #[cfg(debug_assertions)]
-                TaskEngine::Null => Ok(true),
-                TaskEngine::Docker => docker::run_docker(task_req.clone(), task_def).await,
-                TaskEngine::Kubernetes => kube::run_kube(task_req.clone(), task_def).await,
-            };
+            let res = engine.run_task(task_req.clone(), task_def);
 
-            match res {
+            match res.await {
                 Ok(true) => TokenState::Success,
                 Ok(false) => TokenState::Failure,
                 Err(err) => {

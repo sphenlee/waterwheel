@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 anyhow = "1.0.32"
+async-trait = "0.1.51"
 binary-heap-plus = "0.4.0"
 bollard = "0.11"
 cadence = "0.26"

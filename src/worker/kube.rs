@@ -9,6 +9,17 @@ use kube::api::{Api, DeleteParams, PostParams};
 use kube::{Client, Config, ResourceExt};
 use std::convert::TryFrom;
 use tracing::{trace, warn};
+use crate::worker::engine::TaskEngineImpl;
+
+pub struct KubeEngine;
+
+#[async_trait::async_trait]
+impl TaskEngineImpl for KubeEngine {
+    async fn run_task(&self, task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
+        run_kube(task_req, task_def).await
+    }
+}
+
 
 pub async fn run_kube(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
     trace!("loading kubernetes config");
