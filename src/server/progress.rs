@@ -60,10 +60,10 @@ pub async fn process_progress() -> Result<!> {
 
         update_task_progress(&mut txn, &task_progress).await?;
 
+        txn.commit().await?;
+
         chan.basic_ack(msg.delivery_tag, BasicAckOptions::default())
             .await?;
-
-        txn.commit().await?;
 
         debug!("finished processing task results");
 
