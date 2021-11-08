@@ -26,10 +26,12 @@ class ActivateToken extends Component {
 
     render() {
         const { loading } = this.state;
+        const { type, size } = this.props;
         return (
             <Button
-                size="small"
                 loading={loading}
+                type={type}
+                size={size}
                 onClick={() => this.createToken()}
             >activate</Button>
         );

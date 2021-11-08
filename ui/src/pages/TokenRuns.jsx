@@ -1,7 +1,7 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
 import { Table, Layout, Breadcrumb, PageHeader, Button, notification, Popconfirm,
-        Row, Col, Drawer } from 'antd';
+        Row, Col, Drawer, Descriptions, Skeleton } from 'antd';
 
 import { ExclamationCircleOutlined, EllipsisOutlined } from '@ant-design/icons';
 
@@ -14,6 +14,14 @@ import ActivateToken from '../components/ActivateToken.jsx';
 
 const { Content } = Layout;
 
+function Json({children}) {
+    if (typeof(children) == 'string') {
+        return <pre>{children}</pre>;
+    } else {
+        return <pre>{JSON.stringify(children)}</pre>;
+    }
+}
+
 class TokenRuns extends Component {
     constructor(props) {
         super(props);
@@ -21,7 +29,8 @@ class TokenRuns extends Component {
         this.columns = this.makeColumns();
 
         this.state = {
-            runs: []
+            runs: [],
+            task: null,
         }
     }
 
@@ -47,15 +56,24 @@ class TokenRuns extends Component {
           },{
             title: 'Worker Id',
             dataIndex: 'worker_id',
+            render: text => (
+                <Link to={`/workers/${text}`}>
+                    {text}
+                </Link>
+              )
           }
         ];
     }
 
     async fetchRuns(task_id, trigger_datetime) {
         try {
-            let resp = await axios.get(`/api/tasks/${task_id}/runs/${trigger_datetime}`);
+            let resp1 = await axios.get(`/api/tasks/${task_id}/runs/${trigger_datetime}`);
+            let runs = resp1.data;
+
+            let resp2 = await axios.get(`/api/tasks/${task_id}`);
             this.setState({
-                runs: resp.data,
+                task: resp2.data,
+                runs: runs,
             });
         } catch(e) {
             console.log(e);
@@ -78,15 +96,41 @@ class TokenRuns extends Component {
 
     render() {
         const { task_id, trigger_datetime, visible, onClose } = this.props;
-        const { runs } = this.state;
+        const { runs, task } = this.state;
 
         return (
-            <Drawer title="Task Runs"
+            <Drawer title={`Task Runs for {task.task_name}`}
                     placement="bottom"
                     size="large"
                     height={736} // todo - remove after upgrading
                     onClose={onClose}
                     visible={visible}>
+
+                <Descriptions
+                        size="small"
+                        bordered
+                        labelStyle={{
+                            fontWeight: "bold"
+                        }}
+                        contentStyle={{
+                            background: "#fff"
+                        }}>
+                    <Descriptions.Item label="Image">
+                        <Json>{task?.image}</Json>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Args">
+                        <Json>{task?.args}</Json>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Env">
+                        <Json>{task?.env}</Json>
+                    </Descriptions.Item>
+                </Descriptions>
+
+                <ActivateToken
+                    type="primary" size="default"
+                    task_id={task_id}
+                    trigger_datetime={trigger_datetime} />
+
                 <Table columns={this.columns}
                     dataSource={runs}
                     pagination={{position: ['bottomLeft']}}

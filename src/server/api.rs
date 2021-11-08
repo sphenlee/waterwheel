@@ -126,13 +126,12 @@ pub async fn serve() -> Result<()> {
         .delete(stash::job::delete);
 
     // tasks
+    app.at("/api/tasks/:id").get(task::get_task_def);
     app.at("/api/tasks/:id/tokens")
-        // TODO - auth issues
-        //.get(task::get_task_def)
         .post(task::activate_multiple_tokens);
     app.at("/api/tasks/:id/tokens/:trigger_datetime")
         .put(task::activate_token);
-    app.at("/int-api/tasks/:id").get(task::get_task_def);
+    app.at("/int-api/tasks/:id").get(task::internal_get_task_def);
 
     // task runs
     app.at("/api/tasks/:id/runs/:trigger_datetime")

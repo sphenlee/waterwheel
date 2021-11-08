@@ -1,11 +1,11 @@
 use crate::messages::{SchedulerUpdate, TaskDef, TaskPriority, Token};
 use crate::server::api::request_ext::RequestExt;
-use crate::server::api::{updates, State};
+use crate::server::api::{updates, State, auth};
 use crate::server::jwt;
 use crate::server::tokens::ProcessToken;
 use chrono::{DateTime, Utc};
 use futures::TryStreamExt;
-use highnoon::{Json, Request, Responder, StatusCode};
+use highnoon::{Json, Request, Responder, StatusCode, Response};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -118,12 +118,30 @@ pub async fn activate_multiple_tokens(mut req: Request<State>) -> highnoon::Resu
     Ok(Json(ActivateTokenReply { cleared: count }))
 }
 
-pub async fn get_task_def(req: Request<State>) -> highnoon::Result<impl Responder> {
+pub async fn get_task_def(req: Request<State>) -> highnoon::Result<Response> {
+    let maybe_def = get_task_def_common(&req).await?;
+
+    if let Some(def) = maybe_def {
+        auth::get().job(def.job_id, def.project_id).kind("task").check(&req).await?;
+        Json(def).into_response()
+    } else {
+        StatusCode::NOT_FOUND.into_response()
+    }
+}
+
+pub async fn internal_get_task_def(req: Request<State>) -> highnoon::Result<impl Responder> {
     let task_id = req.param("id")?.parse::<Uuid>()?;
 
     jwt::validate_config_jwt(&req, task_id)?;
 
-    let def: Option<TaskDef> = sqlx::query_as(
+    let maybe_def = get_task_def_common(&req).await?;
+    Ok(maybe_def.map(Json))
+}
+
+async fn get_task_def_common(req: &Request<State>) -> highnoon::Result<Option<TaskDef>> {
+    let task_id = req.param("id")?.parse::<Uuid>()?;
+
+    let maybe_def: Option<TaskDef> = sqlx::query_as(
         "SELECT
                 t.id AS task_id,
                 t.name AS task_name,
@@ -143,5 +161,5 @@ pub async fn get_task_def(req: Request<State>) -> highnoon::Result<impl Responde
     .fetch_optional(&req.get_pool())
     .await?;
 
-    Ok(def.map(Json))
+    Ok(maybe_def)
 }

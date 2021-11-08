@@ -134,7 +134,7 @@ pub fn validate_config_jwt<S: State>(req: &Request<S>, id: Uuid) -> highnoon::Re
     }
 }
 
-pub fn validate_jwt(jwt: &str, aud: &str) -> Result<String> {
+fn validate_jwt(jwt: &str, aud: &str) -> Result<String> {
     let mut validation = Validation::new(*ALGORITHM.get().unwrap());
     validation.set_audience(&[aud]);
     validation.iss = Some(WATERWHEEL_ISSUER.to_owned());

@@ -42,7 +42,11 @@ class Tokens extends Component {
             title: '',
             dataIndex: 'task_id',
             key: 'task_id',
-            render: (text, record) => <ActivateToken task_id={record.task_id} trigger_datetime={record.trigger_datetime} />,
+            render: (text, record) => <ActivateToken
+                type="default" size="small"
+                task_id={record.task_id}
+                trigger_datetime={record.trigger_datetime}
+                />,
           },{
             title: '',
             dataIndex: 'task_id',
