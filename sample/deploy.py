@@ -5,15 +5,17 @@ import yaml
 import pathlib
 import os
 
+NEEDS_LOGIN = False
 WATERWHEEL_HOST = os.environ.get('WATERWHEEL_ADDR', 'http://localhost:8080')
 
 session = requests.session()
 session.verify = None
 
-print('login')
-resp = session.post(WATERWHEEL_HOST + '/login', data={'username': 'admin', 'password': 'password'})
-print(resp.status_code, resp.text)
-resp.raise_for_status()
+if NEEDS_LOGIN:
+    print('login')
+    resp = session.post(WATERWHEEL_HOST + '/login', data={'username': 'admin', 'password': 'password'})
+    print(resp.status_code, resp.text)
+    resp.raise_for_status()
 
 print('create project')
 project = json.load(open('project.json'))

@@ -1,0 +1,39 @@
+# show the readme
+help:
+    @cat README.md
+
+# refresh the config maps from the local files
+config: config-sealproxy config-opa
+
+config-sealproxy:
+    kubectl delete configmap sealproxy-config --ignore-not-found
+    kubectl create configmap sealproxy-config \
+        --from-file=./authn/sealproxy.yml
+
+config-opa:
+    kubectl delete configmap opa-policy --ignore-not-found
+    kubectl create configmap opa-policy \
+        --from-file=./policy/policy.rego
+
+# apply all the kubernetes yaml
+apply: config
+	kubectl apply -f kube/
+
+# create the keypair used for signing sessions
+gen-keypair:
+    openssl genrsa -out private.pem 2048
+    openssl rsa -in private.pem -outform PEM -pubout -out public.pem
+
+    kubectl delete secret sealproxy-pubkey --ignore-not-found
+    kubectl create secret generic sealproxy-pubkey \
+        --from-file=public.pem \
+        --from-file=private.pem
+
+# create the TLS keys for https
+gen-tlscert:
+    mkcert -key-file sealtls.key -cert-file sealtls.crt waterwheel.kube
+
+    kubectl delete secret sealproxy-tls --ignore-not-found
+    kubectl create secret tls sealproxy-tls \
+        --cert=sealtls.crt \
+        --key=sealtls.key
