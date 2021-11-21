@@ -4,6 +4,7 @@ use anyhow::Result;
 use std::str::FromStr;
 use crate::worker::docker::DockerEngine;
 use crate::worker::kube::KubeEngine;
+use crate::worker::kubejob::KubeJobEngine;
 
 #[derive(Copy, Clone, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -13,8 +14,10 @@ pub enum TaskEngine {
     Null,
     /// Use a local docker instance (TODO - allow remote docker)
     Docker,
-    /// Use a remote Kubernetes cluster
+    /// Use a remote Kubernetes cluster (launching pods directly)
     Kubernetes,
+    /// Use a remote Kubernetes cluster (uses jobs)
+    KubernetesJobs,
 }
 
 impl FromStr for TaskEngine {
@@ -26,6 +29,7 @@ impl FromStr for TaskEngine {
             "null" => Ok(TaskEngine::Null),
             "docker" => Ok(TaskEngine::Docker),
             "kubernetes" => Ok(TaskEngine::Kubernetes),
+            "kubernetesjobs" => Ok(TaskEngine::KubernetesJobs),
             _ => Err(anyhow::Error::msg(
                 "invalid engine, valid options: docker, kubernetes",
             )),
@@ -39,6 +43,7 @@ impl TaskEngine {
             TaskEngine::Null => Box::pin(null::NullEngine),
             TaskEngine::Docker => Box::pin(DockerEngine),
             TaskEngine::Kubernetes => Box::pin(KubeEngine),
+            TaskEngine::KubernetesJobs => Box::pin(KubeJobEngine),
         })
     }
 }

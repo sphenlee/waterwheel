@@ -14,8 +14,10 @@ mod docker;
 pub mod env;
 mod heartbeat;
 mod kube;
+mod kubejob;
 mod work;
 pub mod engine;
+
 
 static WORKER_ID: Lazy<Uuid> = Lazy::new(Uuid::new_v4);
 
