@@ -10,6 +10,7 @@ use std::convert::TryFrom;
 use tracing::{trace, warn};
 use crate::worker::engine::TaskEngineImpl;
 use k8s_openapi::api::batch::v1::Job;
+use serde_json::Value;
 
 pub struct KubeJobEngine;
 
@@ -68,9 +69,16 @@ pub async fn run_kubejob(task_req: TaskRequest, task_def: TaskDef) -> Result<boo
     Ok(result)
 }
 
+const ONE_HOUR: i64 = 60 * 60 * 24;
+
 async fn make_job(task_req: TaskRequest, task_def: TaskDef) -> Result<Job> {
     let env = env::get_env(&task_req, &task_def)?;
     let name = task_req.task_run_id.to_string();
+
+    let config = get_project_config(task_def.project_id).await?;
+    let job_merge = config.get("kubernetes_job_merge");
+    let ttl = config.get("kubernetes_job_ttl_seconds_after_finished")
+        .and_then(|json| json.as_i64()).unwrap_or(ONE_HOUR);
 
     let meta = serde_json::json!({
         "name": name,
@@ -88,6 +96,7 @@ async fn make_job(task_req: TaskRequest, task_def: TaskDef) -> Result<Job> {
         "kind": "Job",
         "metadata": meta,
         "spec": {
+            "ttlSecondsAfterFinished": ttl,
             "template": {
                 "metadata": meta,
                 "spec": {
@@ -104,9 +113,6 @@ async fn make_job(task_req: TaskRequest, task_def: TaskDef) -> Result<Job> {
             }
         }
     });
-
-    let config = get_project_config(task_def.project_id).await?;
-    let job_merge = config.get("kubernetes_job_merge");
 
     if let Some(json) = job_merge {
         trace!("merging template: {:#} with patch: {:#}", job_json, json);
