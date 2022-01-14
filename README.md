@@ -3,6 +3,10 @@ Waterwheel
 
 Waterwheel is a job scheduler similar to Airflow but with a very different design.
 
+For more information see [here](./docs/intro.md).
+
+To get started with a basic deployment see [here](./docs/getting-started.md).
+
 Developing Locally
 --------------------
 
