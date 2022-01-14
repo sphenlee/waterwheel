@@ -40,6 +40,7 @@ impl FromStr for TaskEngine {
 impl TaskEngine {
     pub fn get_impl(&self) -> Result<std::pin::Pin<Box<dyn TaskEngineImpl + Send + 'static>>> {
         Ok(match self {
+            #[cfg(debug_assertions)]
             TaskEngine::Null => Box::pin(null::NullEngine),
             TaskEngine::Docker => Box::pin(DockerEngine),
             TaskEngine::Kubernetes => Box::pin(KubeEngine),
