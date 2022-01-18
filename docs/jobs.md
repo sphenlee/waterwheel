@@ -5,6 +5,14 @@ A job is made up of identification, metadata, triggers and tasks.
 
 An example job: [simple.json](../sample/jobs/simple.json)
 
+Jobs are stored as JSON documents, but if you're writing them by hand you may 
+prefer to use a more friendly format such as YAML or JSON5. These formats 
+can be easily converted into JSON by the deployment process. Alternatively you
+may wish to generate the JSON using a data specific language (eg. Jsonnet) 
+or a general purpose language (eg. Javascript or Python).
+
+> Examples below are fragments of a YAML document
+
 ## Identification
 
 A job has a UUID and a name. The UUID uniquely identifies the job, but the name
@@ -12,6 +20,13 @@ is used when jobs refer to each other. The UUID must be unique within the entire
 Waterwheel deployment; the name must be unique within a project.
 
 A job also includes the name of project it is contained within.
+
+```yaml
+uuid: '01234567-89ab-cdef-0123-456789abcd'
+
+project: example_project
+name: example_job
+```
 
 ## Metadata
 
@@ -21,6 +36,11 @@ metadata fields will be added over time.
 There is a paused flag to temporarily prevent all triggers from firing. When 
 a job is unpaused it will catch up on any triggers that were skipped while 
 being paused.
+
+```yaml
+description: An Example Job
+paused: false
+```
 
 ## Triggers
 
@@ -36,6 +56,17 @@ The trigger will fire at the start time and then again based on the cron
 expression.
 
 Triggers also have a name which is used to refer to them in tasks.
+
+```yaml
+triggers:
+  - name: daily
+    start: 2022-01-01T00:00:00Z
+    period: 1d
+
+  - name: start-of-month
+    start: 2022-01-01T00:00:00Z
+    cron: "0 0 1 * *"
+```
 
 ## Tasks
 
@@ -66,5 +97,29 @@ The threshold number of tokens needed to activate a task may be specified. If
 not, it will be determined as either the number of upstream success dependencies
 (i.e. not including the failure dependencies) or 1 if there are only failure 
 dependencies.
+
+```yaml
+tasks:
+  - name: step1
+    image: bash:latest
+    args: ["-c", "echo step1"]
+    depends:
+      - trigger/daily
+
+  - name: step2
+    image: bash:latest
+    args: ["-c", "env"]
+    depends:
+      - task/step1
+  
+  - name: fail
+    image: my-custom-fail-image:v1
+    env:
+      MESSAGE: "example job failed!"
+      MAILTO: "admin@example.com"
+    depends_failure:
+      - task/step1
+      - task/step2
+```
 
 The full JSONSchema for Jobs is [here](./job-schema.json).
