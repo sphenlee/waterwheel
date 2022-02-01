@@ -135,7 +135,7 @@ struct ProjectExtra {
 
 pub async fn get_by_id(req: Request<State>) -> highnoon::Result<Response> {
     let id_str = req.param("id")?;
-    let id = Uuid::parse_str(&id_str)?;
+    let id = Uuid::parse_str(id_str)?;
 
     let row: Option<ProjectExtra> = sqlx::query_as(
         "SELECT
@@ -195,7 +195,7 @@ struct ProjectConfig(JsonValue);
 
 pub async fn get_config(req: Request<State>) -> highnoon::Result<impl Responder> {
     let id_str = req.param("id")?;
-    let id = Uuid::parse_str(&id_str)?;
+    let id = Uuid::parse_str(id_str)?;
 
     jwt::validate_config_jwt(&req, id)?;
 
@@ -217,7 +217,7 @@ pub async fn get_config(req: Request<State>) -> highnoon::Result<impl Responder>
 
 pub async fn delete(req: Request<State>) -> highnoon::Result<StatusCode> {
     let id_str = req.param("id")?;
-    let id = Uuid::parse_str(&id_str)?;
+    let id = Uuid::parse_str(id_str)?;
 
     auth::delete().project(id).check(&req).await?;
 
@@ -266,7 +266,7 @@ struct ListJob {
 
 pub async fn list_jobs(req: Request<State>) -> highnoon::Result<impl Responder> {
     let id_str = req.param("id")?;
-    let id = Uuid::parse_str(&id_str)?;
+    let id = Uuid::parse_str(id_str)?;
 
     let query: ListJobQuery = req.query()?;
 

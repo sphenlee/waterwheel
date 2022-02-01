@@ -63,7 +63,7 @@ async fn fetch_project_config(proj_id: Uuid) -> Result<JsonValue> {
 
     let token = "Bearer ".to_owned() + &jwt::generate_config_jwt(proj_id)?;
 
-    let url = reqwest::Url::parse(&server_addr)?
+    let url = reqwest::Url::parse(server_addr)?
         .join("int-api/projects/")?
         .join(&format!("{}/", proj_id))?
         .join("config")?;
@@ -90,7 +90,7 @@ async fn fetch_task_def(task_id: Uuid) -> Result<TaskDef> {
 
     let token = "Bearer ".to_owned() + &jwt::generate_config_jwt(task_id)?;
 
-    let url = reqwest::Url::parse(&server_addr)?
+    let url = reqwest::Url::parse(server_addr)?
         .join("int-api/tasks/")?
         .join(&format!("{}", task_id))?;
 

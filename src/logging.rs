@@ -63,7 +63,7 @@ where
             meta.target(),
         );
 
-        write!(writer, "{}\n", level_color(*meta.level(), header))?;
+        writeln!(writer, "{}", level_color(*meta.level(), header))?;
 
         ctx.field_format().format_fields(writer, event)?;
 

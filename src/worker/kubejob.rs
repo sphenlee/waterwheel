@@ -10,7 +10,6 @@ use std::convert::TryFrom;
 use tracing::{trace, warn};
 use crate::worker::engine::TaskEngineImpl;
 use k8s_openapi::api::batch::v1::Job;
-use serde_json::Value;
 
 pub struct KubeJobEngine;
 

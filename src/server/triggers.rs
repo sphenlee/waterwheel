@@ -37,7 +37,7 @@ struct Trigger {
 
 enum Period {
     Duration(Duration),
-    Cron(Schedule),
+    Cron(Box<Schedule>),
 }
 
 impl std::ops::Add<&Period> for DateTime<Utc> {
@@ -55,7 +55,7 @@ impl Trigger {
     fn period(&self) -> Result<Period> {
         Ok(if let Some(ref cron) = self.cron {
             Period::Cron(
-                Schedule::from_str(&cron).map_err(|err| anyhow::Error::msg(err.to_string()))?,
+                Box::new(Schedule::from_str(cron)?)
             )
         } else {
             Period::Duration(Duration::seconds(self.period.unwrap()))

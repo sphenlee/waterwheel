@@ -7,7 +7,7 @@ use uuid::Uuid;
 pub fn period_from_string(period: &Option<String>) -> anyhow::Result<Option<u32>> {
     match period {
         Some(ref s) => {
-            let secs = humantime::parse_duration(&s)?.as_secs() as u32;
+            let secs = humantime::parse_duration(s)?.as_secs() as u32;
             Ok(Some(secs))
         }
         None => Ok(None),

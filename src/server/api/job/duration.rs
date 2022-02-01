@@ -24,14 +24,14 @@ pub struct GetDuration {
     pub duration: Vec<TaskDuration>,
 }
 
-pub async fn get_duration(mut req: Request<State>) -> highnoon::Result<impl Responder> {
+pub async fn get_duration(req: Request<State>) -> highnoon::Result<impl Responder> {
     let job_id = req.param("id")?.parse::<Uuid>()?;
 
     let query: GetDurationQuery = req.query()?;
 
     auth::get()
         .job(job_id, None)
-        .check(&mut req)
+        .check(&req)
         .await?;
 
     let duration: Vec<TaskDuration> = sqlx::query_as(

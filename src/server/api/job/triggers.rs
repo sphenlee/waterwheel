@@ -153,7 +153,7 @@ pub struct GetTrigger {
     pub times: Vec<TriggerTime>,
 }
 
-pub async fn get_trigger(mut req: Request<State>) -> highnoon::Result<impl Responder> {
+pub async fn get_trigger(req: Request<State>) -> highnoon::Result<impl Responder> {
     let trigger_id = req.param("id")?.parse::<Uuid>()?;
 
     let query: GetTriggerQuery = req.query()?;
@@ -181,7 +181,7 @@ pub async fn get_trigger(mut req: Request<State>) -> highnoon::Result<impl Respo
     auth::get()
         .job(info.job_id, info.project_id)
         .kind("trigger")
-        .check(&mut req)
+        .check(&req)
         .await?;
 
     let times: Vec<TriggerTime> = sqlx::query_as(

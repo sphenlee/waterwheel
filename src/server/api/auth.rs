@@ -164,7 +164,7 @@ impl Check {
             }
         }
 
-        let http = derive_http(&req)?;
+        let http = derive_http(req)?;
         // NOTE - this potentially logs credentials so don't leave it uncommented
         //debug!("http context", { http: Value::from_debug(&http) });
 
