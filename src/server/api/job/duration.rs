@@ -5,7 +5,6 @@ use highnoon::{Json, Request, Responder};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-
 #[derive(Deserialize)]
 pub struct GetDurationQuery {
     before: Option<DateTime<Utc>>,
@@ -29,10 +28,7 @@ pub async fn get_duration(req: Request<State>) -> highnoon::Result<impl Responde
 
     let query: GetDurationQuery = req.query()?;
 
-    auth::get()
-        .job(job_id, None)
-        .check(&req)
-        .await?;
+    auth::get().job(job_id, None).check(&req).await?;
 
     let duration: Vec<TaskDuration> = sqlx::query_as(
         "WITH these_triggers AS (

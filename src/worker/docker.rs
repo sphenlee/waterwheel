@@ -1,4 +1,5 @@
 use crate::messages::{TaskDef, TaskRequest};
+use crate::worker::engine::TaskEngineImpl;
 use crate::worker::env;
 use anyhow::Result;
 use bollard::container::{
@@ -8,8 +9,7 @@ use bollard::container::{
 use bollard::image::{CreateImageOptions, ListImagesOptions};
 use futures::TryStreamExt;
 use std::collections::HashMap;
-use tracing::{trace};
-use crate::worker::engine::TaskEngineImpl;
+use tracing::trace;
 
 pub struct DockerEngine;
 

@@ -54,9 +54,7 @@ impl std::ops::Add<&Period> for DateTime<Utc> {
 impl Trigger {
     fn period(&self) -> Result<Period> {
         Ok(if let Some(ref cron) = self.cron {
-            Period::Cron(
-                Box::new(Schedule::from_str(cron)?)
-            )
+            Period::Cron(Box::new(Schedule::from_str(cron)?))
         } else {
             Period::Duration(Duration::seconds(self.period.unwrap()))
         })

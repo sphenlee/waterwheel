@@ -1,15 +1,15 @@
 use crate::messages::{TaskDef, TaskRequest};
 use crate::worker::config_cache::get_project_config;
+use crate::worker::engine::TaskEngineImpl;
 use crate::worker::env;
 use crate::worker::WORKER_ID;
 use anyhow::Result;
 use futures::{StreamExt, TryStreamExt};
+use k8s_openapi::api::batch::v1::Job;
 use kube::api::{Api, PostParams};
 use kube::{Client, Config, ResourceExt};
 use std::convert::TryFrom;
 use tracing::{trace, warn};
-use crate::worker::engine::TaskEngineImpl;
-use k8s_openapi::api::batch::v1::Job;
 
 pub struct KubeJobEngine;
 
@@ -19,7 +19,6 @@ impl TaskEngineImpl for KubeJobEngine {
         run_kubejob(task_req, task_def).await
     }
 }
-
 
 pub async fn run_kubejob(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
     trace!("loading kubernetes config");
@@ -44,14 +43,18 @@ pub async fn run_kubejob(task_req: TaskRequest, task_def: TaskDef) -> Result<boo
             None => {
                 warn!(job_name=%name, "job was deleted externally");
                 anyhow::bail!("job was deleted externally");
-            },
+            }
             Some(job) => {
                 let status = job.status.as_ref().expect("status exists on job");
                 trace!(pod_name=%name, "job modified, status is '{:?}'", status);
 
                 if let Some(conditions) = &status.conditions {
-                    let complete = conditions.iter().any(|cond| (cond.status == "True" && cond.type_ == "Complete"));
-                    let failed = conditions.iter().any(|cond| (cond.status == "True" && cond.type_ == "Failed"));
+                    let complete = conditions
+                        .iter()
+                        .any(|cond| (cond.status == "True" && cond.type_ == "Complete"));
+                    let failed = conditions
+                        .iter()
+                        .any(|cond| (cond.status == "True" && cond.type_ == "Failed"));
 
                     if complete {
                         result = true;
@@ -76,8 +79,10 @@ async fn make_job(task_req: TaskRequest, task_def: TaskDef) -> Result<Job> {
 
     let config = get_project_config(task_def.project_id).await?;
     let job_merge = config.get("kubernetes_job_merge");
-    let ttl = config.get("kubernetes_job_ttl_seconds_after_finished")
-        .and_then(|json| json.as_i64()).unwrap_or(ONE_HOUR);
+    let ttl = config
+        .get("kubernetes_job_ttl_seconds_after_finished")
+        .and_then(|json| json.as_i64())
+        .unwrap_or(ONE_HOUR);
 
     let meta = serde_json::json!({
         "name": name,

@@ -13,10 +13,10 @@ mod request_ext;
 mod stash;
 mod status;
 mod task;
+mod task_logs;
 pub mod types;
 mod updates;
 mod workers;
-mod task_logs;
 
 pub struct State {
     pool: PgPool,
@@ -111,7 +111,8 @@ pub async fn serve() -> Result<()> {
         .delete(job::clear_tokens_trigger_datetime);
 
     // job runs
-    app.at("/api/jobs/:id/runs/:trigger_datetime").get(job::list_job_all_task_runs);
+    app.at("/api/jobs/:id/runs/:trigger_datetime")
+        .get(job::list_job_all_task_runs);
 
     // job triggers
     app.at("/api/jobs/:id/triggers")
@@ -131,7 +132,8 @@ pub async fn serve() -> Result<()> {
         .post(task::activate_multiple_tokens);
     app.at("/api/tasks/:id/tokens/:trigger_datetime")
         .put(task::activate_token);
-    app.at("/int-api/tasks/:id").get(task::internal_get_task_def);
+    app.at("/int-api/tasks/:id")
+        .get(task::internal_get_task_def);
 
     // task runs
     app.at("/api/tasks/:id/runs/:trigger_datetime")

@@ -314,12 +314,12 @@ pub async fn list_jobs(req: Request<State>) -> highnoon::Result<impl Responder> 
         AND ($2 IS NULL OR name > $2)
         ORDER BY name
         LIMIT $3",
-        )
-        .bind(&id)
-        .bind(query.after.as_ref())
-        .bind(query.limit.unwrap_or(50))
-        .fetch_all(&req.get_pool())
-        .await?;
+    )
+    .bind(&id)
+    .bind(query.after.as_ref())
+    .bind(query.limit.unwrap_or(50))
+    .fetch_all(&req.get_pool())
+    .await?;
 
     Ok(Json(jobs))
 }

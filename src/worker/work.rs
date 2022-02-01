@@ -11,7 +11,7 @@ use lapin::options::{
     ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
 };
 use lapin::types::FieldTable;
-use lapin::{BasicProperties, ExchangeKind, Consumer};
+use lapin::{BasicProperties, Consumer, ExchangeKind};
 use tracing::{debug, error, info};
 
 use super::{RUNNING_TASKS, TOTAL_TASKS, WORKER_ID};
@@ -39,7 +39,7 @@ async fn setup() -> Result<Consumer> {
         },
         args,
     )
-        .await?;
+    .await?;
 
     // declare outgoing exchange and queue for progress reports
     chan.exchange_declare(
@@ -51,7 +51,7 @@ async fn setup() -> Result<Consumer> {
         },
         FieldTable::default(),
     )
-        .await?;
+    .await?;
 
     chan.queue_declare(
         RESULT_QUEUE,
@@ -61,7 +61,7 @@ async fn setup() -> Result<Consumer> {
         },
         FieldTable::default(),
     )
-        .await?;
+    .await?;
 
     chan.queue_bind(
         RESULT_QUEUE,
@@ -70,7 +70,7 @@ async fn setup() -> Result<Consumer> {
         QueueBindOptions::default(),
         FieldTable::default(),
     )
-        .await?;
+    .await?;
 
     chan.basic_qos(1, BasicQosOptions::default()).await?;
 

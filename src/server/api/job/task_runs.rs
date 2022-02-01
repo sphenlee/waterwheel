@@ -1,9 +1,9 @@
 use crate::server::api::request_ext::RequestExt;
 use crate::server::api::{auth, State};
-use highnoon::{Json, Request, Responder};
-use serde::{Serialize, Deserialize};
-use uuid::Uuid;
 use chrono::{DateTime, Utc};
+use highnoon::{Json, Request, Responder};
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 #[derive(Deserialize)]
 struct ListTaskRunsQuery {
@@ -61,7 +61,6 @@ pub async fn list_job_all_task_runs(req: Request<State>) -> highnoon::Result<imp
 
     Ok(Json(tasks))
 }
-
 
 #[derive(Serialize, sqlx::FromRow)]
 struct ListTaskRuns {

@@ -1,11 +1,11 @@
 use crate::messages::{SchedulerUpdate, TaskDef, TaskPriority, Token};
 use crate::server::api::request_ext::RequestExt;
-use crate::server::api::{updates, State, auth};
+use crate::server::api::{auth, updates, State};
 use crate::server::jwt;
 use crate::server::tokens::ProcessToken;
 use chrono::{DateTime, Utc};
 use futures::TryStreamExt;
-use highnoon::{Json, Request, Responder, StatusCode, Response};
+use highnoon::{Json, Request, Responder, Response, StatusCode};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -122,7 +122,11 @@ pub async fn get_task_def(req: Request<State>) -> highnoon::Result<Response> {
     let maybe_def = get_task_def_common(&req).await?;
 
     if let Some(def) = maybe_def {
-        auth::get().job(def.job_id, def.project_id).kind("task").check(&req).await?;
+        auth::get()
+            .job(def.job_id, def.project_id)
+            .kind("task")
+            .check(&req)
+            .await?;
         Json(def).into_response()
     } else {
         StatusCode::NOT_FOUND.into_response()

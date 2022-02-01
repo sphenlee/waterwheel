@@ -1,5 +1,6 @@
 use crate::messages::{TaskDef, TaskRequest};
 use crate::worker::config_cache::get_project_config;
+use crate::worker::engine::TaskEngineImpl;
 use crate::worker::env;
 use crate::worker::WORKER_ID;
 use anyhow::Result;
@@ -9,7 +10,6 @@ use kube::api::{Api, DeleteParams, PostParams};
 use kube::{Client, Config, ResourceExt};
 use std::convert::TryFrom;
 use tracing::{trace, warn};
-use crate::worker::engine::TaskEngineImpl;
 
 pub struct KubeEngine;
 
@@ -19,7 +19,6 @@ impl TaskEngineImpl for KubeEngine {
         run_kube(task_req, task_def).await
     }
 }
-
 
 pub async fn run_kube(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
     trace!("loading kubernetes config");
@@ -44,7 +43,7 @@ pub async fn run_kube(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> 
             None => {
                 warn!(pod_name=%name, "pod was deleted externally");
                 anyhow::bail!("pod was deleted externally");
-            },
+            }
             Some(pod) => {
                 let status = pod.status.as_ref().expect("status exists on pod");
                 let phase = status.phase.clone().unwrap_or_default();

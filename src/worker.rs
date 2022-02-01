@@ -11,19 +11,17 @@ use crate::util::{spawn_or_crash, spawn_retry};
 
 mod config_cache;
 mod docker;
+pub mod engine;
 pub mod env;
 mod heartbeat;
 mod kube;
 mod kubejob;
 mod work;
-pub mod engine;
-
 
 static WORKER_ID: Lazy<Uuid> = Lazy::new(Uuid::new_v4);
 
 pub static RUNNING_TASKS: Counter = Counter::new();
 pub static TOTAL_TASKS: Counter = Counter::new();
-
 
 pub async fn run_worker() -> Result<()> {
     jwt::load_keys()?;
