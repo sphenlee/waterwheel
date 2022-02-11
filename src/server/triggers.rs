@@ -15,8 +15,11 @@ use serde::{Deserialize, Serialize};
 use sqlx::types::Uuid;
 use sqlx::{Connection, Postgres, Transaction};
 use std::str::FromStr;
+use rand::seq::SliceRandom;
+use rand::thread_rng;
 use tokio::time;
 use tracing::{debug, info, trace, warn};
+use crate::server::api::types::Catchup;
 
 type Queue = BinaryHeap<TriggerTime, MinComparator>;
 
@@ -33,6 +36,7 @@ struct Trigger {
     period: Option<i64>, // in seconds because sqlx doesn't support duration
     cron: Option<String>,
     trigger_offset: Option<i64>,
+    catchup: Catchup,
 }
 
 enum Period {
@@ -219,8 +223,7 @@ async fn do_activate_trigger(
     Ok(tokens_to_tx)
 }
 
-// returns the next trigger time in the future
-async fn catchup_trigger(trigger: &Trigger) -> anyhow::Result<DateTime<Utc>> {
+async fn catchup_trigger(trigger: &Trigger, queue: &mut Queue) -> anyhow::Result<()> {
     debug!(trigger_id=?trigger.id, "checking trigger for any catchup");
 
     let pool = db::get_pool();
@@ -232,19 +235,21 @@ async fn catchup_trigger(trigger: &Trigger) -> anyhow::Result<DateTime<Utc>> {
 
     let period = trigger.period()?;
 
-    if let Some(earliest) = trigger.earliest_trigger_datetime {
-        if trigger.start_datetime < earliest {
-            // start date moved backwards
-            debug!(trigger_id=?trigger.id,
-                "start date has moved backwards: {} -> {}",
-                earliest, trigger.start_datetime
-            );
+    if trigger.catchup != Catchup::None {
+        if let Some(earliest) = trigger.earliest_trigger_datetime {
+            if trigger.start_datetime < earliest {
+                // start date moved backwards
+                debug!(trigger_id=?trigger.id,
+                    "start date has moved backwards: {} -> {}",
+                    earliest, trigger.start_datetime
+                );
 
-            let mut next = trigger.start_datetime;
-            while next < earliest {
-                let mut tokens = do_activate_trigger(&mut txn, trigger.at(next)).await?;
-                tokens_to_tx.append(&mut tokens);
-                next = next + &period;
+                let mut next = trigger.start_datetime;
+                while next < earliest {
+                    let mut tokens = do_activate_trigger(&mut txn, trigger.at(next)).await?;
+                    tokens_to_tx.append(&mut tokens);
+                    next = next + &period;
+                }
             }
         }
     }
@@ -265,16 +270,31 @@ async fn catchup_trigger(trigger: &Trigger) -> anyhow::Result<DateTime<Utc>> {
     };
 
     while next < last {
-        let mut tokens = do_activate_trigger(&mut txn, trigger.at(next)).await?;
-        tokens_to_tx.append(&mut tokens);
+        if trigger.catchup != Catchup::None {
+            let mut tokens = do_activate_trigger(&mut txn, trigger.at(next)).await?;
+            tokens_to_tx.append(&mut tokens);
+        }
         next = next + &period;
+    }
+
+    if trigger.end_datetime.is_none() || next < trigger.end_datetime.unwrap() {
+        // push one trigger in the future
+        trace!(trigger_id=?trigger.id, "queueing trigger at {}", next);
+        queue.push(trigger.at(next));
     }
 
     txn.commit().await?;
 
+    match trigger.catchup {
+        Catchup::None => assert_eq!(tokens_to_tx.len(), 0, "Catchup::None should never have any tokens_to_tx"),
+        Catchup::Earliest => tokens_to_tx.sort_by_key(|token| token.trigger_datetime),
+        Catchup::Latest => tokens_to_tx.sort_by_key(|token| std::cmp::Reverse(token.trigger_datetime)),
+        Catchup::Random => tokens_to_tx.shuffle(&mut thread_rng())
+    }
+
     send_to_token_processor(tokens_to_tx, TaskPriority::BackFill).await?;
 
-    Ok(next)
+    Ok(())
 }
 
 async fn send_to_token_processor(tokens_to_tx: Vec<Token>, priority: TaskPriority) -> Result<()> {
@@ -313,7 +333,8 @@ async fn update_trigger(uuid: &Uuid, queue: &mut Queue) -> Result<()> {
             latest_trigger_datetime,
             period,
             cron,
-            trigger_offset
+            trigger_offset,
+            catchup
         FROM trigger t
         JOIN job j ON t.job_id = j.id
         WHERE t.id = $1
@@ -325,14 +346,7 @@ async fn update_trigger(uuid: &Uuid, queue: &mut Queue) -> Result<()> {
     .await?;
 
     if let Some(trigger) = maybe_trigger {
-        // do a catchup
-        let next = catchup_trigger(&trigger).await?;
-
-        if trigger.end_datetime.is_none() || next < trigger.end_datetime.unwrap() {
-            // push one trigger in the future
-            trace!(trigger_id=?trigger.id, "queueing trigger at {}", next);
-            queue.push(trigger.at(next));
-        }
+        catchup_trigger(&trigger, queue).await?;
     } else {
         debug!(trigger_id=?uuid,
             "trigger {} has been paused, it had been removed from the queue",
@@ -358,7 +372,8 @@ async fn restore_triggers(queue: &mut Queue) -> Result<()> {
             latest_trigger_datetime,
             period,
             cron,
-            trigger_offset
+            trigger_offset,
+            catchup
         FROM trigger t
         JOIN job j ON t.job_id = j.id
         WHERE NOT j.paused
@@ -367,13 +382,7 @@ async fn restore_triggers(queue: &mut Queue) -> Result<()> {
     .fetch(&pool);
 
     while let Some(trigger) = cursor.try_next().await? {
-        let next = catchup_trigger(&trigger).await?;
-
-        if trigger.end_datetime.is_none() || next < trigger.end_datetime.unwrap() {
-            // push one trigger in the future
-            trace!(trigger_id=?trigger.id, "queueing trigger at {}", next);
-            queue.push(trigger.at(next));
-        }
+        catchup_trigger(&trigger, queue).await?;
     }
 
     info!("done restoring {} triggers from database", queue.len());
@@ -394,7 +403,8 @@ async fn requeue_next_triggertime(next_triggertime: &TriggerTime, queue: &mut Qu
             latest_trigger_datetime,
             period,
             cron,
-            trigger_offset
+            trigger_offset,
+            catchup
         FROM trigger
         WHERE id = $1
     ",

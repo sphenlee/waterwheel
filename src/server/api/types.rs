@@ -25,6 +25,23 @@ pub struct Job {
     pub tasks: Vec<Task>,
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Deserialize, Serialize, sqlx::Type)]
+#[serde(rename_all = "lowercase")]
+#[sqlx(rename_all = "lowercase")]
+#[sqlx(type_name = "VARCHAR")]
+pub enum Catchup {
+    None,
+    Earliest,
+    Latest,
+    Random,
+}
+
+impl Default for Catchup {
+    fn default() -> Self {
+        Catchup::Earliest
+    }
+}
+
 #[derive(Deserialize, Serialize)]
 pub struct Trigger {
     pub name: String,
@@ -33,6 +50,7 @@ pub struct Trigger {
     pub period: Option<String>,
     pub cron: Option<String>,
     pub offset: Option<String>,
+    pub catchup: Option<Catchup>
 }
 
 #[derive(Deserialize, Serialize)]

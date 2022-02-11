@@ -1,0 +1,87 @@
+{
+  "uuid": "2091f1a0-3947-4bfc-bf1e-6e6f52ab2ce6",
+  "project": "test_project",
+  "name": "catchup_job",
+  "description": "a simple job to test catchup",
+  "paused": false,
+  "triggers": [
+    {
+      "name": "none",
+      "start": "2022-01-01T00:00:00Z",
+      "period": "1h",
+      "catchup": "none"
+    },{
+      "name": "latest",
+      "start": "2022-01-01T00:00:00Z",
+      "period": "1h",
+      "catchup": "latest"
+    },{
+      "name": "earliest",
+      "start": "2022-01-01T00:00:00Z",
+      "period": "1h",
+      "catchup": "earliest"
+    },{
+      "name": "random",
+      "start": "2022-01-01T00:00:00Z",
+      "period": "1h",
+      "catchup": "random"
+    },{
+      "name": "default",
+      "start": "2022-01-01T00:00:00Z",
+      "period": "1h"
+    }
+  ],
+  "tasks": [
+    {
+      "name": "none",
+      "docker": {
+        "image": "bash:latest",
+        "args": ["-c", "sleep 20s"]
+      },
+      "depends": [
+        "trigger/none"
+      ]
+    },{
+      "name": "earliest",
+      "docker": {
+        "image": "bash:latest",
+        "args": ["-c", "sleep 20s"]
+      },
+      "depends": [
+        "trigger/earliest"
+      ]
+    },{
+      "name": "latest",
+      "docker": {
+        "image": "bash:latest",
+        "args": ["-c", "sleep 20s"]
+      },
+      "depends": [
+        "trigger/latest"
+      ]
+    },{
+      "name": "random",
+      "docker": {
+        "image": "bash:latest",
+        "args": ["-c", "sleep 20s"]
+      },
+      "depends": [
+        "trigger/random"
+      ]
+    },{
+      "name": "default",
+      "docker": {
+        "image": "bash:latest",
+        "args": ["-c", "sleep 20s"]
+      },
+      "depends": [
+        "trigger/default"
+      ]
+    },{
+      "name": "z_final",
+      "depends": [
+        "task/none", "task/latest", "task/earliest", "task/random", "task/default"
+      ]
+    }
+  ]
+}

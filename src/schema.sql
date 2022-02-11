@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS trigger (
     period BIGINT,
     cron VARCHAR,
     trigger_offset BIGINT,
+    catchup VARCHAR NOT NULL,
     UNIQUE(job_id, name) INCLUDE (id)
 );
 

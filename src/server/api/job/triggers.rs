@@ -1,5 +1,5 @@
 use crate::server::api::request_ext::RequestExt;
-use crate::server::api::types::{period_from_string, Job, Trigger};
+use crate::server::api::types::{period_from_string, Job, Trigger, Catchup};
 use crate::server::api::{auth, State};
 use chrono::{DateTime, Utc};
 use highnoon::{Json, Request, Responder};
@@ -51,18 +51,19 @@ pub async fn create_trigger(
         "INSERT INTO trigger(id, name, job_id,
             start_datetime, end_datetime,
             earliest_trigger_datetime, latest_trigger_datetime,
-            period, cron, trigger_offset)
+            period, cron, trigger_offset, catchup)
         VALUES ($1, $2, $3,
             $4, $5,
             NULL, NULL,
-            $6, $7, $8)
+            $6, $7, $8, $9)
         ON CONFLICT(name, job_id)
         DO UPDATE
         SET start_datetime = $4,
             end_datetime = $5,
             period = $6,
             cron = $7,
-            trigger_offset = $8
+            trigger_offset = $8,
+            catchup = $9
         RETURNING id",
     )
     .bind(&new_id)
@@ -73,6 +74,7 @@ pub async fn create_trigger(
     .bind(period_from_string(&trigger.period)?)
     .bind(&trigger.cron)
     .bind(period_from_string(&trigger.offset)?)
+    .bind(trigger.catchup.unwrap_or_default())
     .fetch_one(&mut *txn)
     .await?;
 
@@ -92,6 +94,7 @@ pub struct GetTriggerByJob {
     pub period: Option<i64>, // seconds
     pub cron: Option<String>,
     pub trigger_offset: Option<String>,
+    pub catchup: Option<String>,
 }
 
 pub async fn get_triggers_by_job(req: Request<State>) -> highnoon::Result<impl Responder> {
@@ -109,7 +112,8 @@ pub async fn get_triggers_by_job(req: Request<State>) -> highnoon::Result<impl R
             latest_trigger_datetime,
             period,
             cron,
-            trigger_offset
+            trigger_offset,
+            catchup
         FROM trigger
         WHERE job_id = $1
         ORDER BY latest_trigger_datetime DESC",

@@ -9,6 +9,7 @@ use uuid::Uuid;
 #[derive(Serialize, Deserialize, Debug, sqlx::Type)]
 #[serde(rename_all = "lowercase")]
 #[sqlx(rename_all = "lowercase")]
+#[sqlx(type_name = "VARCHAR")]
 pub enum TokenState {
     /// waiting for the count to reach the threshold
     Waiting,
