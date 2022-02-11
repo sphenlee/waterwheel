@@ -114,7 +114,7 @@ pub async fn create_task(
     task: &Task,
     job: &Job,
 ) -> highnoon::Result<Uuid> {
-    let threshold = task.threshold.unwrap_or_else(|| {
+    let threshold = task.threshold.unwrap_or({
         if let Some(dep) = &task.depends {
             dep.len() as u32
         } else {

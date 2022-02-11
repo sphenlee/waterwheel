@@ -1,5 +1,5 @@
 use crate::server::api::request_ext::RequestExt;
-use crate::server::api::types::{period_from_string, Catchup, Job, Trigger};
+use crate::server::api::types::{period_from_string, Job, Trigger};
 use crate::server::api::{auth, State};
 use chrono::{DateTime, Utc};
 use highnoon::{Json, Request, Responder};
