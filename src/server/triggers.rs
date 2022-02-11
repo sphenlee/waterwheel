@@ -1,4 +1,5 @@
 use crate::messages::{TaskPriority, Token};
+use crate::server::api::types::Catchup;
 use crate::server::tokens::{increment_token, ProcessToken};
 use crate::server::trigger_time::TriggerTime;
 use crate::util::format_duration_approx;
@@ -11,15 +12,14 @@ use cron::Schedule;
 use futures::TryStreamExt;
 use postage::prelude::*;
 use postage::stream::TryRecvError;
+use rand::seq::SliceRandom;
+use rand::thread_rng;
 use serde::{Deserialize, Serialize};
 use sqlx::types::Uuid;
 use sqlx::{Connection, Postgres, Transaction};
 use std::str::FromStr;
-use rand::seq::SliceRandom;
-use rand::thread_rng;
 use tokio::time;
 use tracing::{debug, info, trace, warn};
-use crate::server::api::types::Catchup;
 
 type Queue = BinaryHeap<TriggerTime, MinComparator>;
 
@@ -286,10 +286,16 @@ async fn catchup_trigger(trigger: &Trigger, queue: &mut Queue) -> anyhow::Result
     txn.commit().await?;
 
     match trigger.catchup {
-        Catchup::None => assert_eq!(tokens_to_tx.len(), 0, "Catchup::None should never have any tokens_to_tx"),
+        Catchup::None => assert_eq!(
+            tokens_to_tx.len(),
+            0,
+            "Catchup::None should never have any tokens_to_tx"
+        ),
         Catchup::Earliest => tokens_to_tx.sort_by_key(|token| token.trigger_datetime),
-        Catchup::Latest => tokens_to_tx.sort_by_key(|token| std::cmp::Reverse(token.trigger_datetime)),
-        Catchup::Random => tokens_to_tx.shuffle(&mut thread_rng())
+        Catchup::Latest => {
+            tokens_to_tx.sort_by_key(|token| std::cmp::Reverse(token.trigger_datetime))
+        }
+        Catchup::Random => tokens_to_tx.shuffle(&mut thread_rng()),
     }
 
     send_to_token_processor(tokens_to_tx, TaskPriority::BackFill).await?;

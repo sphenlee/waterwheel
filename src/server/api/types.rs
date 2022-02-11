@@ -50,7 +50,7 @@ pub struct Trigger {
     pub period: Option<String>,
     pub cron: Option<String>,
     pub offset: Option<String>,
-    pub catchup: Option<Catchup>
+    pub catchup: Option<Catchup>,
 }
 
 #[derive(Deserialize, Serialize)]
