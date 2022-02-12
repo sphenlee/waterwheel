@@ -29,6 +29,9 @@ jobs:
           toolchain: nightly
           override: true
 
+      - name: Build UI
+        run: cd ui && npm install && npm run build
+
       - name: Build
         run: cargo build --release
 
