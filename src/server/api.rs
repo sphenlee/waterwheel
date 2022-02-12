@@ -165,8 +165,8 @@ pub async fn serve() -> Result<()> {
             let body = highnoon::Response::ok().path("ui/dist/index.html").await?;
             Ok(body)
         };
-        app.at("/static/*").static_files("ui/dist/");
-        app.at("/**").get(index);
+        app.at("/static/*path").static_files("ui/dist/");
+        app.at("/:root/*path").get(index);
         app.at("/").get(index);
     }
 
@@ -178,7 +178,7 @@ pub async fn serve() -> Result<()> {
         app.at("/static/main.js")
             .get(get_file!(JS; "text/javascript"));
         app.at("/").get(get_file!(HTML; "text/html;charset=utf-8"));
-        app.at("/**")
+        app.at("/:root/*path")
             .get(get_file!(HTML; "text/html;charset=utf-8"));
     }
 
