@@ -128,9 +128,11 @@ struct ProjectExtra {
     pub description: String,
     pub num_jobs: i64,
     // TODO - harmonise these with the ListProject call
-    pub active_tasks: i64,
+    pub running_tasks: i64,
+    pub waiting_tasks: i64,
     pub failed_tasks_last_hour: i64,
     pub succeeded_tasks_last_hour: i64,
+    pub error_tasks_last_hour: i64,
 }
 
 pub async fn get_by_id(req: Request<State>) -> highnoon::Result<Response> {
@@ -138,7 +140,18 @@ pub async fn get_by_id(req: Request<State>) -> highnoon::Result<Response> {
     let id = Uuid::parse_str(id_str)?;
 
     let row: Option<ProjectExtra> = sqlx::query_as(
-        "SELECT
+        "WITH these_tasks AS (
+            SELECT
+                t.id AS id,
+                tr.state AS state
+            FROM job j
+            JOIN task t ON t.job_id = j.id
+            JOIN task_run tr ON tr.task_id = t.id
+            WHERE j.project_id = $1
+            AND (finish_datetime IS NULL
+                OR CURRENT_TIMESTAMP - finish_datetime < INTERVAL '1 hour')
+        )
+        SELECT
             id,
             name,
             description,
@@ -148,31 +161,30 @@ pub async fn get_by_id(req: Request<State>) -> highnoon::Result<Response> {
                 WHERE j.project_id = $1
             ) AS num_jobs,
             (
-                SELECT count(DISTINCT t.id)
-                FROM job j
-                JOIN task t ON t.job_id = j.id
-                JOIN task_run tr ON tr.task_id = t.id
-                WHERE j.project_id = $1
-                AND tr.state = 'running'
-            ) AS active_tasks,
+                SELECT COUNT(1)
+                FROM these_tasks t
+                WHERE (t.state = 'running')
+            ) AS running_tasks,
             (
-                SELECT count(DISTINCT t.id)
-                FROM job j
-                JOIN task t ON t.job_id = j.id
-                JOIN task_run tr ON tr.task_id = t.id
-                WHERE j.project_id = $1
-                AND tr.state = 'failure'
-                AND CURRENT_TIMESTAMP - finish_datetime < INTERVAL '1 hour'
+                SELECT COUNT(1)
+                FROM these_tasks t
+                WHERE (t.state = 'waiting' OR t.state = 'active')
+            ) AS waiting_tasks,
+            (
+                SELECT COUNT(1)
+                FROM these_tasks t
+                WHERE t.state = 'failure'
             ) AS failed_tasks_last_hour,
             (
-                SELECT count(DISTINCT t.id)
-                FROM job j
-                JOIN task t ON t.job_id = j.id
-                JOIN task_run tr ON tr.task_id = t.id
-                WHERE j.project_id = $1
-                AND tr.state = 'success'
-                AND CURRENT_TIMESTAMP - finish_datetime < INTERVAL '1 hour'
-            ) AS succeeded_tasks_last_hour
+                SELECT COUNT(1)
+                FROM these_tasks t
+                WHERE t.state = 'success'
+            ) AS succeeded_tasks_last_hour,
+            (
+                SELECT COUNT(1)
+                FROM these_tasks t
+                WHERE t.state = 'error'
+            ) AS error_tasks_last_hour
         FROM project
         WHERE id = $1",
     )
@@ -262,6 +274,7 @@ struct ListJob {
     running: i64,
     failure: i64,
     waiting: i64,
+    error: i64,
 }
 
 pub async fn list_jobs(req: Request<State>) -> highnoon::Result<impl Responder> {
@@ -295,7 +308,8 @@ pub async fn list_jobs(req: Request<State>) -> highnoon::Result<impl Responder> 
                 sum(CASE
                         WHEN state = 'active' OR state = 'waiting' THEN 1
                         ELSE 0
-                    END) AS waiting
+                    END) AS waiting,
+                sum(CASE WHEN state = 'error' THEN  1 ELSE 0 END) as error
             FROM these_runs
             GROUP BY job_id
         )
@@ -307,7 +321,8 @@ pub async fn list_jobs(req: Request<State>) -> highnoon::Result<impl Responder> 
             coalesce(success, 0) AS success,
             coalesce(running, 0) AS running,
             coalesce(failure, 0) AS failure,
-            coalesce(waiting, 0) AS waiting
+            coalesce(waiting, 0) AS waiting,
+            coalesce(error,   0) AS error
         FROM job j
         LEFT OUTER JOIN job_stats js ON j.id = js.job_id
         WHERE project_id = $1

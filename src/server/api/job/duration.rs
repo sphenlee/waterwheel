@@ -51,7 +51,8 @@ pub async fn get_duration(req: Request<State>) -> highnoon::Result<impl Responde
         SELECT
             t.name AS task_name,
             x.trigger_datetime AS trigger_datetime,
-            extract(EPOCH FROM max(r.finish_datetime - r.started_datetime)) AS duration
+            CAST(EXTRACT(EPOCH FROM MAX(r.finish_datetime - r.started_datetime)) AS FLOAT8)
+                AS duration
         FROM these_triggers x
         CROSS JOIN these_tasks t
         LEFT OUTER JOIN task_run r

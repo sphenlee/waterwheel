@@ -1,8 +1,8 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
 import { List, Avatar, Layout, Breadcrumb, PageHeader, Row, Col, Statistic, Badge, Tag  } from 'antd';
-import { geekblue, lime, red, grey, yellow } from '@ant-design/colors';
-import { PauseOutlined } from '@ant-design/icons';
+import { geekblue, lime, red, grey, yellow, orange } from '@ant-design/colors';
+import { PauseOutlined, PartitionOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
 import Body from '../components/Body.jsx';
@@ -68,30 +68,42 @@ class Project extends Component {
                             subTitle={proj.description}
                         />
                         <Row gutter={[16, 32]}>
-                            <Col span={6}>
+                            <Col span={4}>
                                 <Statistic title="Jobs" value={proj.num_jobs} />
                             </Col>
-                            <Col span={6}>
+                            <Col span={4}>
                                 <Statistic title="Running Tasks"
                                     valueStyle={{color: geekblue[5]}}
-                                    value={proj.active_tasks} />
+                                    value={proj.running_tasks} />
                             </Col>
-                            <Col span={6}>
+                            <Col span={4}>
+                                <Statistic title="Waiting Tasks"
+                                    valueStyle={{color: grey[5]}}
+                                    value={proj.waiting_tasks} />
+                            </Col>
+                            <Col span={4}>
                                 <Statistic title="Succeeded Tasks (last hour)"
                                     valueStyle={{color: lime[5]}}
                                     value={proj.succeeded_tasks_last_hour} />
                             </Col>
-                            <Col span={6}>
+                            <Col span={4}>
                                 <Statistic title="Failed Tasks (last hour)"
                                     valueStyle={{color: red[5]}}
                                     value={proj.failed_tasks_last_hour} />
                             </Col>
+                            <Col span={4}>
+                                <Statistic title="Error Tasks (last hour)"
+                                    valueStyle={{color: orange[5]}}
+                                    value={proj.error_tasks_last_hour} />
+                            </Col>
+                            <Col span={4} />
                             <Col span={24} />
                         </Row>
                         <Row>
                             <Col span={12}>
                                 <List
                                     size="large"
+                                    bordered="true"
                                     itemLayout="vertical"
                                     dataSource={this.state.jobs ?? []}
                                     loading={this.state.jobs === null}
@@ -116,13 +128,17 @@ class Project extends Component {
                                                         style={{background: red[7]}}
                                                         overflowCount={999}
                                                         title="Failure"/>
+                                                    <Badge count={item.error}
+                                                        style={{background: orange[5]}}
+                                                        overflowCount={999}
+                                                        title="Error"/>
                                                 </Fragment>,
                                                 (item.paused &&
                                                     <Tag color="warning" icon={<PauseOutlined />}>paused</Tag>)
                                             ]}
                                         >
                                             <List.Item.Meta
-                                                avatar={<Avatar shape="square">{item.avatar}</Avatar>}
+                                                avatar={<Avatar icon={<PartitionOutlined />} shape="square"></Avatar>}
                                                 title={<Link to={`/jobs/${item.job_id}`}>
                                                         {item.name}
                                                     </Link>}

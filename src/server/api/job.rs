@@ -188,15 +188,27 @@ struct GetJobExtra {
     pub paused: bool,
     pub raw_definition: String,
     pub active_tasks: i64,
+    pub waiting_tasks: i64,
     pub failed_tasks_last_hour: i64,
     pub succeeded_tasks_last_hour: i64,
+    pub error_tasks_last_hour: i64,
 }
 
 pub async fn get_by_id(req: Request<State>) -> highnoon::Result<impl Responder> {
     let id = req.param("id")?.parse::<Uuid>()?;
 
     let maybe_job: Option<GetJobExtra> = sqlx::query_as(
-        "SELECT
+        "WITH these_tasks AS (
+            SELECT
+                t.id AS id,
+                tr.state AS state
+            FROM task t
+            JOIN task_run tr ON tr.task_id = t.id
+            WHERE t.job_id = $1
+            AND (finish_datetime IS NULL
+                OR CURRENT_TIMESTAMP - finish_datetime < INTERVAL '1 hour')
+         )
+         SELECT
             j.id AS id,
             j.name AS name,
             p.name AS project,
@@ -205,28 +217,30 @@ pub async fn get_by_id(req: Request<State>) -> highnoon::Result<impl Responder> 
             j.paused AS paused,
             j.raw_definition AS raw_definition,
             (
-                SELECT count(DISTINCT t.id)
-                FROM task t
-                JOIN task_run tr ON tr.task_id = t.id
-                WHERE t.job_id = $1
-                AND tr.state = 'active'
+                SELECT COUNT(1)
+                FROM these_tasks t
+                WHERE (t.state = 'running')
             ) AS active_tasks,
             (
-                SELECT count(DISTINCT t.id)
-                FROM task t
-                JOIN task_run tr ON tr.task_id = t.id
-                WHERE t.job_id = $1
-                AND tr.state = 'failure'
-                AND CURRENT_TIMESTAMP - finish_datetime < INTERVAL '1 hour'
+                SELECT COUNT(1)
+                FROM these_tasks t
+                WHERE (t.state = 'active' OR t.state = 'waiting')
+            ) AS waiting_tasks,
+            (
+                SELECT COUNT(1)
+                FROM these_tasks t
+                WHERE t.state = 'failure'
             ) AS failed_tasks_last_hour,
             (
-                SELECT count(DISTINCT t.id)
-                FROM task t
-                JOIN task_run tr ON tr.task_id = t.id
-                WHERE t.job_id = $1
-                AND tr.state = 'success'
-                AND CURRENT_TIMESTAMP - finish_datetime < INTERVAL '1 hour'
-            ) AS succeeded_tasks_last_hour
+                SELECT COUNT(1)
+                FROM these_tasks t
+                WHERE t.state = 'success'
+            ) AS succeeded_tasks_last_hour,
+            (
+                SELECT COUNT(1)
+                FROM these_tasks t
+                WHERE t.state = 'error'
+            ) AS error_tasks_last_hour
         FROM job j
         JOIN project p ON j.project_id = p.id
         WHERE j.id = $1",

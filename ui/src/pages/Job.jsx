@@ -1,7 +1,7 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
 import { List, Avatar, Layout, Breadcrumb, PageHeader, Collapse, Tabs, Row, Col, Statistic, Spin, Tag } from 'antd';
-import { geekblue, lime, red, grey, yellow } from '@ant-design/colors';
+import { geekblue, lime, red, grey, yellow, orange } from '@ant-design/colors';
 import { PauseOutlined } from '@ant-design/icons';
 import JSONPretty from 'react-json-pretty';
 import styled from 'styled-components';
@@ -82,20 +82,30 @@ class Job extends Component {
                         >
                             <Tabs.TabPane tab="Overview" key="overview">
                                 <Row gutter={[16, 32]}>
-                                    <Col span={6}>
-                                        <Statistic title="Active Tasks"
+                                    <Col span={4}>
+                                        <Statistic title="Running Tasks"
                                             valueStyle={{color: geekblue[5]}}
                                             value={job.active_tasks} />
                                     </Col>
-                                    <Col span={6}>
+                                    <Col span={4}>
+                                        <Statistic title="Waiting Tasks"
+                                            valueStyle={{color: grey[5]}}
+                                            value={job.waiting_tasks} />
+                                    </Col>
+                                    <Col span={4}>
                                         <Statistic title="Succeeded Tasks (last hour)"
                                             valueStyle={{color: lime[5]}}
                                             value={job.succeeded_tasks_last_hour} />
                                     </Col>
-                                    <Col span={6}>
+                                    <Col span={4}>
                                         <Statistic title="Failed Tasks (last hour)"
                                             valueStyle={{color: red[5]}}
                                             value={job.failed_tasks_last_hour} />
+                                    </Col>
+                                    <Col span={4}>
+                                        <Statistic title="Error Tasks (last hour)"
+                                            valueStyle={{color: orange[5]}}
+                                            value={job.error_tasks_last_hour} />
                                     </Col>
                                     <Col span={24}>
                                         <Graph id={job_id} />

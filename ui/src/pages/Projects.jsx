@@ -1,6 +1,7 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
 import { List, Avatar, Layout, Breadcrumb, Row, Col } from 'antd';
+import { ProjectOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
 import Body from '../components/Body.jsx';
@@ -54,12 +55,13 @@ class Projects extends Component {
                             <Col span={12}>
                                 <List
                                     itemLayout="vertical"
+                                    bordered="true"
                                     dataSource={this.state.data}
                                     loading={this.state.loading}
                                     renderItem={item => (
                                         <List.Item>
                                             <List.Item.Meta
-                                                avatar={<Avatar shape="square">{item.avatar}</Avatar>}
+                                                avatar={<Avatar icon={<ProjectOutlined />} shape="square"></Avatar>}
                                                 title={<Link to={`/projects/${item.id}`}>
                                                     {item.name}
                                                 </Link>}

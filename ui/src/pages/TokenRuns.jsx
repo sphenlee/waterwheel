@@ -37,6 +37,10 @@ class TokenRuns extends Component {
     makeColumns() {
         return [
           {
+            title: 'Id',
+            dataIndex: 'task_run_id',
+            key: 'task_run_id',
+          },{
             title: 'Attempt',
             dataIndex: 'attempt',
             key: 'attempt',
@@ -99,12 +103,18 @@ class TokenRuns extends Component {
         const { runs, task } = this.state;
 
         return (
-            <Drawer title={`Task Runs for {task.task_name}`}
+            <Drawer title={`Task Runs for ${task?.task_name ?? '...'}`}
                     placement="bottom"
                     size="large"
                     height={736} // todo - remove after upgrading
                     onClose={onClose}
                     visible={visible}>
+
+                <ActivateToken
+                    type="primary" size="default"
+                    task_id={task_id}
+                    trigger_datetime={trigger_datetime} />
+
 
                 <Descriptions
                         size="small"
@@ -126,10 +136,6 @@ class TokenRuns extends Component {
                     </Descriptions.Item>
                 </Descriptions>
 
-                <ActivateToken
-                    type="primary" size="default"
-                    task_id={task_id}
-                    trigger_datetime={trigger_datetime} />
 
                 <Table columns={this.columns}
                     dataSource={runs}

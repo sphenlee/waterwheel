@@ -18,7 +18,7 @@ import WorkerStatus from '../components/WorkerStatus.jsx';
 
 const { Content } = Layout;
 
-const defaultFilter = ["active", "running", "success", "failure"];
+const defaultFilter = ["active", "running"];
 
 function makeColumns() {
     return [
@@ -192,6 +192,7 @@ class Worker extends Component {
                             <Option value="running">Running</Option>
                             <Option value="success">Success</Option>
                             <Option value="failure">Failure</Option>
+                            <Option value="error">Error</Option>
                         </Select>
                         <Table key="1"
                             rowKey="task_run_id"
