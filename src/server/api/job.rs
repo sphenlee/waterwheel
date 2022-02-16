@@ -205,14 +205,14 @@ pub async fn get_by_id(req: Request<State>) -> highnoon::Result<impl Responder> 
             j.paused AS paused,
             j.raw_definition AS raw_definition,
             (
-                SELECT count(1)
+                SELECT count(DISTINCT t.id)
                 FROM task t
                 JOIN task_run tr ON tr.task_id = t.id
                 WHERE t.job_id = $1
                 AND tr.state = 'active'
             ) AS active_tasks,
             (
-                SELECT count(1)
+                SELECT count(DISTINCT t.id)
                 FROM task t
                 JOIN task_run tr ON tr.task_id = t.id
                 WHERE t.job_id = $1
@@ -220,7 +220,7 @@ pub async fn get_by_id(req: Request<State>) -> highnoon::Result<impl Responder> 
                 AND CURRENT_TIMESTAMP - finish_datetime < INTERVAL '1 hour'
             ) AS failed_tasks_last_hour,
             (
-                SELECT count(1)
+                SELECT count(DISTINCT t.id)
                 FROM task t
                 JOIN task_run tr ON tr.task_id = t.id
                 WHERE t.job_id = $1

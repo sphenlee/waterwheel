@@ -148,7 +148,7 @@ pub async fn get_by_id(req: Request<State>) -> highnoon::Result<Response> {
                 WHERE j.project_id = $1
             ) AS num_jobs,
             (
-                SELECT count(1)
+                SELECT count(DISTINCT t.id)
                 FROM job j
                 JOIN task t ON t.job_id = j.id
                 JOIN task_run tr ON tr.task_id = t.id
@@ -156,7 +156,7 @@ pub async fn get_by_id(req: Request<State>) -> highnoon::Result<Response> {
                 AND tr.state = 'running'
             ) AS active_tasks,
             (
-                SELECT count(1)
+                SELECT count(DISTINCT t.id)
                 FROM job j
                 JOIN task t ON t.job_id = j.id
                 JOIN task_run tr ON tr.task_id = t.id
@@ -165,7 +165,7 @@ pub async fn get_by_id(req: Request<State>) -> highnoon::Result<Response> {
                 AND CURRENT_TIMESTAMP - finish_datetime < INTERVAL '1 hour'
             ) AS failed_tasks_last_hour,
             (
-                SELECT count(1)
+                SELECT count(DISTINCT t.id)
                 FROM job j
                 JOIN task t ON t.job_id = j.id
                 JOIN task_run tr ON tr.task_id = t.id
