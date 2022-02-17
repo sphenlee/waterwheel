@@ -57,9 +57,9 @@ class Home extends Component {
           <Body>
             <Row gutter={[16, 32]}>
                 <Col span={6}>
-                    <Statistic title="Queued Triggers"
+                    <Statistic title="Projects"
                         valueStyle={{color: geekblue[5]}}
-                        value={status.queued_triggers} />
+                        value={status.num_projects} />
                 </Col>
                 <Col span={6}>
                     <Statistic title="Workers"
