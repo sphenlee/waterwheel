@@ -17,12 +17,15 @@ use tracing::{debug, error, info};
 use super::{RUNNING_TASKS, TOTAL_TASKS, WORKER_ID};
 use cadence::{CountedExt, Gauged};
 use chrono::{DateTime, Utc};
+use std::time::Duration;
 
 // TODO - queues should be configurable for task routing
 const TASK_QUEUE: &str = "waterwheel.tasks";
 
 const RESULT_EXCHANGE: &str = "waterwheel.results";
 const RESULT_QUEUE: &str = "waterwheel.results";
+
+const DEFAULT_TASK_TIMEOUT: Duration = Duration::from_secs(29 * 60); // 29 minutes
 
 async fn setup() -> Result<Consumer> {
     let chan = get_amqp_channel().await?;
@@ -110,7 +113,7 @@ pub async fn process_work() -> Result<!> {
             .with_tag("worker_id", &WORKER_ID.to_string())
             .send();
 
-        debug!(task_run_id=?task_req.task_run_id,
+        info!(task_run_id=?task_req.task_run_id,
             task_id=?task_req.task_id,
             trigger_datetime=?task_req.trigger_datetime.to_rfc3339(),
             started_datetime=?started_datetime.to_rfc3339(),
@@ -129,14 +132,21 @@ pub async fn process_work() -> Result<!> {
 
             let res = engine.run_task(task_req.clone(), task_def);
 
-            match res.await {
-                Ok(true) => TokenState::Success,
-                Ok(false) => TokenState::Failure,
-                Err(err) => {
+            match tokio::time::timeout(DEFAULT_TASK_TIMEOUT, res).await {
+                Ok(Ok(true)) => TokenState::Success,
+                Ok(Ok(false)) => TokenState::Failure,
+                Ok(Err(err)) => {
                     error!(task_run_id=?task_req.task_run_id,
                         task_id=?task_req.task_id,
                         trigger_datetime=?task_req.trigger_datetime.to_rfc3339(),
                         "failed to run task: {:#}", err);
+                    TokenState::Error
+                }
+                Err(_) => {
+                    error!(task_run_id=?task_req.task_run_id,
+                        task_id=?task_req.task_id,
+                        trigger_datetime=?task_req.trigger_datetime.to_rfc3339(),
+                        "timeout running task");
                     TokenState::Error
                 }
             }

@@ -10,6 +10,11 @@ use kube::api::{Api, DeleteParams, PostParams};
 use kube::{Client, Config, ResourceExt};
 use std::convert::TryFrom;
 use tracing::{trace, warn};
+use rand::seq::SliceRandom;
+use itertools::Itertools;
+use std::time::Duration;
+
+const DELETE_POD_TIMEOUT: Duration = Duration::from_secs(5 * 60);
 
 pub struct KubeEngine;
 
@@ -30,14 +35,20 @@ pub async fn run_kube(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> 
     let pods: Api<Pod> = Api::default_namespaced(client);
 
     let pod = make_pod(task_req, task_def).await?;
+    let name = pod.name();
 
     // Create the pod
+    trace!(pod_name=%name, "creating pod");
     let pod = pods.create(&PostParams::default(), &pod).await?;
-    let name = pod.name();
+    trace!(pod_name=%name, "created pod");
+
 
     let mut watcher = kube_runtime::watcher::watch_object(pods.clone(), &name).boxed();
 
     let mut result = false;
+
+    trace!(pod_name=%name, "watching pod");
+
     while let Some(maybe_pod) = watcher.try_next().await? {
         match maybe_pod {
             None => {
@@ -79,14 +90,36 @@ pub async fn run_kube(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> 
     // }
 
     trace!(pod_name=%name, "deleting pod");
-    let _ = pods.delete(&name, &DeleteParams::default()).await?;
+
+    match tokio::time::timeout(DELETE_POD_TIMEOUT, pods.delete(&name, &DeleteParams::default())).await {
+        Ok(inner) => {
+            inner?;
+        }
+        Err(_) => {
+            warn!(pod_name=%name, "timeout while deleting pod");
+        }
+    }
+    trace!(pod_name=%name, "deleted pod");
+
 
     Ok(result)
 }
 
+
+// TODO - make this a util, we should use this grist in a few other places too
+fn make_grist() -> String {
+    let mut rng = rand::thread_rng();
+    std::iter::from_fn(move || {
+        let byte = b"GHJKLMNPQRSTUVWXYZ".choose(&mut rng).expect("slice is not empty");
+        Some(char::from(*byte))
+    }).take(5).join("")
+}
+
 async fn make_pod(task_req: TaskRequest, task_def: TaskDef) -> Result<Pod> {
     let env = env::get_env(&task_req, &task_def)?;
-    let name = task_req.task_run_id.to_string();
+
+    let grist = make_grist();
+    let name = format!("{}--{}", task_req.task_run_id, grist);
 
     // Create a pod from JSON
     let mut pod_json = serde_json::json!({
@@ -97,6 +130,7 @@ async fn make_pod(task_req: TaskRequest, task_def: TaskDef) -> Result<Pod> {
             "labels": {
                 "worker_id": *WORKER_ID,
                 "task_id": task_req.task_id,
+                "task_run_id": task_req.task_run_id,
                 "job_id": task_def.job_id,
                 "project_id": task_def.project_id,
             },
@@ -104,7 +138,7 @@ async fn make_pod(task_req: TaskRequest, task_def: TaskDef) -> Result<Pod> {
         "spec": {
             "containers": [
                 {
-                    "name": name,
+                    "name": "task",
                     "image": task_def.image.unwrap(),
                     "args": task_def.args,
                     "env": env,
