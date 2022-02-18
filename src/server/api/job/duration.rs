@@ -58,6 +58,7 @@ pub async fn get_duration(req: Request<State>) -> highnoon::Result<impl Responde
         LEFT OUTER JOIN task_run r
             ON x.trigger_datetime = r.trigger_datetime
             AND t.id = r.task_id
+        WHERE r.state IN ('success', 'failure')
         GROUP BY t.name, x.trigger_datetime
         ORDER BY t.name, x.trigger_datetime
         ",
