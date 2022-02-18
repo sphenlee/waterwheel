@@ -72,6 +72,12 @@ pub async fn activate_multiple_tokens(mut req: Request<State>) -> highnoon::Resu
     let task_id = req.param("id")?.parse::<Uuid>()?;
     let params: ActivateMultipleTokensParams = req.body_json().await?;
 
+    if params.first.is_none() && params.last.is_none() && params.only_failed.is_none() {
+        return (StatusCode::BAD_REQUEST,
+                "one or more of 'first','last' and 'only_failed' must be specified")
+            .into_response();
+    }
+
     // TODO auth check
 
     let pool = req.get_pool();
@@ -115,7 +121,7 @@ pub async fn activate_multiple_tokens(mut req: Request<State>) -> highnoon::Resu
 
     txn.commit().await?;
 
-    Ok(Json(ActivateTokenReply { cleared: count }))
+    Json(ActivateTokenReply { cleared: count }).into_response()
 }
 
 pub async fn get_task_def(req: Request<State>) -> highnoon::Result<Response> {
