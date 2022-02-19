@@ -1,11 +1,13 @@
-use crate::messages::SchedulerUpdate;
-use crate::server::tokens::ProcessToken;
-use crate::server::triggers::TriggerUpdate;
-use crate::server::Server;
+use crate::{
+    messages::SchedulerUpdate,
+    server::{tokens::ProcessToken, triggers::TriggerUpdate, Server},
+};
 use anyhow::Result;
 use futures::TryStreamExt;
-use lapin::options::{BasicAckOptions, BasicConsumeOptions, QueueDeclareOptions};
-use lapin::types::FieldTable;
+use lapin::{
+    options::{BasicAckOptions, BasicConsumeOptions, QueueDeclareOptions},
+    types::FieldTable,
+};
 use postage::prelude::*;
 use std::sync::Arc;
 use tracing::trace;

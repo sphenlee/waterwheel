@@ -1,14 +1,13 @@
-use crate::messages::{TaskPriority, Token};
-use crate::server::execute::ExecuteToken;
-use crate::server::Server;
+use crate::{
+    messages::{TaskPriority, Token},
+    server::{execute::ExecuteToken, Server},
+};
 use anyhow::Result;
 use futures::TryStreamExt;
 use postage::prelude::*;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Postgres, Transaction};
-use std::collections::HashMap;
-use std::fmt;
-use std::sync::Arc;
+use std::{collections::HashMap, fmt, sync::Arc};
 use tracing::{info, trace};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

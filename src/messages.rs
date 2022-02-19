@@ -1,5 +1,4 @@
-use crate::server::tokens::ProcessToken;
-use crate::server::triggers::TriggerUpdate;
+use crate::server::{tokens::ProcessToken, triggers::TriggerUpdate};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;

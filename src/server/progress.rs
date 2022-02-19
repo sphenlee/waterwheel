@@ -1,11 +1,17 @@
-use crate::messages::{TaskProgress, Token};
-use crate::server::tokens::{increment_token, ProcessToken};
-use crate::server::Server;
+use crate::{
+    messages::{TaskProgress, Token},
+    server::{
+        tokens::{increment_token, ProcessToken},
+        Server,
+    },
+};
 use anyhow::Result;
 use chrono::Duration;
 use futures::TryStreamExt;
-use lapin::options::{BasicAckOptions, BasicConsumeOptions, BasicQosOptions, QueueDeclareOptions};
-use lapin::types::FieldTable;
+use lapin::{
+    options::{BasicAckOptions, BasicConsumeOptions, BasicQosOptions, QueueDeclareOptions},
+    types::FieldTable,
+};
 use postage::prelude::*;
 use sqlx::{Connection, PgPool, Postgres, Transaction};
 use std::sync::Arc;

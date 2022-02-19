@@ -1,8 +1,7 @@
 #![feature(never_type)]
 #![feature(assert_matches)]
 
-use crate::server::Server;
-use crate::worker::Worker;
+use crate::{server::Server, worker::Worker};
 use anyhow::Result;
 
 mod amqp;

@@ -1,10 +1,9 @@
-use super::auth;
-use super::config_cache;
-use super::request_ext::RequestExt;
-use super::State;
-use crate::messages::ConfigUpdate;
-use crate::server::jwt;
-use crate::util::{is_pg_integrity_error, pg_error};
+use super::{auth, config_cache, request_ext::RequestExt, State};
+use crate::{
+    messages::ConfigUpdate,
+    server::jwt,
+    util::{is_pg_integrity_error, pg_error},
+};
 use highnoon::{Json, Request, Responder, Response, StatusCode};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;

@@ -1,22 +1,22 @@
-use crate::messages::{TaskProgress, TaskRequest, TokenState};
-use crate::worker::{config_cache, Worker};
-use anyhow::Result;
-use std::sync::Arc;
-
-use futures::TryStreamExt;
-use lapin::options::{
-    BasicAckOptions, BasicConsumeOptions, BasicPublishOptions, BasicQosOptions,
-    ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
-};
-use lapin::types::FieldTable;
-use lapin::{BasicProperties, Consumer, ExchangeKind};
-use tracing::{debug, error, info};
-
 use super::{RUNNING_TASKS, TOTAL_TASKS, WORKER_ID};
+use crate::{
+    messages::{TaskProgress, TaskRequest, TokenState},
+    worker::{config_cache, Worker},
+};
+use anyhow::Result;
 use cadence::{CountedExt, Gauged};
 use chrono::{DateTime, Utc};
-use lapin::Connection;
-use std::time::Duration;
+use futures::TryStreamExt;
+use lapin::{
+    options::{
+        BasicAckOptions, BasicConsumeOptions, BasicPublishOptions, BasicQosOptions,
+        ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
+    },
+    types::FieldTable,
+    BasicProperties, Connection, Consumer, ExchangeKind,
+};
+use std::{sync::Arc, time::Duration};
+use tracing::{debug, error, info};
 
 // TODO - queues should be configurable for task routing
 const TASK_QUEUE: &str = "waterwheel.tasks";

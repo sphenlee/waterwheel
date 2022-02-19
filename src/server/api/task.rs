@@ -1,8 +1,11 @@
-use crate::messages::{SchedulerUpdate, TaskDef, TaskPriority, Token};
-use crate::server::api::request_ext::RequestExt;
-use crate::server::api::{auth, updates, State};
-use crate::server::jwt;
-use crate::server::tokens::ProcessToken;
+use crate::{
+    messages::{SchedulerUpdate, TaskDef, TaskPriority, Token},
+    server::{
+        api::{auth, request_ext::RequestExt, updates, State},
+        jwt,
+        tokens::ProcessToken,
+    },
+};
 use chrono::{DateTime, Utc};
 use futures::TryStreamExt;
 use highnoon::{Json, Request, Responder, Response, StatusCode};

@@ -5,8 +5,10 @@ use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, TokenData, Valid
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 use sqlx::types::Uuid;
-use std::fs;
-use std::time::{Duration, SystemTime};
+use std::{
+    fs,
+    time::{Duration, SystemTime},
+};
 use tracing::debug;
 
 const WATERWHEEL_ISSUER: &str = "waterwheel";

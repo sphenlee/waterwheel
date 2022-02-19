@@ -6,13 +6,15 @@ use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
-use crate::amqp::amqp_connect;
-use crate::config;
-use crate::config::Config;
-use crate::counter::Counter;
-use crate::server::jwt;
-use crate::util::{spawn_or_crash, spawn_retry};
-use crate::{logging, metrics};
+use crate::{
+    amqp::amqp_connect,
+    config,
+    config::Config,
+    counter::Counter,
+    logging, metrics,
+    server::jwt,
+    util::{spawn_or_crash, spawn_retry},
+};
 
 mod config_cache;
 mod docker;

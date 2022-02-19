@@ -3,14 +3,18 @@ use anyhow::Result;
 use chrono::SecondsFormat;
 use colored::Colorize;
 use std::fmt::{Debug, Result as FmtResult, Write};
-use tracing::field::{Field, Visit};
-use tracing::{Event, Level, Subscriber};
+use tracing::{
+    field::{Field, Visit},
+    Event, Level, Subscriber,
+};
 use tracing_log::NormalizeEvent;
-use tracing_subscriber::field::RecordFields;
-use tracing_subscriber::fmt::{FmtContext, FormatEvent, FormatFields};
-use tracing_subscriber::prelude::*;
-use tracing_subscriber::registry::LookupSpan;
-use tracing_subscriber::{fmt, EnvFilter};
+use tracing_subscriber::{
+    field::RecordFields,
+    fmt::{self, FmtContext, FormatEvent, FormatFields},
+    prelude::*,
+    registry::LookupSpan,
+    EnvFilter,
+};
 
 fn level_color(level: Level, msg: String) -> impl std::fmt::Display {
     match level {

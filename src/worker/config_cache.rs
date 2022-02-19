@@ -1,15 +1,19 @@
-use crate::config::Config;
-use crate::messages::{ConfigUpdate, TaskDef};
-use crate::server::jwt;
-use crate::Worker;
+use crate::{
+    config::Config,
+    messages::{ConfigUpdate, TaskDef},
+    server::jwt,
+    worker::Worker,
+};
 use anyhow::Result;
 use futures::TryStreamExt;
-use lapin::options::{
-    BasicAckOptions, BasicConsumeOptions, ExchangeDeclareOptions, QueueBindOptions,
-    QueueDeclareOptions,
+use lapin::{
+    options::{
+        BasicAckOptions, BasicConsumeOptions, ExchangeDeclareOptions, QueueBindOptions,
+        QueueDeclareOptions,
+    },
+    types::FieldTable,
+    ExchangeKind,
 };
-use lapin::types::FieldTable;
-use lapin::ExchangeKind;
 use lru_time_cache::LruCache;
 use once_cell::sync::Lazy;
 use serde_json::Value as JsonValue;

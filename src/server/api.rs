@@ -1,5 +1,4 @@
-use crate::config::Config;
-use crate::server::Server;
+use crate::{config::Config, server::Server};
 use anyhow::Result;
 use cadence::StatsdClient;
 use lapin::Channel;

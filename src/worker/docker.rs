@@ -1,13 +1,15 @@
-use crate::messages::{TaskDef, TaskRequest};
-use crate::worker::engine::TaskEngineImpl;
-use crate::worker::env;
-use crate::Worker;
-use anyhow::Result;
-use bollard::container::{
-    Config, CreateContainerOptions, RemoveContainerOptions, StartContainerOptions,
-    WaitContainerOptions,
+use crate::{
+    messages::{TaskDef, TaskRequest},
+    worker::{engine::TaskEngineImpl, env, Worker},
 };
-use bollard::image::{CreateImageOptions, ListImagesOptions};
+use anyhow::Result;
+use bollard::{
+    container::{
+        Config, CreateContainerOptions, RemoveContainerOptions, StartContainerOptions,
+        WaitContainerOptions,
+    },
+    image::{CreateImageOptions, ListImagesOptions},
+};
 use futures::TryStreamExt;
 use std::collections::HashMap;
 use tracing::trace;

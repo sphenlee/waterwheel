@@ -1,10 +1,8 @@
-use crate::messages::{TaskDef, TaskRequest};
+use crate::{
+    messages::{TaskDef, TaskRequest},
+    worker::{docker::DockerEngine, kube::KubeEngine, kubejob::KubeJobEngine, Worker},
+};
 use anyhow::Result;
-
-use crate::worker::docker::DockerEngine;
-use crate::worker::kube::KubeEngine;
-use crate::worker::kubejob::KubeJobEngine;
-use crate::Worker;
 use std::str::FromStr;
 
 #[derive(Copy, Clone, serde::Deserialize)]
@@ -62,9 +60,11 @@ pub trait TaskEngineImpl {
 
 #[cfg(debug_assertions)]
 mod null {
-    use crate::messages::{TaskDef, TaskRequest};
-    use crate::worker::engine::TaskEngineImpl;
-    use crate::Worker;
+    use crate::{
+        messages::{TaskDef, TaskRequest},
+        worker::engine::TaskEngineImpl,
+        Worker,
+    };
 
     pub struct NullEngine;
 

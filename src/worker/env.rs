@@ -1,6 +1,8 @@
-use crate::config::Config;
-use crate::messages::{TaskDef, TaskRequest};
-use crate::server::jwt;
+use crate::{
+    config::Config,
+    messages::{TaskDef, TaskRequest},
+    server::jwt,
+};
 use anyhow::Result;
 use itertools::Itertools;
 use k8s_openapi::api::core::v1::EnvVar;

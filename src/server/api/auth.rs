@@ -1,13 +1,13 @@
-use crate::config::Config;
-use crate::server::api::job::get_job_project_id;
-use crate::server::api::request_ext::RequestExt;
-use crate::server::api::State;
+use crate::{
+    config::Config,
+    server::api::{job::get_job_project_id, request_ext::RequestExt, State},
+};
 use anyhow::Result;
-use highnoon::headers::authorization::Bearer;
-use highnoon::headers::Authorization;
-use highnoon::StatusCode;
-use serde::Deserialize;
-use serde::Serialize;
+use highnoon::{
+    headers::{authorization::Bearer, Authorization},
+    StatusCode,
+};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::{debug, error, warn};
 use uuid::Uuid;

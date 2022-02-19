@@ -1,8 +1,7 @@
-use crate::amqp::amqp_connect;
-use crate::config::Config;
-use crate::postoffice::PostOffice;
-use crate::util::spawn_or_crash;
-use crate::{config, db, logging, metrics};
+use crate::{
+    amqp::amqp_connect, config, config::Config, db, logging, metrics, postoffice::PostOffice,
+    util::spawn_or_crash,
+};
 use anyhow::Result;
 use cadence::StatsdClient;
 use lapin::Connection;

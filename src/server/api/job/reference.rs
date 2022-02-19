@@ -2,8 +2,10 @@ use crate::server::api::types::Job;
 use chrono::Duration;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use std::fmt::{self, Display};
-use std::str::FromStr;
+use std::{
+    fmt::{self, Display},
+    str::FromStr,
+};
 
 #[derive(Debug, PartialEq)]
 pub enum ReferenceKind {

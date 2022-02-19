@@ -1,13 +1,15 @@
-use crate::messages::{TaskPriority, TaskRequest, Token};
-use crate::server::Server;
+use crate::{
+    messages::{TaskPriority, TaskRequest, Token},
+    server::Server,
+};
 use anyhow::Result;
 use cadence::CountedExt;
 use chrono::Utc;
-use lapin::options::{
-    BasicPublishOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
+use lapin::{
+    options::{BasicPublishOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions},
+    types::FieldTable,
+    BasicProperties, ExchangeKind,
 };
-use lapin::types::FieldTable;
-use lapin::{BasicProperties, ExchangeKind};
 use postage::prelude::*;
 use sqlx::Connection;
 use std::sync::Arc;

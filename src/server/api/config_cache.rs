@@ -1,8 +1,10 @@
 use crate::messages::ConfigUpdate;
 use anyhow::Result;
-use lapin::options::{BasicPublishOptions, ExchangeDeclareOptions};
-use lapin::types::FieldTable;
-use lapin::{BasicProperties, Channel, ExchangeKind};
+use lapin::{
+    options::{BasicPublishOptions, ExchangeDeclareOptions},
+    types::FieldTable,
+    BasicProperties, Channel, ExchangeKind,
+};
 
 const CONFIG_EXCHANGE: &str = "waterwheel.config";
 

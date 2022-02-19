@@ -1,18 +1,17 @@
-use crate::messages::{TaskDef, TaskRequest};
-use crate::worker::config_cache::get_project_config;
-use crate::worker::engine::TaskEngineImpl;
-use crate::worker::env;
-use crate::worker::WORKER_ID;
-use crate::Worker;
+use crate::{
+    messages::{TaskDef, TaskRequest},
+    worker::{config_cache::get_project_config, engine::TaskEngineImpl, env, Worker, WORKER_ID},
+};
 use anyhow::Result;
 use futures::{StreamExt, TryStreamExt};
 use itertools::Itertools;
 use k8s_openapi::api::core::v1::Pod;
-use kube::api::{Api, DeleteParams, PostParams};
-use kube::{Client, Config, ResourceExt};
+use kube::{
+    api::{Api, DeleteParams, PostParams},
+    Client, Config, ResourceExt,
+};
 use rand::seq::SliceRandom;
-use std::convert::TryFrom;
-use std::time::Duration;
+use std::{convert::TryFrom, time::Duration};
 use tracing::{trace, warn};
 
 const DELETE_POD_TIMEOUT: Duration = Duration::from_secs(5 * 60);

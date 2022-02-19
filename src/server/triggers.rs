@@ -1,26 +1,27 @@
-use crate::messages::{TaskPriority, Token};
-use crate::server::api::types::Catchup;
-use crate::server::tokens::{increment_token, ProcessToken};
-use crate::server::trigger_time::TriggerTime;
-use crate::server::Server;
-use crate::util::format_duration_approx;
+use crate::{
+    messages::{TaskPriority, Token},
+    server::{
+        api::types::Catchup,
+        tokens::{increment_token, ProcessToken},
+        trigger_time::TriggerTime,
+        Server,
+    },
+    util::format_duration_approx,
+};
 use anyhow::Result;
 use binary_heap_plus::{BinaryHeap, MinComparator};
 use cadence::Gauged;
 use chrono::{DateTime, Duration, Utc};
 use cron::Schedule;
 use futures::TryStreamExt;
-use postage::prelude::*;
-use postage::stream::TryRecvError;
-use rand::seq::SliceRandom;
-use rand::thread_rng;
+use postage::{prelude::*, stream::TryRecvError};
+use rand::{seq::SliceRandom, thread_rng};
 use serde::{Deserialize, Serialize};
-use sqlx::types::Uuid;
 use sqlx::{Connection, PgPool, Postgres, Transaction};
-use std::str::FromStr;
-use std::sync::Arc;
+use std::{str::FromStr, sync::Arc};
 use tokio::time;
 use tracing::{debug, info, trace, warn};
+use uuid::Uuid;
 
 type Queue = BinaryHeap<TriggerTime, MinComparator>;
 

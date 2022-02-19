@@ -1,7 +1,9 @@
 use super::State;
 use crate::server::jwt;
-use highnoon::headers::{authorization::Bearer, Authorization};
-use highnoon::{Error, Request, Responder, StatusCode};
+use highnoon::{
+    headers::{authorization::Bearer, Authorization},
+    Error, Request, Responder, StatusCode,
+};
 
 pub mod global;
 pub mod job;
