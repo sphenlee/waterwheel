@@ -1,7 +1,5 @@
-use crate::config;
 use anyhow::Result;
 use cadence::{BufferedUdpMetricSink, NopMetricSink, QueuingMetricSink, StatsdClient};
-use once_cell::sync::Lazy;
 use std::net::UdpSocket;
 use tracing::warn;
 use crate::config::Config;

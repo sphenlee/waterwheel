@@ -1,4 +1,3 @@
-use crate::config;
 use anyhow::{anyhow, Result};
 use highnoon::{Error, Request, State, StatusCode};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation};

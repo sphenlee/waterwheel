@@ -1,7 +1,4 @@
 use anyhow::Result;
-use clap::ArgSettings::Multiple;
-use k8s_openapi::api::admissionregistration::v1::MutatingWebhook;
-use once_cell::sync::OnceCell;
 use postage::dispatch::{Receiver, Sender};
 use tokio::sync::Mutex;
 use typemap::SendMap;

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use crate::messages::WorkerHeartbeat;
-use crate::{config, GIT_VERSION, Worker};
+use crate::{GIT_VERSION, Worker};
 use anyhow::Result;
 
 use chrono::Utc;

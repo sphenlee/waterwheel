@@ -1,4 +1,3 @@
-use crate::config;
 use crate::messages::{TaskDef, TaskRequest};
 use crate::server::jwt;
 use anyhow::Result;

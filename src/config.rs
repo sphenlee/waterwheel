@@ -1,7 +1,6 @@
 use crate::worker::engine::TaskEngine;
 use anyhow::{Context, Result};
 use config as config_loader;
-use once_cell::sync::OnceCell;
 use reqwest::Url;
 
 #[derive(serde::Deserialize, Clone)]

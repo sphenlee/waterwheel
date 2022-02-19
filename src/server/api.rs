@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use crate::config;
 use anyhow::Result;
 use cadence::StatsdClient;
 use lapin::Channel;

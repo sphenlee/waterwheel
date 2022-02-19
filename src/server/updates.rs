@@ -2,7 +2,6 @@ use std::sync::Arc;
 use crate::messages::SchedulerUpdate;
 use crate::server::tokens::ProcessToken;
 use crate::server::triggers::TriggerUpdate;
-use crate::{amqp, postoffice};
 use anyhow::Result;
 use futures::TryStreamExt;
 use lapin::options::{BasicAckOptions, BasicConsumeOptions, QueueDeclareOptions};

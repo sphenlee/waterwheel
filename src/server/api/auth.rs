@@ -1,4 +1,3 @@
-use crate::config;
 use crate::server::api::job::get_job_project_id;
 use crate::server::api::request_ext::RequestExt;
 use crate::server::api::State;

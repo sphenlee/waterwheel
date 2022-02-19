@@ -40,7 +40,7 @@ pub async fn run_kube(worker: &Worker, task_req: TaskRequest, task_def: TaskDef)
 
     // Create the pod
     trace!(pod_name=%name, "creating pod");
-    let pod = pods.create(&PostParams::default(), &pod).await?;
+    let _pod = pods.create(&PostParams::default(), &pod).await?;
     trace!(pod_name=%name, "created pod");
 
 

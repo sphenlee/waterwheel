@@ -1,4 +1,3 @@
-use crate::config;
 use anyhow::Result;
 use chrono::SecondsFormat;
 use colored::Colorize;

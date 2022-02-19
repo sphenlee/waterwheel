@@ -1,7 +1,5 @@
 use std::sync::Arc;
-use crate::config;
 use crate::messages::{TaskProgress, TaskRequest, TokenState};
-use crate::metrics;
 use crate::worker::{config_cache, Worker};
 use anyhow::Result;
 

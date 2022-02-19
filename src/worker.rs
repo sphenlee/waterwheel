@@ -6,7 +6,7 @@ use once_cell::sync::Lazy;
 use tracing::info;
 use uuid::Uuid;
 
-use crate::{amqp, logging, metrics};
+use crate::{logging, metrics};
 use crate::amqp::amqp_connect;
 use crate::config;
 use crate::config::Config;

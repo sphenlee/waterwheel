@@ -1,9 +1,7 @@
-use crate::config;
 use anyhow::Result;
-use lapin::{Channel, Connection, ConnectionProperties};
-use once_cell::sync::OnceCell;
+use lapin::{Connection, ConnectionProperties};
 use tokio_amqp::LapinTokioExt;
-use tracing::{info, warn};
+use tracing::info;
 use crate::config::Config;
 
 pub async fn amqp_connect(config: &Config) -> Result<Connection> {

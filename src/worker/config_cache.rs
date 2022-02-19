@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use crate::{amqp, Worker};
+use crate::Worker;
 use crate::messages::{ConfigUpdate, TaskDef};
 use crate::server::jwt;
 use anyhow::Result;
