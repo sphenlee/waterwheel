@@ -1,7 +1,7 @@
-use std::sync::Arc;
 use crate::messages::{TaskProgress, TaskRequest, TokenState};
 use crate::worker::{config_cache, Worker};
 use anyhow::Result;
+use std::sync::Arc;
 
 use futures::TryStreamExt;
 use lapin::options::{
@@ -15,8 +15,8 @@ use tracing::{debug, error, info};
 use super::{RUNNING_TASKS, TOTAL_TASKS, WORKER_ID};
 use cadence::{CountedExt, Gauged};
 use chrono::{DateTime, Utc};
-use std::time::Duration;
 use lapin::Connection;
+use std::time::Duration;
 
 // TODO - queues should be configurable for task routing
 const TASK_QUEUE: &str = "waterwheel.tasks";

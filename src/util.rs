@@ -62,7 +62,7 @@ pub fn spawn_or_crash<F, C, Fut>(name: impl Into<String>, ctx: C, func: F)
 where
     F: Fn(C) -> Fut + Send + Sync + 'static,
     Fut: Future<Output = Result<!>> + Send + 'static,
-    C: Send + Sync + 'static
+    C: Send + Sync + 'static,
 {
     let name = name.into();
 

@@ -3,17 +3,17 @@ use crate::worker::config_cache::get_project_config;
 use crate::worker::engine::TaskEngineImpl;
 use crate::worker::env;
 use crate::worker::WORKER_ID;
+use crate::Worker;
 use anyhow::Result;
 use futures::{StreamExt, TryStreamExt};
+use itertools::Itertools;
 use k8s_openapi::api::core::v1::Pod;
 use kube::api::{Api, DeleteParams, PostParams};
 use kube::{Client, Config, ResourceExt};
-use std::convert::TryFrom;
-use tracing::{trace, warn};
 use rand::seq::SliceRandom;
-use itertools::Itertools;
+use std::convert::TryFrom;
 use std::time::Duration;
-use crate::Worker;
+use tracing::{trace, warn};
 
 const DELETE_POD_TIMEOUT: Duration = Duration::from_secs(5 * 60);
 
@@ -21,7 +21,12 @@ pub struct KubeEngine;
 
 #[async_trait::async_trait]
 impl TaskEngineImpl for KubeEngine {
-    async fn run_task(&self, worker: &Worker, task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
+    async fn run_task(
+        &self,
+        worker: &Worker,
+        task_req: TaskRequest,
+        task_def: TaskDef,
+    ) -> Result<bool> {
         run_kube(worker, task_req, task_def).await
     }
 }
@@ -42,7 +47,6 @@ pub async fn run_kube(worker: &Worker, task_req: TaskRequest, task_def: TaskDef)
     trace!(pod_name=%name, "creating pod");
     let _pod = pods.create(&PostParams::default(), &pod).await?;
     trace!(pod_name=%name, "created pod");
-
 
     let mut watcher = kube_runtime::watcher::watch_object(pods.clone(), &name).boxed();
 
@@ -92,7 +96,12 @@ pub async fn run_kube(worker: &Worker, task_req: TaskRequest, task_def: TaskDef)
 
     trace!(pod_name=%name, "deleting pod");
 
-    match tokio::time::timeout(DELETE_POD_TIMEOUT, pods.delete(&name, &DeleteParams::default())).await {
+    match tokio::time::timeout(
+        DELETE_POD_TIMEOUT,
+        pods.delete(&name, &DeleteParams::default()),
+    )
+    .await
+    {
         Ok(inner) => {
             inner?;
         }
@@ -102,21 +111,27 @@ pub async fn run_kube(worker: &Worker, task_req: TaskRequest, task_def: TaskDef)
     }
     trace!(pod_name=%name, "deleted pod");
 
-
     Ok(result)
 }
-
 
 // TODO - make this a util, we should use this grist in a few other places too
 fn make_grist() -> String {
     let mut rng = rand::thread_rng();
     std::iter::from_fn(move || {
-        let byte = b"GHJKLMNPQRSTUVWXYZ".choose(&mut rng).expect("slice is not empty");
+        let byte = b"GHJKLMNPQRSTUVWXYZ"
+            .choose(&mut rng)
+            .expect("slice is not empty");
         Some(char::from(*byte))
-    }).take(5).join("")
+    })
+    .take(5)
+    .join("")
 }
 
-async fn make_pod(config: &crate::config::Config, task_req: TaskRequest, task_def: TaskDef) -> Result<Pod> {
+async fn make_pod(
+    config: &crate::config::Config,
+    task_req: TaskRequest,
+    task_def: TaskDef,
+) -> Result<Pod> {
     let env = env::get_env(config, &task_req, &task_def)?;
 
     let grist = make_grist();

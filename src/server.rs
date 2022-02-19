@@ -1,14 +1,14 @@
-use std::sync::Arc;
-use crate::{config, db, logging, metrics};
+use crate::amqp::amqp_connect;
+use crate::config::Config;
+use crate::postoffice::PostOffice;
 use crate::util::spawn_or_crash;
+use crate::{config, db, logging, metrics};
 use anyhow::Result;
 use cadence::StatsdClient;
 use lapin::Connection;
 use sqlx::PgPool;
+use std::sync::Arc;
 use tracing::warn;
-use crate::amqp::amqp_connect;
-use crate::config::Config;
-use crate::postoffice::PostOffice;
 
 mod api;
 mod execute;
@@ -24,7 +24,7 @@ pub struct Server {
     pub amqp_conn: Connection,
     pub post_office: PostOffice,
     pub statsd: StatsdClient,
-    pub config: Config
+    pub config: Config,
 }
 
 impl Server {
@@ -41,7 +41,7 @@ impl Server {
             amqp_conn,
             post_office: PostOffice::open(),
             statsd,
-            config
+            config,
         })
     }
 

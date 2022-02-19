@@ -1,10 +1,10 @@
-use std::sync::Arc;
+use crate::config::Config;
+use crate::server::Server;
 use anyhow::Result;
 use cadence::StatsdClient;
 use lapin::Channel;
 use sqlx::PgPool;
-use crate::config::Config;
-use crate::server::Server;
+use std::sync::Arc;
 
 pub mod auth;
 mod config_cache;
@@ -24,7 +24,7 @@ pub struct State {
     db_pool: PgPool,
     amqp_channel: Channel,
     statsd: StatsdClient,
-    config: Config
+    config: Config,
 }
 
 impl highnoon::State for State {
@@ -52,7 +52,7 @@ pub async fn serve(server: Arc<Server>) -> Result<()> {
         db_pool: server.db_pool.clone(),
         amqp_channel: server.amqp_conn.create_channel().await?,
         statsd: server.statsd.clone(),
-        config: server.config.clone() // TODO - can we avoid this clone?
+        config: server.config.clone(), // TODO - can we avoid this clone?
     };
 
     updates::setup(&state.amqp_channel).await?;

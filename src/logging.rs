@@ -1,3 +1,4 @@
+use crate::config::Config;
 use anyhow::Result;
 use chrono::SecondsFormat;
 use colored::Colorize;
@@ -10,7 +11,6 @@ use tracing_subscriber::fmt::{FmtContext, FormatEvent, FormatFields};
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::{fmt, EnvFilter};
-use crate::config::Config;
 
 fn level_color(level: Level, msg: String) -> impl std::fmt::Display {
     match level {

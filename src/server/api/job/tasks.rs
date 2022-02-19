@@ -1,7 +1,9 @@
+use crate::server::api::job::reference::{
+    parse_reference, resolve_reference, Reference, ReferenceKind,
+};
 use crate::server::api::request_ext::RequestExt;
 use crate::server::api::types::{Job, Task};
 use crate::server::api::{auth, State};
-use crate::server::api::job::reference::{parse_reference, Reference, ReferenceKind, resolve_reference};
 use crate::util::{is_pg_integrity_error, pg_error};
 use highnoon::{Json, Request, Responder};
 use serde::Serialize;

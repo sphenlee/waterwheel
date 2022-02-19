@@ -1,18 +1,18 @@
-use std::sync::Arc;
 use anyhow::Result;
 use cadence::StatsdClient;
 use lapin::Connection;
 use once_cell::sync::Lazy;
+use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
-use crate::{logging, metrics};
 use crate::amqp::amqp_connect;
 use crate::config;
 use crate::config::Config;
 use crate::counter::Counter;
 use crate::server::jwt;
 use crate::util::{spawn_or_crash, spawn_retry};
+use crate::{logging, metrics};
 
 mod config_cache;
 mod docker;
@@ -33,7 +33,7 @@ pub struct Worker {
     pub amqp_conn: Connection,
     //pub post_office: PostOffice,
     pub statsd: StatsdClient,
-    pub config: Config
+    pub config: Config,
 }
 
 impl Worker {
@@ -47,7 +47,7 @@ impl Worker {
         Ok(Worker {
             amqp_conn,
             statsd,
-            config
+            config,
         })
     }
 
@@ -62,7 +62,11 @@ impl Worker {
             spawn_retry(&format!("worker-{}", i), this.clone(), work::process_work);
         }
 
-        spawn_or_crash("config_updates", this.clone(), config_cache::process_updates);
+        spawn_or_crash(
+            "config_updates",
+            this.clone(),
+            config_cache::process_updates,
+        );
         spawn_or_crash("heartbeat", this.clone(), heartbeat::heartbeat);
 
         info!("worker id {}", *WORKER_ID);
@@ -71,7 +75,6 @@ impl Worker {
 
         unreachable!("worker stopped working");
     }
-
 
     async fn serve(self: Arc<Self>) -> Result<()> {
         let mut app = highnoon::App::new(());

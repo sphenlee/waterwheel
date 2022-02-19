@@ -1,14 +1,14 @@
-use std::sync::Arc;
 use crate::messages::SchedulerUpdate;
 use crate::server::tokens::ProcessToken;
 use crate::server::triggers::TriggerUpdate;
+use crate::server::Server;
 use anyhow::Result;
 use futures::TryStreamExt;
 use lapin::options::{BasicAckOptions, BasicConsumeOptions, QueueDeclareOptions};
 use lapin::types::FieldTable;
 use postage::prelude::*;
+use std::sync::Arc;
 use tracing::trace;
-use crate::server::Server;
 
 const UPDATE_QUEUE: &str = "waterwheel.updates";
 

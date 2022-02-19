@@ -2,6 +2,7 @@ use crate::messages::{TaskPriority, Token};
 use crate::server::api::types::Catchup;
 use crate::server::tokens::{increment_token, ProcessToken};
 use crate::server::trigger_time::TriggerTime;
+use crate::server::Server;
 use crate::util::format_duration_approx;
 use anyhow::Result;
 use binary_heap_plus::{BinaryHeap, MinComparator};
@@ -20,7 +21,6 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tokio::time;
 use tracing::{debug, info, trace, warn};
-use crate::server::Server;
 
 type Queue = BinaryHeap<TriggerTime, MinComparator>;
 
@@ -87,7 +87,7 @@ pub async fn process_triggers(server: Arc<Server>) -> Result<!> {
             match trigger_rx.try_recv() {
                 Ok(TriggerUpdate(uuid)) => {
                     // TODO - batch the updates to avoid multiple heap recreations
-                    update_trigger(&server,&uuid, &mut queue).await?;
+                    update_trigger(&server, &uuid, &mut queue).await?;
                 }
                 Err(TryRecvError::Pending) => break,
                 Err(TryRecvError::Closed) => panic!("TriggerUpdated channel was closed!"),
@@ -160,7 +160,11 @@ pub async fn process_triggers(server: Arc<Server>) -> Result<!> {
     }
 }
 
-async fn activate_trigger(server: &Server, trigger_time: TriggerTime, priority: TaskPriority) -> Result<()> {
+async fn activate_trigger(
+    server: &Server,
+    trigger_time: TriggerTime,
+    priority: TaskPriority,
+) -> Result<()> {
     let pool = server.db_pool.clone();
 
     let mut conn = pool.acquire().await?;
@@ -204,10 +208,15 @@ async fn do_activate_trigger(
 
     let mut tokens_to_tx = Vec::new();
 
-    while let Some(TriggerEdge {task_id, edge_offset}) = cursor.try_next().await? {
+    while let Some(TriggerEdge {
+        task_id,
+        edge_offset,
+    }) = cursor.try_next().await?
+    {
         let token = Token {
             task_id,
-            trigger_datetime: trigger_time.trigger_datetime + Duration::seconds(edge_offset.unwrap_or(0)),
+            trigger_datetime: trigger_time.trigger_datetime
+                + Duration::seconds(edge_offset.unwrap_or(0)),
         };
 
         increment_token(txn, &token).await?;
@@ -230,7 +239,11 @@ async fn do_activate_trigger(
     Ok(tokens_to_tx)
 }
 
-async fn catchup_trigger(server: &Server, trigger: &Trigger, queue: &mut Queue) -> anyhow::Result<()> {
+async fn catchup_trigger(
+    server: &Server,
+    trigger: &Trigger,
+    queue: &mut Queue,
+) -> anyhow::Result<()> {
     debug!(trigger_id=?trigger.id, "checking trigger for any catchup");
 
     let pool = server.db_pool.clone();
@@ -310,7 +323,11 @@ async fn catchup_trigger(server: &Server, trigger: &Trigger, queue: &mut Queue) 
     Ok(())
 }
 
-async fn send_to_token_processor(server: &Server, tokens_to_tx: Vec<Token>, priority: TaskPriority) -> Result<()> {
+async fn send_to_token_processor(
+    server: &Server,
+    tokens_to_tx: Vec<Token>,
+    priority: TaskPriority,
+) -> Result<()> {
     let mut token_tx = server.post_office.post_mail::<ProcessToken>().await?;
 
     for token in tokens_to_tx {
@@ -403,7 +420,11 @@ async fn restore_triggers(server: &Server, queue: &mut Queue) -> Result<()> {
     Ok(())
 }
 
-async fn requeue_next_triggertime(server: &Server, next_triggertime: &TriggerTime, queue: &mut Queue) -> Result<()> {
+async fn requeue_next_triggertime(
+    server: &Server,
+    next_triggertime: &TriggerTime,
+    queue: &mut Queue,
+) -> Result<()> {
     // get the trigger's info from the DB
     let trigger: Trigger = sqlx::query_as(
         "SELECT

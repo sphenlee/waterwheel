@@ -3,6 +3,7 @@ use crate::worker::config_cache::get_project_config;
 use crate::worker::engine::TaskEngineImpl;
 use crate::worker::env;
 use crate::worker::WORKER_ID;
+use crate::Worker;
 use anyhow::Result;
 use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::batch::v1::Job;
@@ -10,18 +11,26 @@ use kube::api::{Api, PostParams};
 use kube::{Client, Config, ResourceExt};
 use std::convert::TryFrom;
 use tracing::{trace, warn};
-use crate::Worker;
 
 pub struct KubeJobEngine;
 
 #[async_trait::async_trait]
 impl TaskEngineImpl for KubeJobEngine {
-    async fn run_task(&self, worker: &Worker, task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
+    async fn run_task(
+        &self,
+        worker: &Worker,
+        task_req: TaskRequest,
+        task_def: TaskDef,
+    ) -> Result<bool> {
         run_kubejob(worker, task_req, task_def).await
     }
 }
 
-pub async fn run_kubejob(worker: &Worker, task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
+pub async fn run_kubejob(
+    worker: &Worker,
+    task_req: TaskRequest,
+    task_def: TaskDef,
+) -> Result<bool> {
     trace!("loading kubernetes config");
     let kube_config = Config::infer().await?;
     trace!("kubernetes namespace {}", kube_config.default_namespace);
@@ -74,7 +83,11 @@ pub async fn run_kubejob(worker: &Worker, task_req: TaskRequest, task_def: TaskD
 
 const ONE_HOUR: i64 = 60 * 60 * 24;
 
-async fn make_job(config: &crate::config::Config, task_req: TaskRequest, task_def: TaskDef) -> Result<Job> {
+async fn make_job(
+    config: &crate::config::Config,
+    task_req: TaskRequest,
+    task_def: TaskDef,
+) -> Result<Job> {
     let env = env::get_env(config, &task_req, &task_def)?;
     let name = task_req.task_run_id.to_string();
 

@@ -1,7 +1,7 @@
-use std::sync::Arc;
-use crate::Worker;
+use crate::config::Config;
 use crate::messages::{ConfigUpdate, TaskDef};
 use crate::server::jwt;
+use crate::Worker;
 use anyhow::Result;
 use futures::TryStreamExt;
 use lapin::options::{
@@ -13,10 +13,10 @@ use lapin::ExchangeKind;
 use lru_time_cache::LruCache;
 use once_cell::sync::Lazy;
 use serde_json::Value as JsonValue;
+use std::sync::Arc;
 use tokio::sync::Mutex;
 use tracing::trace;
 use uuid::Uuid;
-use crate::config::Config;
 
 const CONFIG_EXCHANGE: &str = "waterwheel.config";
 

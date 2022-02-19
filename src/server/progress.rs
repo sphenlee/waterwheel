@@ -1,6 +1,6 @@
-use std::sync::Arc;
 use crate::messages::{TaskProgress, Token};
 use crate::server::tokens::{increment_token, ProcessToken};
+use crate::server::Server;
 use anyhow::Result;
 use chrono::Duration;
 use futures::TryStreamExt;
@@ -8,9 +8,9 @@ use lapin::options::{BasicAckOptions, BasicConsumeOptions, BasicQosOptions, Queu
 use lapin::types::FieldTable;
 use postage::prelude::*;
 use sqlx::{Connection, PgPool, Postgres, Transaction};
+use std::sync::Arc;
 use tracing::debug;
 use uuid::Uuid;
-use crate::server::Server;
 
 const RESULT_QUEUE: &str = "waterwheel.results";
 
@@ -105,10 +105,15 @@ pub async fn advance_tokens(
 
     let mut tokens_to_tx = Vec::new();
 
-    while let Some(TaskEdge{ child_task_id, edge_offset}) = cursor.try_next().await? {
+    while let Some(TaskEdge {
+        child_task_id,
+        edge_offset,
+    }) = cursor.try_next().await?
+    {
         let token = Token {
             task_id: child_task_id,
-            trigger_datetime: task_progress.trigger_datetime + Duration::seconds(edge_offset.unwrap_or(0)),
+            trigger_datetime: task_progress.trigger_datetime
+                + Duration::seconds(edge_offset.unwrap_or(0)),
         };
 
         increment_token(&mut *txn, &token).await?;

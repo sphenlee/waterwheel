@@ -1,9 +1,9 @@
 #![feature(never_type)]
 #![feature(assert_matches)]
 
-use anyhow::Result;
 use crate::server::Server;
 use crate::worker::Worker;
+use anyhow::Result;
 
 mod amqp;
 pub mod circuit_breaker;
@@ -58,7 +58,7 @@ async fn main() -> Result<()> {
         ("worker", Some(_args)) => {
             let worker = Worker::new().await?;
             worker.run_worker().await?;
-        },
+        }
         _ => unreachable!("clap should have already checked the subcommands"),
     }
 }

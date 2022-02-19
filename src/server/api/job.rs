@@ -10,11 +10,11 @@ use uuid::Uuid;
 
 mod duration;
 mod graph;
+pub mod reference;
 mod task_runs;
 mod tasks;
 mod tokens;
 mod triggers;
-pub mod reference;
 
 pub use self::duration::get_duration;
 pub use self::graph::get_graph;

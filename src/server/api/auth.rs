@@ -1,3 +1,4 @@
+use crate::config::Config;
 use crate::server::api::job::get_job_project_id;
 use crate::server::api::request_ext::RequestExt;
 use crate::server::api::State;
@@ -10,7 +11,6 @@ use serde::Serialize;
 use std::collections::HashMap;
 use tracing::{debug, error, warn};
 use uuid::Uuid;
-use crate::config::Config;
 
 #[derive(Serialize, Debug, Default)]
 struct Object {

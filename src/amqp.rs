@@ -1,8 +1,8 @@
+use crate::config::Config;
 use anyhow::Result;
 use lapin::{Connection, ConnectionProperties};
 use tokio_amqp::LapinTokioExt;
 use tracing::info;
-use crate::config::Config;
 
 pub async fn amqp_connect(config: &Config) -> Result<Connection> {
     info!("connecting to AMQP broker...");

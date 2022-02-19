@@ -1,11 +1,15 @@
+use crate::config::Config;
 use crate::messages::{TaskDef, TaskRequest};
 use crate::server::jwt;
 use anyhow::Result;
 use itertools::Itertools;
 use k8s_openapi::api::core::v1::EnvVar;
-use crate::config::Config;
 
-pub fn get_env_string(config: &Config, task_req: &TaskRequest, task_def: &TaskDef) -> Result<Vec<String>> {
+pub fn get_env_string(
+    config: &Config,
+    task_req: &TaskRequest,
+    task_def: &TaskDef,
+) -> Result<Vec<String>> {
     let env = get_env(config, task_req, task_def)?;
 
     Ok(env

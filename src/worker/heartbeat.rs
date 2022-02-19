@@ -1,14 +1,14 @@
-use std::sync::Arc;
 use crate::messages::WorkerHeartbeat;
-use crate::{GIT_VERSION, Worker};
+use crate::{Worker, GIT_VERSION};
 use anyhow::Result;
+use std::sync::Arc;
 
 use chrono::Utc;
 use tracing::{debug, error, trace, warn};
 
 use super::{RUNNING_TASKS, TOTAL_TASKS, WORKER_ID};
-use reqwest::{StatusCode, Url};
 use crate::config::Config;
+use reqwest::{StatusCode, Url};
 
 pub async fn post_heartbeat(config: &Config, client: &reqwest::Client) -> Result<bool> {
     let server_addr = config.server_addr.as_ref();

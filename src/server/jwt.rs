@@ -1,3 +1,4 @@
+use crate::config::Config;
 use anyhow::{anyhow, Result};
 use highnoon::{Error, Request, State, StatusCode};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation};
@@ -7,7 +8,6 @@ use sqlx::types::Uuid;
 use std::fs;
 use std::time::{Duration, SystemTime};
 use tracing::debug;
-use crate::config::Config;
 
 const WATERWHEEL_ISSUER: &str = "waterwheel";
 const STASH_AUDIENCE: &str = "waterwheel.stash";

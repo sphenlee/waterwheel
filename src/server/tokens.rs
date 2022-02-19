@@ -1,5 +1,6 @@
 use crate::messages::{TaskPriority, Token};
 use crate::server::execute::ExecuteToken;
+use crate::server::Server;
 use anyhow::Result;
 use futures::TryStreamExt;
 use postage::prelude::*;
@@ -9,7 +10,6 @@ use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
 use tracing::{info, trace};
-use crate::server::Server;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ProcessToken {

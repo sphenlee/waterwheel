@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use crate::messages::{TaskPriority, TaskRequest, Token};
+use crate::server::Server;
 use anyhow::Result;
 use cadence::CountedExt;
 use chrono::Utc;
@@ -10,9 +10,9 @@ use lapin::types::FieldTable;
 use lapin::{BasicProperties, ExchangeKind};
 use postage::prelude::*;
 use sqlx::Connection;
+use std::sync::Arc;
 use tracing::{debug, info};
 use uuid::Uuid;
-use crate::server::Server;
 
 const TASK_EXCHANGE: &str = "waterwheel.tasks";
 const TASK_QUEUE: &str = "waterwheel.tasks";

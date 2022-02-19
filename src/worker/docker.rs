@@ -1,6 +1,7 @@
 use crate::messages::{TaskDef, TaskRequest};
 use crate::worker::engine::TaskEngineImpl;
 use crate::worker::env;
+use crate::Worker;
 use anyhow::Result;
 use bollard::container::{
     Config, CreateContainerOptions, RemoveContainerOptions, StartContainerOptions,
@@ -10,13 +11,17 @@ use bollard::image::{CreateImageOptions, ListImagesOptions};
 use futures::TryStreamExt;
 use std::collections::HashMap;
 use tracing::trace;
-use crate::Worker;
 
 pub struct DockerEngine;
 
 #[async_trait::async_trait]
 impl TaskEngineImpl for DockerEngine {
-    async fn run_task(&self, worker: &Worker, task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
+    async fn run_task(
+        &self,
+        worker: &Worker,
+        task_req: TaskRequest,
+        task_def: TaskDef,
+    ) -> Result<bool> {
         run_docker(worker, task_req, task_def).await
     }
 }

@@ -26,8 +26,8 @@ impl PostOffice {
     }
 
     async fn with_mailbox<T: Clone + Send + 'static, F, R>(&self, f: F) -> Result<R>
-        where
-            F: FnOnce(&mut Mailbox<T>) -> Result<R>,
+    where
+        F: FnOnce(&mut Mailbox<T>) -> Result<R>,
     {
         let mut postoffice = self.0.lock().await;
 
@@ -39,7 +39,8 @@ impl PostOffice {
     }
 
     pub async fn receive_mail<T: Clone + Send + 'static>(&self) -> Result<Receiver<T>> {
-        self.with_mailbox(|mailbox| Ok(mailbox.tx.subscribe())).await
+        self.with_mailbox(|mailbox| Ok(mailbox.tx.subscribe()))
+            .await
     }
 
     pub async fn post_mail<T: Clone + Send + 'static>(&self) -> Result<Sender<T>> {
