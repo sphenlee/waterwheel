@@ -1,4 +1,5 @@
 #![feature(never_type)]
+#![feature(assert_matches)]
 
 use anyhow::Result;
 

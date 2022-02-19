@@ -3,12 +3,14 @@ use crate::messages::{TaskProgress, Token};
 use crate::server::tokens::{increment_token, ProcessToken};
 use crate::{db, postoffice};
 use anyhow::Result;
+use chrono::Duration;
 use futures::TryStreamExt;
 use lapin::options::{BasicAckOptions, BasicConsumeOptions, BasicQosOptions, QueueDeclareOptions};
 use lapin::types::FieldTable;
 use postage::prelude::*;
 use sqlx::{Connection, Postgres, Transaction};
 use tracing::debug;
+use uuid::Uuid;
 
 const RESULT_QUEUE: &str = "waterwheel.results";
 
@@ -78,6 +80,12 @@ pub async fn process_progress() -> Result<!> {
     unreachable!("consumer stopped consuming")
 }
 
+#[derive(sqlx::FromRow)]
+struct TaskEdge {
+    child_task_id: Uuid,
+    edge_offset: Option<i64>,
+}
+
 pub async fn advance_tokens(
     txn: &mut Transaction<'_, Postgres>,
     task_progress: &TaskProgress,
@@ -85,10 +93,12 @@ pub async fn advance_tokens(
     let pool = db::get_pool();
 
     let mut cursor = sqlx::query_as(
-        "SELECT child_task_id
-            FROM task_edge
-            WHERE parent_task_id = $1
-            AND kind = $2",
+        "SELECT
+            child_task_id,
+            edge_offset
+        FROM task_edge
+        WHERE parent_task_id = $1
+        AND kind = $2",
     )
     .bind(&task_progress.task_id)
     .bind(&task_progress.result)
@@ -96,10 +106,10 @@ pub async fn advance_tokens(
 
     let mut tokens_to_tx = Vec::new();
 
-    while let Some((child_task_id,)) = cursor.try_next().await? {
+    while let Some(TaskEdge{ child_task_id, edge_offset}) = cursor.try_next().await? {
         let token = Token {
             task_id: child_task_id,
-            trigger_datetime: task_progress.trigger_datetime,
+            trigger_datetime: task_progress.trigger_datetime + Duration::seconds(edge_offset.unwrap_or(0)),
         };
 
         increment_token(&mut *txn, &token).await?;

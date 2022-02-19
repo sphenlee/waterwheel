@@ -75,6 +75,7 @@ CREATE INDEX IF NOT EXISTS task_run_by_state
 CREATE TABLE IF NOT EXISTS trigger_edge (
     trigger_id UUID NOT NULL REFERENCES trigger(id),
     task_id UUID NOT NULL REFERENCES task(id),
+    edge_offset BIGINT,
     UNIQUE(trigger_id, task_id)
 );
 
@@ -82,6 +83,7 @@ CREATE TABLE IF NOT EXISTS task_edge (
     parent_task_id UUID NOT NULL REFERENCES task(id),
     child_task_id UUID NOT NULL REFERENCES task(id),
     kind VARCHAR NOT NULL,
+    edge_offset BIGINT,
     UNIQUE(parent_task_id, child_task_id, kind)
 );
 

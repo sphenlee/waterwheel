@@ -1,0 +1,45 @@
+{
+  "uuid": "1b59a06a-79fc-4a76-981c-68dcc167986b",
+  "project": "test_project",
+  "name": "offset_job",
+  "description": "a simple job to test offsets",
+  "paused": false,
+  "triggers": [
+    {
+      "name": "daily",
+      "start": "2022-01-01T00:00:00Z",
+      "period": "1d"
+    }
+  ],
+  "tasks": [
+    {
+      "name": "step1",
+      "docker": {
+        "image": "bash:latest",
+        "args": ["-c", "sleep 20s"]
+      },
+      "depends": [
+        "trigger/daily@1h"
+      ]
+    },{
+      "name": "step2",
+      "docker": {
+        "image": "bash:latest",
+        "args": ["-c", "sleep 20s"]
+      },
+      "depends": [
+        "task/step1@1h"
+      ]
+    },{
+      "name": "final",
+      "docker": {
+        "image": "bash:latest",
+        "args": ["-c", "sleep 20s"]
+      },
+      "depends": [
+        "task/step1@1h",
+        "task/step2"
+      ]
+    }
+  ]
+}

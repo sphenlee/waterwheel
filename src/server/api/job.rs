@@ -14,6 +14,7 @@ mod task_runs;
 mod tasks;
 mod tokens;
 mod triggers;
+pub mod reference;
 
 pub use self::duration::get_duration;
 pub use self::graph::get_graph;

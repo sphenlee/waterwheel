@@ -176,6 +176,12 @@ async fn activate_trigger(trigger_time: TriggerTime, priority: TaskPriority) -> 
     Ok(())
 }
 
+#[derive(sqlx::FromRow)]
+struct TriggerEdge {
+    task_id: Uuid,
+    edge_offset: Option<i64>,
+}
+
 async fn do_activate_trigger(
     txn: &mut Transaction<'_, Postgres>,
     trigger_time: TriggerTime,
@@ -188,19 +194,20 @@ async fn do_activate_trigger(
 
     let mut cursor = sqlx::query_as(
         "SELECT
-            te.task_id
+            task_id,
+            edge_offset
         FROM trigger_edge te
-        WHERE te.trigger_id = $1",
+        WHERE trigger_id = $1",
     )
     .bind(trigger_time.trigger_id)
     .fetch(&pool);
 
     let mut tokens_to_tx = Vec::new();
 
-    while let Some((task_id,)) = cursor.try_next().await? {
+    while let Some(TriggerEdge {task_id, edge_offset}) = cursor.try_next().await? {
         let token = Token {
             task_id,
-            trigger_datetime: trigger_time.trigger_datetime,
+            trigger_datetime: trigger_time.trigger_datetime + Duration::seconds(edge_offset.unwrap_or(0)),
         };
 
         increment_token(txn, &token).await?;

@@ -1,113 +1,13 @@
 use crate::server::api::request_ext::RequestExt;
 use crate::server::api::types::{Job, Task};
 use crate::server::api::{auth, State};
+use crate::server::api::job::reference::{parse_reference, Reference, ReferenceKind, resolve_reference};
 use crate::util::{is_pg_integrity_error, pg_error};
-use anyhow::Result;
 use highnoon::{Json, Request, Responder};
 use serde::Serialize;
 use sqlx::{Postgres, Transaction};
-use std::fmt::{self, Display};
-use std::str::FromStr;
 use tracing::debug;
 use uuid::Uuid;
-
-#[derive(Debug)]
-enum ReferenceKind {
-    Trigger,
-    Task,
-}
-
-impl FromStr for ReferenceKind {
-    type Err = highnoon::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "trigger" => Ok(ReferenceKind::Trigger),
-            "task" => Ok(ReferenceKind::Task),
-            _ => Err(highnoon::Error::http((
-                highnoon::StatusCode::BAD_REQUEST,
-                format!(
-                    "failed to parse reference kind (expected \"task\" \
-                         or \"trigger\", got \"{}\")",
-                    s
-                ),
-            ))),
-        }
-    }
-}
-
-impl Display for ReferenceKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ReferenceKind::Trigger => write!(f, "trigger"),
-            ReferenceKind::Task => write!(f, "task"),
-        }
-    }
-}
-
-#[derive(Debug)]
-struct Reference {
-    proj: Option<String>,
-    job: Option<String>,
-    kind: ReferenceKind,
-    name: String,
-}
-
-impl Display for Reference {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(p) = &self.proj {
-            write!(f, "{}/", p)?;
-        }
-        if let Some(j) = &self.job {
-            write!(f, "{}/", j)?;
-        }
-        write!(f, "{}/{}", self.kind, self.name)
-    }
-}
-
-fn parse_reference(reference: &str) -> highnoon::Result<Reference> {
-    let parts = reference.split('/').collect::<Vec<_>>();
-
-    if parts.len() == 4 {
-        Ok(Reference {
-            proj: Some(parts[0].to_owned()),
-            job: Some(parts[1].to_owned()),
-            kind: parts[2].parse()?,
-            name: parts[3].to_owned(),
-        })
-    } else if parts.len() == 3 {
-        Ok(Reference {
-            proj: None,
-            job: Some(parts[0].to_owned()),
-            kind: parts[1].parse()?,
-            name: parts[2].to_owned(),
-        })
-    } else if parts.len() == 2 {
-        Ok(Reference {
-            proj: None,
-            job: None,
-            kind: parts[0].parse()?,
-            name: parts[1].to_owned(),
-        })
-    } else {
-        Err(highnoon::Error::http((
-            highnoon::StatusCode::BAD_REQUEST,
-            "invalid reference - expected 2, 3, or 4 slash separated parts",
-        )))
-    }
-}
-
-fn resolve_reference(mut reference: Reference, job: &Job) -> Reference {
-    if reference.proj.is_none() {
-        reference.proj = Some(job.project.clone());
-    }
-
-    if reference.job.is_none() {
-        reference.job = Some(job.name.clone());
-    }
-
-    reference
-}
 
 pub async fn create_task(
     txn: &mut Transaction<'_, Postgres>,
@@ -207,7 +107,7 @@ async fn create_trigger_edge(
     reference: Reference,
 ) -> highnoon::Result<()> {
     let res = sqlx::query(
-        "INSERT INTO trigger_edge(trigger_id, task_id)
+        "INSERT INTO trigger_edge(trigger_id, task_id, edge_offset)
         VALUES(
             (
                 SELECT t.id
@@ -218,13 +118,15 @@ async fn create_trigger_edge(
                 AND j.name = $2
                 AND t.name = $3
             ),
-            $4
+            $4,
+            $5
         )",
     )
     .bind(&reference.proj)
     .bind(&reference.job)
     .bind(&reference.name)
     .bind(task)
+    .bind(reference.offset.map(|offset| offset.num_seconds()))
     .execute(txn)
     .await;
 
@@ -253,7 +155,7 @@ async fn create_task_edge(
     kind: &str,
 ) -> highnoon::Result<()> {
     let res = sqlx::query(
-        "INSERT INTO task_edge(parent_task_id, child_task_id, kind)
+        "INSERT INTO task_edge(parent_task_id, child_task_id, kind, edge_offset)
         VALUES(
             (
                 SELECT t.id
@@ -265,7 +167,8 @@ async fn create_task_edge(
                 AND t.name = $3
             ),
             $4,
-            $5
+            $5,
+            $6
         )",
     )
     .bind(&reference.proj)
@@ -273,6 +176,7 @@ async fn create_task_edge(
     .bind(&reference.name)
     .bind(task)
     .bind(kind)
+    .bind(reference.offset.map(|offset| offset.num_seconds()))
     .execute(txn)
     .await;
 
