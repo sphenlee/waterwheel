@@ -11,6 +11,7 @@ use serde::Serialize;
 use std::collections::HashMap;
 use tracing::{debug, error, warn};
 use uuid::Uuid;
+use crate::config::Config;
 
 #[derive(Serialize, Debug, Default)]
 struct Object {
@@ -81,12 +82,13 @@ fn derive_http<S: highnoon::State>(req: &highnoon::Request<S>) -> Result<Http> {
 }
 
 async fn authorize(
+    config: &Config,
     principal: Principal,
     action: Action,
     object: Object,
     http: Http,
 ) -> highnoon::Result<bool> {
-    let opa = if let Some(opa) = config::get().opa_sidecar_addr.as_ref() {
+    let opa = if let Some(opa) = config.opa_sidecar_addr.as_ref() {
         opa
     } else {
         error!("OPA sidecar address is unset (to disable authz you must set `WATERWHEEL_NO_AUTHZ=true`)");
@@ -149,7 +151,8 @@ impl Check {
     }
 
     pub async fn check(self, req: &highnoon::Request<State>) -> highnoon::Result<()> {
-        if config::get().no_authz {
+        let config = &req.state().config;
+        if config.no_authz {
             return Ok(());
         }
 
@@ -168,7 +171,7 @@ impl Check {
         // NOTE - this potentially logs credentials so don't leave it uncommented
         //debug!("http context", { http: Value::from_debug(&http) });
 
-        if authorize(principal, self.action, object, http).await? {
+        if authorize(config, principal, self.action, object, http).await? {
             Ok(())
         } else {
             Err(highnoon::Error::http(StatusCode::FORBIDDEN))

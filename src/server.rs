@@ -1,7 +1,14 @@
-use crate::config;
+use std::sync::Arc;
+use crate::{config, db, logging, metrics};
 use crate::util::spawn_or_crash;
 use anyhow::Result;
+use cadence::StatsdClient;
+use lapin::Connection;
+use sqlx::PgPool;
 use tracing::warn;
+use crate::amqp::amqp_connect;
+use crate::config::Config;
+use crate::postoffice::PostOffice;
 
 mod api;
 mod execute;
@@ -12,24 +19,57 @@ mod trigger_time;
 pub mod triggers;
 mod updates;
 
-pub async fn run_scheduler() -> Result<()> {
-    spawn_or_crash("triggers", triggers::process_triggers);
-    spawn_or_crash("tokens", tokens::process_tokens);
-    spawn_or_crash("executions", execute::process_executions);
-    spawn_or_crash("progress", progress::process_progress);
-    spawn_or_crash("updates", updates::process_updates);
-
-    Ok(())
+pub struct Server {
+    pub db_pool: PgPool,
+    pub amqp_conn: Connection,
+    pub post_office: PostOffice,
+    pub statsd: StatsdClient,
+    pub config: Config
 }
 
-pub async fn run_api() -> Result<()> {
-    if config::get().no_authz {
-        warn!("authorization is disabled, this is not recommended in production");
+impl Server {
+    pub async fn new() -> Result<Self> {
+        let config = config::load()?;
+        logging::setup(&config)?;
+
+        let db_pool = db::create_pool(&config).await?;
+        let amqp_conn = amqp_connect(&config).await?;
+        let statsd = metrics::new_client(&config)?;
+
+        Ok(Server {
+            db_pool,
+            amqp_conn,
+            post_office: PostOffice::open(),
+            statsd,
+            config
+        })
     }
 
-    jwt::load_keys()?;
+    pub async fn run_scheduler(self) -> Result<!> {
+        let this = Arc::new(self);
 
-    api::serve().await?;
+        spawn_or_crash("triggers", this.clone(), triggers::process_triggers);
+        spawn_or_crash("tokens", this.clone(), tokens::process_tokens);
+        spawn_or_crash("executions", this.clone(), execute::process_executions);
+        spawn_or_crash("progress", this.clone(), progress::process_progress);
+        spawn_or_crash("updates", this.clone(), updates::process_updates);
 
-    Ok(())
+        this.run_api_inner().await
+    }
+
+    pub async fn run_api(self) -> Result<!> {
+        Arc::new(self).run_api_inner().await
+    }
+
+    async fn run_api_inner(self: Arc<Self>) -> Result<!> {
+        if self.config.no_authz {
+            warn!("authorization is disabled, this is not recommended in production");
+        }
+
+        jwt::load_keys(&self.config)?;
+
+        api::serve(self).await?;
+
+        unreachable!("server stop serving");
+    }
 }

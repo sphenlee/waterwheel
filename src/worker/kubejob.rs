@@ -10,26 +10,27 @@ use kube::api::{Api, PostParams};
 use kube::{Client, Config, ResourceExt};
 use std::convert::TryFrom;
 use tracing::{trace, warn};
+use crate::Worker;
 
 pub struct KubeJobEngine;
 
 #[async_trait::async_trait]
 impl TaskEngineImpl for KubeJobEngine {
-    async fn run_task(&self, task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
-        run_kubejob(task_req, task_def).await
+    async fn run_task(&self, worker: &Worker, task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
+        run_kubejob(worker, task_req, task_def).await
     }
 }
 
-pub async fn run_kubejob(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
+pub async fn run_kubejob(worker: &Worker, task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
     trace!("loading kubernetes config");
-    let config = Config::infer().await?;
-    trace!("kubernetes namespace {}", config.default_namespace);
-    let client = Client::try_from(config)?;
+    let kube_config = Config::infer().await?;
+    trace!("kubernetes namespace {}", kube_config.default_namespace);
+    let client = Client::try_from(kube_config)?;
 
     trace!("connecting to kubernetes...");
     let jobs: Api<Job> = Api::default_namespaced(client);
 
-    let job = make_job(task_req, task_def).await?;
+    let job = make_job(&worker.config, task_req, task_def).await?;
 
     // Create the pod
     let job = jobs.create(&PostParams::default(), &job).await?;
@@ -73,11 +74,11 @@ pub async fn run_kubejob(task_req: TaskRequest, task_def: TaskDef) -> Result<boo
 
 const ONE_HOUR: i64 = 60 * 60 * 24;
 
-async fn make_job(task_req: TaskRequest, task_def: TaskDef) -> Result<Job> {
-    let env = env::get_env(&task_req, &task_def)?;
+async fn make_job(config: &crate::config::Config, task_req: TaskRequest, task_def: TaskDef) -> Result<Job> {
+    let env = env::get_env(config, &task_req, &task_def)?;
     let name = task_req.task_run_id.to_string();
 
-    let config = get_project_config(task_def.project_id).await?;
+    let config = get_project_config(config, task_def.project_id).await?;
     let job_merge = config.get("kubernetes_job_merge");
     let ttl = config
         .get("kubernetes_job_ttl_seconds_after_finished")

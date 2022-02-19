@@ -4,7 +4,7 @@ use config as config_loader;
 use once_cell::sync::OnceCell;
 use reqwest::Url;
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Clone)]
 pub struct Config {
     pub db_url: String,
     pub amqp_addr: String,
@@ -24,9 +24,7 @@ pub struct Config {
     pub log: String,
 }
 
-static CONFIG: OnceCell<Config> = OnceCell::new();
-
-pub fn load() -> Result<()> {
+pub fn load() -> Result<Config> {
     let mut loader = config_loader::Config::new();
 
     loader
@@ -40,10 +38,6 @@ pub fn load() -> Result<()> {
     let config = loader
         .try_into()
         .context("mandatory configuration value not set")?;
-    let _ = CONFIG.set(config);
-    Ok(())
-}
 
-pub fn get() -> &'static Config {
-    CONFIG.get().expect("config has not been loaded yet!")
+    Ok(config)
 }

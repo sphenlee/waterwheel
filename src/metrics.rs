@@ -1,28 +1,26 @@
 use crate::config;
+use anyhow::Result;
 use cadence::{BufferedUdpMetricSink, NopMetricSink, QueuingMetricSink, StatsdClient};
 use once_cell::sync::Lazy;
 use std::net::UdpSocket;
 use tracing::warn;
+use crate::config::Config;
 
 const METRIC_PREFIX: &str = "waterwheel"; // TODO - customise this for multiple deployments
 
-static STATSD_CLIENT: Lazy<StatsdClient> =
-    Lazy::new(|| match config::get().statsd_server.as_deref() {
+pub fn new_client(config: &Config) -> Result<StatsdClient> {
+    match config.statsd_server.as_deref() {
         Some(server) => {
-            let socket = UdpSocket::bind("0.0.0.0:0").expect("failed to bind to statsd socket");
+            let socket = UdpSocket::bind("0.0.0.0:0")?;
             let sink = QueuingMetricSink::from(
-                BufferedUdpMetricSink::from(server, socket)
-                    .expect("failed to create UdpMetricSink"),
+                BufferedUdpMetricSink::from(server, socket)?,
             );
 
-            StatsdClient::builder(METRIC_PREFIX, sink).build()
+            Ok(StatsdClient::builder(METRIC_PREFIX, sink).build())
         }
         None => {
             warn!("not sending metrics");
-            StatsdClient::builder(METRIC_PREFIX, NopMetricSink).build()
+            Ok(StatsdClient::builder(METRIC_PREFIX, NopMetricSink).build())
         }
-    });
-
-pub fn get_client() -> StatsdClient {
-    STATSD_CLIENT.clone()
+    }
 }

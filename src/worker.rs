@@ -1,10 +1,15 @@
+use std::sync::Arc;
 use anyhow::Result;
+use cadence::StatsdClient;
+use lapin::Connection;
 use once_cell::sync::Lazy;
 use tracing::info;
 use uuid::Uuid;
 
-use crate::amqp;
+use crate::{amqp, logging, metrics};
+use crate::amqp::amqp_connect;
 use crate::config;
+use crate::config::Config;
 use crate::counter::Counter;
 use crate::server::jwt;
 use crate::util::{spawn_or_crash, spawn_retry};
@@ -18,44 +23,67 @@ mod kube;
 mod kubejob;
 mod work;
 
+// TODO - move these statics
 static WORKER_ID: Lazy<Uuid> = Lazy::new(Uuid::new_v4);
 
 pub static RUNNING_TASKS: Counter = Counter::new();
 pub static TOTAL_TASKS: Counter = Counter::new();
 
-pub async fn run_worker() -> Result<()> {
-    jwt::load_keys()?;
-
-    amqp::amqp_connect().await?;
-
-    let max_tasks: u32 = config::get().max_tasks;
-
-    heartbeat::wait_for_server().await;
-
-    for i in 0..max_tasks {
-        spawn_retry(&format!("worker-{}", i), work::process_work);
-    }
-
-    spawn_or_crash("config_updates", config_cache::process_updates);
-    spawn_or_crash("heartbeat", heartbeat::heartbeat);
-
-    info!("worker id {}", *WORKER_ID);
-
-    serve().await?;
-
-    Ok(())
+pub struct Worker {
+    pub amqp_conn: Connection,
+    //pub post_office: PostOffice,
+    pub statsd: StatsdClient,
+    pub config: Config
 }
 
-async fn serve() -> Result<()> {
-    let mut app = highnoon::App::new(());
-    app.at("/")
-        .get(|_req| async { Ok("Hello from Waterwheel Worker!") });
+impl Worker {
+    pub async fn new() -> Result<Self> {
+        let config = config::load()?;
+        logging::setup(&config)?;
 
-    // healthcheck to see if the worker is up
-    app.at("/healthcheck").get(|_req| async { Ok("OK") });
+        let amqp_conn = amqp_connect(&config).await?;
+        let statsd = metrics::new_client(&config)?;
 
-    let host = &config::get().worker_bind;
-    app.listen(host).await?;
+        Ok(Worker {
+            amqp_conn,
+            statsd,
+            config
+        })
+    }
 
-    Ok(())
+    pub async fn run_worker(self) -> Result<!> {
+        jwt::load_keys(&self.config)?;
+
+        heartbeat::wait_for_server(&self.config).await;
+
+        let this = Arc::new(self);
+
+        for i in 0..this.config.max_tasks {
+            spawn_retry(&format!("worker-{}", i), this.clone(), work::process_work);
+        }
+
+        spawn_or_crash("config_updates", this.clone(), config_cache::process_updates);
+        spawn_or_crash("heartbeat", this.clone(), heartbeat::heartbeat);
+
+        info!("worker id {}", *WORKER_ID);
+
+        this.serve().await?;
+
+        unreachable!("worker stopped working");
+    }
+
+
+    async fn serve(self: Arc<Self>) -> Result<()> {
+        let mut app = highnoon::App::new(());
+        app.at("/")
+            .get(|_req| async { Ok("Hello from Waterwheel Worker!") });
+
+        // healthcheck to see if the worker is up
+        app.at("/healthcheck").get(|_req| async { Ok("OK") });
+
+        let host = &self.config.worker_bind;
+        app.listen(host).await?;
+
+        Ok(())
+    }
 }

@@ -16,10 +16,12 @@ use rand::seq::SliceRandom;
 use rand::thread_rng;
 use serde::{Deserialize, Serialize};
 use sqlx::types::Uuid;
-use sqlx::{Connection, Postgres, Transaction};
+use sqlx::{Connection, PgPool, Postgres, Transaction};
 use std::str::FromStr;
+use std::sync::Arc;
 use tokio::time;
 use tracing::{debug, info, trace, warn};
+use crate::server::Server;
 
 type Queue = BinaryHeap<TriggerTime, MinComparator>;
 
@@ -72,13 +74,13 @@ impl Trigger {
     }
 }
 
-pub async fn process_triggers() -> Result<!> {
-    let mut trigger_rx = postoffice::receive_mail::<TriggerUpdate>().await?;
+pub async fn process_triggers(server: Arc<Server>) -> Result<!> {
+    let mut trigger_rx = server.post_office.receive_mail::<TriggerUpdate>().await?;
     let mut queue = Queue::new_min();
 
-    let statsd = metrics::get_client();
+    let statsd = server.statsd.clone();
 
-    restore_triggers(&mut queue).await?;
+    restore_triggers(&server, &mut queue).await?;
 
     loop {
         trace!("checking for pending trigger updates");
@@ -86,7 +88,7 @@ pub async fn process_triggers() -> Result<!> {
             match trigger_rx.try_recv() {
                 Ok(TriggerUpdate(uuid)) => {
                     // TODO - batch the updates to avoid multiple heap recreations
-                    update_trigger(&uuid, &mut queue).await?;
+                    update_trigger(&server,&uuid, &mut queue).await?;
                 }
                 Err(TryRecvError::Pending) => break,
                 Err(TryRecvError::Closed) => panic!("TriggerUpdated channel was closed!"),
@@ -108,7 +110,7 @@ pub async fn process_triggers() -> Result<!> {
                 .recv()
                 .await
                 .expect("TriggerUpdate channel was closed!");
-            update_trigger(&uuid, &mut queue).await?;
+            update_trigger(&server, &uuid, &mut queue).await?;
             continue;
         }
 
@@ -143,35 +145,35 @@ pub async fn process_triggers() -> Result<!> {
                     // update trigger might delete it, or we might select it as the next trigger
                     queue.push(next_triggertime);
 
-                    update_trigger(&uuid, &mut queue).await?;
+                    update_trigger(&server, &uuid, &mut queue).await?;
                 }
                 _ = time::sleep(delay.to_std()?) => {
                     trace!("sleep completed, no updates");
-                    requeue_next_triggertime(&next_triggertime, &mut queue).await?;
-                    activate_trigger(next_triggertime, TaskPriority::Normal).await?;
+                    requeue_next_triggertime(&server, &next_triggertime, &mut queue).await?;
+                    activate_trigger(&server, next_triggertime, TaskPriority::Normal).await?;
                 }
             }
         } else {
             warn!("overslept trigger: {}", delay);
-            requeue_next_triggertime(&next_triggertime, &mut queue).await?;
-            activate_trigger(next_triggertime, TaskPriority::Normal).await?;
+            requeue_next_triggertime(&server, &next_triggertime, &mut queue).await?;
+            activate_trigger(&server, next_triggertime, TaskPriority::Normal).await?;
         }
     }
 }
 
-async fn activate_trigger(trigger_time: TriggerTime, priority: TaskPriority) -> Result<()> {
-    let pool = db::get_pool();
+async fn activate_trigger(server: &Server, trigger_time: TriggerTime, priority: TaskPriority) -> Result<()> {
+    let pool = server.db_pool.clone();
 
     let mut conn = pool.acquire().await?;
     let mut txn = conn.begin().await?;
 
-    let tokens_to_tx = do_activate_trigger(&mut txn, trigger_time).await?;
+    let tokens_to_tx = do_activate_trigger(&pool, &mut txn, trigger_time).await?;
 
     txn.commit().await?;
     trace!("done activating trigger: {}", trigger_time);
 
     // after committing the transaction we can tell the token processor to check thresholds
-    send_to_token_processor(tokens_to_tx, priority).await?;
+    send_to_token_processor(server, tokens_to_tx, priority).await?;
 
     Ok(())
 }
@@ -183,11 +185,10 @@ struct TriggerEdge {
 }
 
 async fn do_activate_trigger(
+    pool: &PgPool,
     txn: &mut Transaction<'_, Postgres>,
     trigger_time: TriggerTime,
 ) -> Result<Vec<Token>> {
-    let pool = db::get_pool();
-
     debug!(trigger_id=?trigger_time.trigger_id,
         trigger_datetime=?trigger_time.trigger_datetime.to_rfc3339(),
         "activating trigger");
@@ -200,7 +201,7 @@ async fn do_activate_trigger(
         WHERE trigger_id = $1",
     )
     .bind(trigger_time.trigger_id)
-    .fetch(&pool);
+    .fetch(pool);
 
     let mut tokens_to_tx = Vec::new();
 
@@ -230,10 +231,10 @@ async fn do_activate_trigger(
     Ok(tokens_to_tx)
 }
 
-async fn catchup_trigger(trigger: &Trigger, queue: &mut Queue) -> anyhow::Result<()> {
+async fn catchup_trigger(server: &Server, trigger: &Trigger, queue: &mut Queue) -> anyhow::Result<()> {
     debug!(trigger_id=?trigger.id, "checking trigger for any catchup");
 
-    let pool = db::get_pool();
+    let pool = server.db_pool.clone();
 
     let mut tokens_to_tx = Vec::new();
 
@@ -253,7 +254,7 @@ async fn catchup_trigger(trigger: &Trigger, queue: &mut Queue) -> anyhow::Result
 
                 let mut next = trigger.start_datetime;
                 while next < earliest {
-                    let mut tokens = do_activate_trigger(&mut txn, trigger.at(next)).await?;
+                    let mut tokens = do_activate_trigger(&pool, &mut txn, trigger.at(next)).await?;
                     tokens_to_tx.append(&mut tokens);
                     next = next + &period;
                 }
@@ -278,7 +279,7 @@ async fn catchup_trigger(trigger: &Trigger, queue: &mut Queue) -> anyhow::Result
 
     while next < last {
         if trigger.catchup != Catchup::None {
-            let mut tokens = do_activate_trigger(&mut txn, trigger.at(next)).await?;
+            let mut tokens = do_activate_trigger(&pool, &mut txn, trigger.at(next)).await?;
             tokens_to_tx.append(&mut tokens);
         }
         next = next + &period;
@@ -305,13 +306,13 @@ async fn catchup_trigger(trigger: &Trigger, queue: &mut Queue) -> anyhow::Result
         Catchup::Random => tokens_to_tx.shuffle(&mut thread_rng()),
     }
 
-    send_to_token_processor(tokens_to_tx, TaskPriority::BackFill).await?;
+    send_to_token_processor(&server, tokens_to_tx, TaskPriority::BackFill).await?;
 
     Ok(())
 }
 
-async fn send_to_token_processor(tokens_to_tx: Vec<Token>, priority: TaskPriority) -> Result<()> {
-    let mut token_tx = postoffice::post_mail::<ProcessToken>().await?;
+async fn send_to_token_processor(server: &Server, tokens_to_tx: Vec<Token>, priority: TaskPriority) -> Result<()> {
+    let mut token_tx = server.post_office.post_mail::<ProcessToken>().await?;
 
     for token in tokens_to_tx {
         token_tx
@@ -322,8 +323,8 @@ async fn send_to_token_processor(tokens_to_tx: Vec<Token>, priority: TaskPriorit
     Ok(())
 }
 
-async fn update_trigger(uuid: &Uuid, queue: &mut Queue) -> Result<()> {
-    let pool = db::get_pool();
+async fn update_trigger(server: &Server, uuid: &Uuid, queue: &mut Queue) -> Result<()> {
+    let pool = server.db_pool.clone();
 
     debug!(trigger_id=?uuid, "updating trigger");
 
@@ -359,7 +360,7 @@ async fn update_trigger(uuid: &Uuid, queue: &mut Queue) -> Result<()> {
     .await?;
 
     if let Some(trigger) = maybe_trigger {
-        catchup_trigger(&trigger, queue).await?;
+        catchup_trigger(server, &trigger, queue).await?;
     } else {
         debug!(trigger_id=?uuid,
             "trigger {} has been paused, it had been removed from the queue",
@@ -370,8 +371,8 @@ async fn update_trigger(uuid: &Uuid, queue: &mut Queue) -> Result<()> {
     Ok(())
 }
 
-async fn restore_triggers(queue: &mut Queue) -> Result<()> {
-    let pool = db::get_pool();
+async fn restore_triggers(server: &Server, queue: &mut Queue) -> Result<()> {
+    let pool = server.db_pool.clone();
 
     info!("restoring triggers from database...");
 
@@ -395,7 +396,7 @@ async fn restore_triggers(queue: &mut Queue) -> Result<()> {
     .fetch(&pool);
 
     while let Some(trigger) = cursor.try_next().await? {
-        catchup_trigger(&trigger, queue).await?;
+        catchup_trigger(server, &trigger, queue).await?;
     }
 
     info!("done restoring {} triggers from database", queue.len());
@@ -403,9 +404,7 @@ async fn restore_triggers(queue: &mut Queue) -> Result<()> {
     Ok(())
 }
 
-async fn requeue_next_triggertime(next_triggertime: &TriggerTime, queue: &mut Queue) -> Result<()> {
-    let pool = db::get_pool();
-
+async fn requeue_next_triggertime(server: &Server, next_triggertime: &TriggerTime, queue: &mut Queue) -> Result<()> {
     // get the trigger's info from the DB
     let trigger: Trigger = sqlx::query_as(
         "SELECT
@@ -423,7 +422,7 @@ async fn requeue_next_triggertime(next_triggertime: &TriggerTime, queue: &mut Qu
     ",
     )
     .bind(&next_triggertime.trigger_id)
-    .fetch_one(&pool)
+    .fetch_one(&server.db_pool)
     .await?;
 
     let next_datetime = next_triggertime.trigger_datetime + &trigger.period()?;

@@ -1,8 +1,8 @@
-use crate::amqp::get_amqp_channel;
+use std::sync::Arc;
 use crate::config;
 use crate::messages::{TaskProgress, TaskRequest, TokenState};
 use crate::metrics;
-use crate::worker::config_cache;
+use crate::worker::{config_cache, Worker};
 use anyhow::Result;
 
 use futures::TryStreamExt;
@@ -18,6 +18,7 @@ use super::{RUNNING_TASKS, TOTAL_TASKS, WORKER_ID};
 use cadence::{CountedExt, Gauged};
 use chrono::{DateTime, Utc};
 use std::time::Duration;
+use lapin::Connection;
 
 // TODO - queues should be configurable for task routing
 const TASK_QUEUE: &str = "waterwheel.tasks";
@@ -27,8 +28,8 @@ const RESULT_QUEUE: &str = "waterwheel.results";
 
 const DEFAULT_TASK_TIMEOUT: Duration = Duration::from_secs(29 * 60); // 29 minutes
 
-async fn setup() -> Result<Consumer> {
-    let chan = get_amqp_channel().await?;
+async fn setup(amqp_conn: &Connection) -> Result<Consumer> {
+    let chan = amqp_conn.create_channel().await?;
 
     // declare queue for consuming incoming messages
     let mut args = FieldTable::default();
@@ -89,17 +90,17 @@ async fn setup() -> Result<Consumer> {
     Ok(consumer)
 }
 
-pub async fn process_work() -> Result<!> {
-    let statsd = metrics::get_client();
+pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
+    let statsd = worker.statsd.clone();
 
-    let mut consumer = setup().await?;
+    let mut consumer = setup(&worker.amqp_conn).await?;
 
-    let engine = config::get().task_engine.get_impl()?;
+    let engine = worker.config.task_engine.get_impl()?;
 
     while let Some((chan, msg)) = consumer.try_next().await? {
         let task_req: TaskRequest = serde_json::from_slice(&msg.data)?;
 
-        let task_def = config_cache::get_task_def(task_req.task_id).await?;
+        let task_def = config_cache::get_task_def(&worker.config, task_req.task_id).await?;
 
         let started_datetime = Utc::now();
 
@@ -130,7 +131,7 @@ pub async fn process_work() -> Result<!> {
             )
             .await?;
 
-            let res = engine.run_task(task_req.clone(), task_def);
+            let res = engine.run_task(&worker, task_req.clone(), task_def);
 
             match tokio::time::timeout(DEFAULT_TASK_TIMEOUT, res).await {
                 Ok(Ok(true)) => TokenState::Success,

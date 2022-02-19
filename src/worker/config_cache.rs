@@ -1,4 +1,5 @@
-use crate::amqp;
+use std::sync::Arc;
+use crate::{amqp, Worker};
 use crate::messages::{ConfigUpdate, TaskDef};
 use crate::server::jwt;
 use anyhow::Result;
@@ -15,9 +16,11 @@ use serde_json::Value as JsonValue;
 use tokio::sync::Mutex;
 use tracing::trace;
 use uuid::Uuid;
+use crate::config::Config;
 
 const CONFIG_EXCHANGE: &str = "waterwheel.config";
 
+// TODO - make these caches not statics
 static PROJ_CONFIG_CACHE: Lazy<Mutex<LruCache<Uuid, JsonValue>>> = Lazy::new(|| {
     Mutex::new(LruCache::with_expiry_duration_and_capacity(
         chrono::Duration::hours(24).to_std().unwrap(),
@@ -32,34 +35,34 @@ static TASK_DEF_CACHE: Lazy<Mutex<LruCache<Uuid, TaskDef>>> = Lazy::new(|| {
     ))
 });
 
-pub async fn get_project_config(proj_id: Uuid) -> Result<JsonValue> {
+pub async fn get_project_config(config: &Config, proj_id: Uuid) -> Result<JsonValue> {
     let mut cache = PROJ_CONFIG_CACHE.lock().await;
-    let config = cache.get(&proj_id);
+    let maybe_proj_config = cache.get(&proj_id);
 
-    if let Some(config) = config {
-        Ok(config.clone())
+    if let Some(proj_config) = maybe_proj_config {
+        Ok(proj_config.clone())
     } else {
-        let config = fetch_project_config(proj_id).await?;
-        cache.insert(proj_id, config.clone());
-        Ok(config)
+        let proj_config = fetch_project_config(config, proj_id).await?;
+        cache.insert(proj_id, proj_config.clone());
+        Ok(proj_config)
     }
 }
 
-pub async fn get_task_def(task_id: Uuid) -> Result<TaskDef> {
+pub async fn get_task_def(config: &Config, task_id: Uuid) -> Result<TaskDef> {
     let mut cache = TASK_DEF_CACHE.lock().await;
     let def = cache.get(&task_id);
 
     if let Some(def) = def {
         Ok(def.clone())
     } else {
-        let def = fetch_task_def(task_id).await?;
+        let def = fetch_task_def(config, task_id).await?;
         cache.insert(task_id, def.clone());
         Ok(def)
     }
 }
 
-async fn fetch_project_config(proj_id: Uuid) -> Result<JsonValue> {
-    let server_addr = crate::config::get().server_addr.as_ref();
+async fn fetch_project_config(config: &Config, proj_id: Uuid) -> Result<JsonValue> {
+    let server_addr = config.server_addr.as_ref();
 
     let token = "Bearer ".to_owned() + &jwt::generate_config_jwt(proj_id)?;
 
@@ -85,8 +88,8 @@ async fn fetch_project_config(proj_id: Uuid) -> Result<JsonValue> {
     Ok(config)
 }
 
-async fn fetch_task_def(task_id: Uuid) -> Result<TaskDef> {
-    let server_addr = crate::config::get().server_addr.as_ref();
+async fn fetch_task_def(config: &Config, task_id: Uuid) -> Result<TaskDef> {
+    let server_addr = config.server_addr.as_ref();
 
     let token = "Bearer ".to_owned() + &jwt::generate_config_jwt(task_id)?;
 
@@ -110,8 +113,8 @@ async fn fetch_task_def(task_id: Uuid) -> Result<TaskDef> {
     Ok(def)
 }
 
-pub async fn process_updates() -> Result<!> {
-    let chan = amqp::get_amqp_channel().await?;
+pub async fn process_updates(worker: Arc<Worker>) -> Result<!> {
+    let chan = worker.amqp_conn.create_channel().await?;
 
     // declare exchange for config updates
     chan.exchange_declare(

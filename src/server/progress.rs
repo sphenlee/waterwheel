@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use crate::amqp;
 use crate::messages::{TaskProgress, Token};
 use crate::server::tokens::{increment_token, ProcessToken};
@@ -8,16 +9,18 @@ use futures::TryStreamExt;
 use lapin::options::{BasicAckOptions, BasicConsumeOptions, BasicQosOptions, QueueDeclareOptions};
 use lapin::types::FieldTable;
 use postage::prelude::*;
-use sqlx::{Connection, Postgres, Transaction};
+use sqlx::{Connection, PgPool, Postgres, Transaction};
 use tracing::debug;
 use uuid::Uuid;
+use crate::server::Server;
 
 const RESULT_QUEUE: &str = "waterwheel.results";
 
-pub async fn process_progress() -> Result<!> {
-    let chan = amqp::get_amqp_channel().await?;
+pub async fn process_progress(server: Arc<Server>) -> Result<!> {
+    let pool = server.db_pool.clone();
+    let chan = server.amqp_conn.create_channel().await?;
 
-    let mut token_tx = postoffice::post_mail::<ProcessToken>().await?;
+    let mut token_tx = server.post_office.post_mail::<ProcessToken>().await?;
 
     // declare queue for consuming incoming messages
     chan.queue_declare(
@@ -50,12 +53,11 @@ pub async fn process_progress() -> Result<!> {
             trigger_datetime=?task_progress.trigger_datetime.to_rfc3339(),
             "received task progress");
 
-        let pool = db::get_pool();
         let mut conn = pool.acquire().await?;
         let mut txn = conn.begin().await?;
 
         let tokens_to_tx = if task_progress.result.is_final() {
-            advance_tokens(&mut txn, &task_progress).await?
+            advance_tokens(&pool, &mut txn, &task_progress).await?
         } else {
             Vec::<Token>::new()
         };
@@ -87,11 +89,10 @@ struct TaskEdge {
 }
 
 pub async fn advance_tokens(
+    pool: &PgPool,
     txn: &mut Transaction<'_, Postgres>,
     task_progress: &TaskProgress,
 ) -> Result<Vec<Token>> {
-    let pool = db::get_pool();
-
     let mut cursor = sqlx::query_as(
         "SELECT
             child_task_id,
@@ -102,7 +103,7 @@ pub async fn advance_tokens(
     )
     .bind(&task_progress.task_id)
     .bind(&task_progress.result)
-    .fetch(&pool);
+    .fetch(pool);
 
     let mut tokens_to_tx = Vec::new();
 

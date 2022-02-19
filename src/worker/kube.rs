@@ -13,6 +13,7 @@ use tracing::{trace, warn};
 use rand::seq::SliceRandom;
 use itertools::Itertools;
 use std::time::Duration;
+use crate::Worker;
 
 const DELETE_POD_TIMEOUT: Duration = Duration::from_secs(5 * 60);
 
@@ -20,21 +21,21 @@ pub struct KubeEngine;
 
 #[async_trait::async_trait]
 impl TaskEngineImpl for KubeEngine {
-    async fn run_task(&self, task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
-        run_kube(task_req, task_def).await
+    async fn run_task(&self, worker: &Worker, task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
+        run_kube(worker, task_req, task_def).await
     }
 }
 
-pub async fn run_kube(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
+pub async fn run_kube(worker: &Worker, task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
     trace!("loading kubernetes config");
-    let config = Config::infer().await?;
-    trace!("kubernetes namespace {}", config.default_namespace);
-    let client = Client::try_from(config)?;
+    let kube_config = Config::infer().await?;
+    trace!("kubernetes namespace {}", kube_config.default_namespace);
+    let client = Client::try_from(kube_config)?;
 
     trace!("connecting to kubernetes...");
     let pods: Api<Pod> = Api::default_namespaced(client);
 
-    let pod = make_pod(task_req, task_def).await?;
+    let pod = make_pod(&worker.config, task_req, task_def).await?;
     let name = pod.name();
 
     // Create the pod
@@ -115,8 +116,8 @@ fn make_grist() -> String {
     }).take(5).join("")
 }
 
-async fn make_pod(task_req: TaskRequest, task_def: TaskDef) -> Result<Pod> {
-    let env = env::get_env(&task_req, &task_def)?;
+async fn make_pod(config: &crate::config::Config, task_req: TaskRequest, task_def: TaskDef) -> Result<Pod> {
+    let env = env::get_env(config, &task_req, &task_def)?;
 
     let grist = make_grist();
     let name = format!("{}--{}", task_req.task_run_id, grist);
@@ -148,7 +149,7 @@ async fn make_pod(task_req: TaskRequest, task_def: TaskDef) -> Result<Pod> {
         }
     });
 
-    let config = get_project_config(task_def.project_id).await?;
+    let config = get_project_config(config, task_def.project_id).await?;
     let pod_merge = config.get("kubernetes_pod_merge");
 
     if let Some(json) = pod_merge {

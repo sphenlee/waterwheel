@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use crate::messages::SchedulerUpdate;
 use crate::server::tokens::ProcessToken;
 use crate::server::triggers::TriggerUpdate;
@@ -8,14 +9,15 @@ use lapin::options::{BasicAckOptions, BasicConsumeOptions, QueueDeclareOptions};
 use lapin::types::FieldTable;
 use postage::prelude::*;
 use tracing::trace;
+use crate::server::Server;
 
 const UPDATE_QUEUE: &str = "waterwheel.updates";
 
-pub async fn process_updates() -> Result<!> {
-    let chan = amqp::get_amqp_channel().await?;
+pub async fn process_updates(server: Arc<Server>) -> Result<!> {
+    let chan = server.amqp_conn.create_channel().await?;
 
-    let mut trigger_tx = postoffice::post_mail::<TriggerUpdate>().await?;
-    let mut token_tx = postoffice::post_mail::<ProcessToken>().await?;
+    let mut trigger_tx = server.post_office.post_mail::<TriggerUpdate>().await?;
+    let mut token_tx = server.post_office.post_mail::<ProcessToken>().await?;
 
     // declare queue for consuming incoming messages
     chan.queue_declare(

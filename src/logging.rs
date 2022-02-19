@@ -11,6 +11,7 @@ use tracing_subscriber::fmt::{FmtContext, FormatEvent, FormatFields};
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::{fmt, EnvFilter};
+use crate::config::Config;
 
 fn level_color(level: Level, msg: String) -> impl std::fmt::Display {
     match level {
@@ -84,10 +85,10 @@ impl<'w> FormatFields<'w> for SemiCompact {
     }
 }
 
-pub fn setup() -> Result<()> {
-    let use_json = config::get().json_log;
+pub fn setup(config: &Config) -> Result<()> {
+    let use_json = config.json_log;
 
-    let filter_layer = EnvFilter::new(&config::get().log);
+    let filter_layer = EnvFilter::new(&config.log);
 
     if use_json {
         tracing_subscriber::registry()

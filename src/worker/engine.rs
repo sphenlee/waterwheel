@@ -5,6 +5,7 @@ use crate::worker::docker::DockerEngine;
 use crate::worker::kube::KubeEngine;
 use crate::worker::kubejob::KubeJobEngine;
 use std::str::FromStr;
+use crate::Worker;
 
 #[derive(Copy, Clone, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -51,12 +52,13 @@ impl TaskEngine {
 
 #[async_trait::async_trait]
 pub trait TaskEngineImpl {
-    async fn run_task(&self, task_req: TaskRequest, task_def: TaskDef) -> Result<bool>;
+    async fn run_task(&self, worker: &Worker, task_req: TaskRequest, task_def: TaskDef) -> Result<bool>;
 }
 
 #[cfg(debug_assertions)]
 mod null {
     use crate::messages::{TaskDef, TaskRequest};
+    use crate::Worker;
     use crate::worker::engine::TaskEngineImpl;
 
     pub struct NullEngine;
@@ -65,6 +67,7 @@ mod null {
     impl TaskEngineImpl for NullEngine {
         async fn run_task(
             &self,
+            _worker: &Worker,
             _task_req: TaskRequest,
             _task_def: TaskDef,
         ) -> anyhow::Result<bool> {

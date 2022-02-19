@@ -8,6 +8,7 @@ use sqlx::types::Uuid;
 use std::fs;
 use std::time::{Duration, SystemTime};
 use tracing::debug;
+use crate::config::Config;
 
 const WATERWHEEL_ISSUER: &str = "waterwheel";
 const STASH_AUDIENCE: &str = "waterwheel.stash";
@@ -28,10 +29,10 @@ static ENCODING_KEY: OnceCell<EncodingKey> = OnceCell::new();
 /// Loads the encryption/decryption keys used to verify access to the stash
 /// Prefers an RSA key pair if one is provided, otherwise will use an HMAC shared secret
 /// (which is easier to generate and share for local development)
-pub fn load_keys() -> Result<()> {
-    match config::get().public_key.as_deref() {
+pub fn load_keys(config: &Config) -> Result<()> {
+    match config.public_key.as_deref() {
         Some(pub_key_file) => {
-            let priv_key_file = config::get()
+            let priv_key_file = config
                 .private_key
                 .as_deref()
                 .ok_or_else(|| anyhow!("RSA private key not set
@@ -40,7 +41,7 @@ pub fn load_keys() -> Result<()> {
             load_rsa_keys(pub_key_file, priv_key_file)
         }
         None => {
-            let secret = config::get().hmac_secret.as_deref().ok_or_else(|| {
+            let secret = config.hmac_secret.as_deref().ok_or_else(|| {
                 anyhow!(
                     "HMAC secret set
                 (either both public and private keys must be set, or the HMAC secret must be set)"

@@ -1,5 +1,6 @@
+use std::sync::Arc;
 use crate::messages::WorkerHeartbeat;
-use crate::{config, GIT_VERSION};
+use crate::{config, GIT_VERSION, Worker};
 use anyhow::Result;
 
 use chrono::Utc;
@@ -7,9 +8,10 @@ use tracing::{debug, error, trace, warn};
 
 use super::{RUNNING_TASKS, TOTAL_TASKS, WORKER_ID};
 use reqwest::{StatusCode, Url};
+use crate::config::Config;
 
-pub async fn post_heartbeat(client: &reqwest::Client) -> Result<bool> {
-    let server_addr = config::get().server_addr.as_ref();
+pub async fn post_heartbeat(config: &Config, client: &reqwest::Client) -> Result<bool> {
+    let server_addr = config.server_addr.as_ref();
     let url = Url::parse(server_addr)?.join("int-api/heartbeat")?;
 
     let resp = client
@@ -51,18 +53,18 @@ pub async fn post_heartbeat(client: &reqwest::Client) -> Result<bool> {
     }
 }
 
-pub async fn heartbeat() -> Result<!> {
+pub async fn heartbeat(worker: Arc<Worker>) -> Result<!> {
     let client = reqwest::Client::new();
 
     loop {
         trace!("sending heartbeat");
-        post_heartbeat(&client).await?;
+        post_heartbeat(&worker.config, &client).await?;
 
         tokio::time::sleep(std::time::Duration::from_secs(5)).await;
     }
 }
 
-pub async fn wait_for_server() {
+pub async fn wait_for_server(config: &Config) {
     // before accepting tasks perform a synchronous heartbeat to ensure
     // the server has our worker ID recorded
     let client = reqwest::Client::new();
@@ -71,7 +73,7 @@ pub async fn wait_for_server() {
     let mut retries = 5;
     loop {
         trace!("sending heartbeat");
-        if post_heartbeat(&client)
+        if post_heartbeat(config, &client)
             .await
             .expect("error posting heartbeat")
         {

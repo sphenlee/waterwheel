@@ -1,16 +1,23 @@
 use crate::config;
 use sqlx::{Executor, PgPool};
+use sqlx::postgres::PgPoolOptions;
 use tracing::{debug, info, trace, warn};
+use crate::config::Config;
 
 const SCHEMA: &str = include_str!("schema.sql");
 
-static DB_POOL: once_cell::sync::OnceCell<PgPool> = once_cell::sync::OnceCell::new();
-
-pub async fn create_pool() -> anyhow::Result<()> {
+pub async fn create_pool(config: &Config) -> anyhow::Result<PgPool> {
     info!("connecting to database...");
 
-    let url = &config::get().db_url;
-    let pool = PgPool::connect(url).await?;
+    #[cfg(test)]
+    let pool = PgPoolOptions::new()
+        .after_connect(|conn| Box::pin(async move {
+            conn.execute("SET search_path=pg_temp").await?;
+            Ok(())
+        })).connect(&config.db_url).await?;
+
+    #[cfg(not(test))]
+    let pool = PgPool::connect(&config.db_url).await?;
 
     let mut conn = pool.acquire().await?;
     debug!("creating schema if needed");
@@ -19,14 +26,5 @@ pub async fn create_pool() -> anyhow::Result<()> {
 
     info!("connected to database");
 
-    if DB_POOL.set(pool).is_err() {
-        warn!("database was already connected!");
-    }
-
-    Ok(())
-}
-
-pub fn get_pool() -> PgPool {
-    // pools internally use Arc so clone here is cheap
-    DB_POOL.get().expect("pool not created yet!").clone()
+    Ok(pool)
 }
