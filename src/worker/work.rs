@@ -98,7 +98,7 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
     while let Some((chan, msg)) = consumer.try_next().await? {
         let task_req: TaskRequest = serde_json::from_slice(&msg.data)?;
 
-        let task_def = config_cache::get_task_def(&worker.config, task_req.task_id).await?;
+        let task_def = config_cache::get_task_def(&worker, task_req.task_id).await?;
 
         let started_datetime = Utc::now();
 

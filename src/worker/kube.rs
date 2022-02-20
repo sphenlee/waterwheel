@@ -39,7 +39,7 @@ pub async fn run_kube(worker: &Worker, task_req: TaskRequest, task_def: TaskDef)
     trace!("connecting to kubernetes...");
     let pods: Api<Pod> = Api::default_namespaced(client);
 
-    let pod = make_pod(&worker.config, task_req, task_def).await?;
+    let pod = make_pod(&worker, task_req, task_def).await?;
     let name = pod.name();
 
     // Create the pod
@@ -126,12 +126,8 @@ fn make_grist() -> String {
     .join("")
 }
 
-async fn make_pod(
-    config: &crate::config::Config,
-    task_req: TaskRequest,
-    task_def: TaskDef,
-) -> Result<Pod> {
-    let env = env::get_env(config, &task_req, &task_def)?;
+async fn make_pod(worker: &Worker, task_req: TaskRequest, task_def: TaskDef) -> Result<Pod> {
+    let env = env::get_env(&worker.config, &task_req, &task_def)?;
 
     let grist = make_grist();
     let name = format!("{}--{}", task_req.task_run_id, grist);
@@ -163,7 +159,7 @@ async fn make_pod(
         }
     });
 
-    let config = get_project_config(config, task_def.project_id).await?;
+    let config = get_project_config(worker, task_def.project_id).await?;
     let pod_merge = config.get("kubernetes_pod_merge");
 
     if let Some(json) = pod_merge {

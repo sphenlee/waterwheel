@@ -1,5 +1,4 @@
 use crate::{
-    config::Config,
     messages::{ConfigUpdate, TaskDef},
     server::jwt,
     worker::Worker,
@@ -14,60 +13,40 @@ use lapin::{
     types::FieldTable,
     ExchangeKind,
 };
-use lru_time_cache::LruCache;
-use once_cell::sync::Lazy;
 use serde_json::Value as JsonValue;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 use tracing::trace;
 use uuid::Uuid;
 
 const CONFIG_EXCHANGE: &str = "waterwheel.config";
 
-// TODO - make these caches not statics
-static PROJ_CONFIG_CACHE: Lazy<Mutex<LruCache<Uuid, JsonValue>>> = Lazy::new(|| {
-    Mutex::new(LruCache::with_expiry_duration_and_capacity(
-        chrono::Duration::hours(24).to_std().unwrap(),
-        100,
-    ))
-});
-
-static TASK_DEF_CACHE: Lazy<Mutex<LruCache<Uuid, TaskDef>>> = Lazy::new(|| {
-    Mutex::new(LruCache::with_expiry_duration_and_capacity(
-        chrono::Duration::hours(24).to_std().unwrap(),
-        100,
-    ))
-});
-
-pub async fn get_project_config(config: &Config, proj_id: Uuid) -> Result<JsonValue> {
-    let mut cache = PROJ_CONFIG_CACHE.lock().await;
+pub async fn get_project_config(worker: &Worker, proj_id: Uuid) -> Result<JsonValue> {
+    let mut cache = worker.proj_config_cache.lock().await;
     let maybe_proj_config = cache.get(&proj_id);
 
     if let Some(proj_config) = maybe_proj_config {
         Ok(proj_config.clone())
     } else {
-        let proj_config = fetch_project_config(config, proj_id).await?;
+        let proj_config = fetch_project_config(&worker.config.server_addr, proj_id).await?;
         cache.insert(proj_id, proj_config.clone());
         Ok(proj_config)
     }
 }
 
-pub async fn get_task_def(config: &Config, task_id: Uuid) -> Result<TaskDef> {
-    let mut cache = TASK_DEF_CACHE.lock().await;
+pub async fn get_task_def(worker: &Worker, task_id: Uuid) -> Result<TaskDef> {
+    let mut cache = worker.task_def_cache.lock().await;
     let def = cache.get(&task_id);
 
     if let Some(def) = def {
         Ok(def.clone())
     } else {
-        let def = fetch_task_def(config, task_id).await?;
+        let def = fetch_task_def(&worker.config.server_addr, task_id).await?;
         cache.insert(task_id, def.clone());
         Ok(def)
     }
 }
 
-async fn fetch_project_config(config: &Config, proj_id: Uuid) -> Result<JsonValue> {
-    let server_addr = config.server_addr.as_ref();
-
+async fn fetch_project_config(server_addr: &str, proj_id: Uuid) -> Result<JsonValue> {
     let token = "Bearer ".to_owned() + &jwt::generate_config_jwt(proj_id)?;
 
     let url = reqwest::Url::parse(server_addr)?
@@ -92,9 +71,7 @@ async fn fetch_project_config(config: &Config, proj_id: Uuid) -> Result<JsonValu
     Ok(config)
 }
 
-async fn fetch_task_def(config: &Config, task_id: Uuid) -> Result<TaskDef> {
-    let server_addr = config.server_addr.as_ref();
-
+async fn fetch_task_def(server_addr: &str, task_id: Uuid) -> Result<TaskDef> {
     let token = "Bearer ".to_owned() + &jwt::generate_config_jwt(task_id)?;
 
     let url = reqwest::Url::parse(server_addr)?
@@ -170,8 +147,8 @@ pub async fn process_updates(worker: Arc<Worker>) -> Result<!> {
         trace!("received config update message: {:?}", update);
 
         match update {
-            ConfigUpdate::Project(proj_id) => drop_project_config(proj_id).await,
-            ConfigUpdate::TaskDef(task_id) => drop_task_def(task_id).await,
+            ConfigUpdate::Project(proj_id) => drop_project_config(&worker, proj_id).await,
+            ConfigUpdate::TaskDef(task_id) => drop_task_def(&worker, task_id).await,
         };
 
         chan.basic_ack(msg.delivery_tag, BasicAckOptions::default())
@@ -183,12 +160,12 @@ pub async fn process_updates(worker: Arc<Worker>) -> Result<!> {
     unreachable!("consumer stopped consuming")
 }
 
-pub async fn drop_project_config(proj_id: Uuid) {
-    let mut cache = PROJ_CONFIG_CACHE.lock().await;
+pub async fn drop_project_config(worker: &Worker, proj_id: Uuid) {
+    let mut cache = worker.proj_config_cache.lock().await;
     cache.remove(&proj_id);
 }
 
-pub async fn drop_task_def(task_id: Uuid) {
-    let mut cache = TASK_DEF_CACHE.lock().await;
+pub async fn drop_task_def(worker: &Worker, task_id: Uuid) {
+    let mut cache = worker.task_def_cache.lock().await;
     cache.remove(&task_id);
 }

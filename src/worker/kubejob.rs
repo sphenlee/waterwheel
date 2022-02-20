@@ -39,7 +39,7 @@ pub async fn run_kubejob(
     trace!("connecting to kubernetes...");
     let jobs: Api<Job> = Api::default_namespaced(client);
 
-    let job = make_job(&worker.config, task_req, task_def).await?;
+    let job = make_job(&worker, task_req, task_def).await?;
 
     // Create the pod
     let job = jobs.create(&PostParams::default(), &job).await?;
@@ -83,15 +83,11 @@ pub async fn run_kubejob(
 
 const ONE_HOUR: i64 = 60 * 60 * 24;
 
-async fn make_job(
-    config: &crate::config::Config,
-    task_req: TaskRequest,
-    task_def: TaskDef,
-) -> Result<Job> {
-    let env = env::get_env(config, &task_req, &task_def)?;
+async fn make_job(worker: &Worker, task_req: TaskRequest, task_def: TaskDef) -> Result<Job> {
+    let env = env::get_env(&worker.config, &task_req, &task_def)?;
     let name = task_req.task_run_id.to_string();
 
-    let config = get_project_config(config, task_def.project_id).await?;
+    let config = get_project_config(worker, task_def.project_id).await?;
     let job_merge = config.get("kubernetes_job_merge");
     let ttl = config
         .get("kubernetes_job_ttl_seconds_after_finished")

@@ -1,8 +1,11 @@
 use anyhow::Result;
 use cadence::StatsdClient;
 use lapin::Connection;
+use lru_time_cache::LruCache;
 use once_cell::sync::Lazy;
+use serde_json::Value as JsonValue;
 use std::sync::Arc;
+use tokio::sync::Mutex;
 use tracing::info;
 use uuid::Uuid;
 
@@ -11,7 +14,9 @@ use crate::{
     config,
     config::Config,
     counter::Counter,
-    logging, metrics,
+    logging,
+    messages::TaskDef,
+    metrics,
     server::jwt,
     util::{spawn_or_crash, spawn_retry},
 };
@@ -36,6 +41,8 @@ pub struct Worker {
     //pub post_office: PostOffice,
     pub statsd: StatsdClient,
     pub config: Config,
+    pub proj_config_cache: Mutex<LruCache<Uuid, JsonValue>>,
+    pub task_def_cache: Mutex<LruCache<Uuid, TaskDef>>,
 }
 
 impl Worker {
@@ -50,6 +57,14 @@ impl Worker {
             amqp_conn,
             statsd,
             config,
+            proj_config_cache: Mutex::new(LruCache::with_expiry_duration_and_capacity(
+                chrono::Duration::hours(24).to_std().unwrap(),
+                100,
+            )),
+            task_def_cache: Mutex::new(LruCache::with_expiry_duration_and_capacity(
+                chrono::Duration::hours(24).to_std().unwrap(),
+                100,
+            )),
         })
     }
 
