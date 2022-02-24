@@ -36,14 +36,17 @@ assert resp.status_code == codes.created
 for file in pathlib.Path('./jobs').iterdir():
     ext = file.suffix
     if ext == '.yml':
-        print(f'deploying {file}')
-        job = yaml.safe_load(file.open())
+        content_type = "application/x-yaml"
     elif ext == '.json':
-        print(f'deploying {file}')
-        job = json.load(file.open())
+        content_type = "application/json"
     else:
         continue
 
-    resp = session.put(WATERWHEEL_HOST + '/api/jobs', json=job)
+    print(f'deploying {file}')
+    resp = session.put(
+        WATERWHEEL_HOST + '/api/jobs',
+        data=open(file).read(),
+        headers={'Content-Type': content_type},
+    )
     if resp.status_code != codes.created:
         print(resp.text)
