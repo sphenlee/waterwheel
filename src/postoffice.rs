@@ -1,5 +1,4 @@
 use anyhow::Result;
-use once_cell::sync::OnceCell;
 use postage::dispatch::{Receiver, Sender};
 use tokio::sync::Mutex;
 use typemap::SendMap;
@@ -19,28 +18,32 @@ impl<T: 'static> typemap::Key for Mailbox<T> {
     type Value = Mailbox<T>;
 }
 
-static POST_OFFICE: OnceCell<Mutex<SendMap>> = OnceCell::new();
+pub struct PostOffice(Mutex<SendMap>);
 
-async fn with_mailbox<T: Clone + Send + 'static, F, R>(f: F) -> Result<R>
-where
-    F: FnOnce(&mut Mailbox<T>) -> Result<R>,
-{
-    let mut postoffice = POST_OFFICE
-        .get_or_init(|| Mutex::new(SendMap::custom()))
-        .lock()
-        .await;
+impl PostOffice {
+    pub fn open() -> Self {
+        Self(Mutex::new(SendMap::custom()))
+    }
 
-    let mailbox = postoffice
-        .entry::<Mailbox<T>>()
-        .or_insert_with(Mailbox::<T>::new);
+    async fn with_mailbox<T: Clone + Send + 'static, F, R>(&self, f: F) -> Result<R>
+    where
+        F: FnOnce(&mut Mailbox<T>) -> Result<R>,
+    {
+        let mut postoffice = self.0.lock().await;
 
-    f(mailbox)
-}
+        let mailbox = postoffice
+            .entry::<Mailbox<T>>()
+            .or_insert_with(Mailbox::<T>::new);
 
-pub async fn receive_mail<T: Clone + Send + 'static>() -> Result<Receiver<T>> {
-    with_mailbox(|mailbox| Ok(mailbox.tx.subscribe())).await
-}
+        f(mailbox)
+    }
 
-pub async fn post_mail<T: Clone + Send + 'static>() -> Result<Sender<T>> {
-    with_mailbox(|mailbox| Ok(mailbox.tx.clone())).await
+    pub async fn receive_mail<T: Clone + Send + 'static>(&self) -> Result<Receiver<T>> {
+        self.with_mailbox(|mailbox| Ok(mailbox.tx.subscribe()))
+            .await
+    }
+
+    pub async fn post_mail<T: Clone + Send + 'static>(&self) -> Result<Sender<T>> {
+        self.with_mailbox(|mailbox| Ok(mailbox.tx.clone())).await
+    }
 }

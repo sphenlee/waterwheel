@@ -1,6 +1,7 @@
 #![feature(never_type)]
 #![feature(assert_matches)]
 
+use crate::{server::Server, worker::Worker};
 use anyhow::Result;
 
 mod amqp;
@@ -21,8 +22,6 @@ pub const GIT_VERSION: &str = git_version::git_version!();
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv::dotenv().ok();
-    config::load()?;
-    logging::setup()?;
 
     let app = clap::App::new("waterwheel")
         .author("Steve Lee <sphen.lee@gmail.com>")
@@ -48,19 +47,17 @@ async fn main() -> Result<()> {
 
     match args.subcommand() {
         ("scheduler", Some(_args)) => {
-            db::create_pool().await?;
-            amqp::amqp_connect().await?;
-
-            server::run_scheduler().await?;
-            server::run_api().await
+            let server = Server::new().await?;
+            server.run_scheduler().await?;
         }
         ("api", Some(_args)) => {
-            db::create_pool().await?;
-            amqp::amqp_connect().await?;
-
-            server::run_api().await
+            let server = Server::new().await?;
+            server.run_api().await?;
         }
-        ("worker", Some(_args)) => worker::run_worker().await,
+        ("worker", Some(_args)) => {
+            let worker = Worker::new().await?;
+            worker.run_worker().await?;
+        }
         _ => unreachable!("clap should have already checked the subcommands"),
     }
 }

@@ -1,5 +1,4 @@
-use highnoon::ws::WebSocket;
-use highnoon::Message;
+use highnoon::{ws::WebSocket, Message};
 use std::time::Duration;
 use tracing::info;
 

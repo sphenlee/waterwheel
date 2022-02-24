@@ -1,12 +1,18 @@
-use crate::config;
-use crate::messages::{TaskDef, TaskRequest};
-use crate::server::jwt;
+use crate::{
+    config::Config,
+    messages::{TaskDef, TaskRequest},
+    server::jwt,
+};
 use anyhow::Result;
 use itertools::Itertools;
 use k8s_openapi::api::core::v1::EnvVar;
 
-pub fn get_env_string(task_req: &TaskRequest, task_def: &TaskDef) -> Result<Vec<String>> {
-    let env = get_env(task_req, task_def)?;
+pub fn get_env_string(
+    config: &Config,
+    task_req: &TaskRequest,
+    task_def: &TaskDef,
+) -> Result<Vec<String>> {
+    let env = get_env(config, task_req, task_def)?;
 
     Ok(env
         .iter()
@@ -22,7 +28,7 @@ fn envvar(name: &str, val: impl std::fmt::Display) -> EnvVar {
     }
 }
 
-pub fn get_env(task_req: &TaskRequest, task_def: &TaskDef) -> Result<Vec<EnvVar>> {
+pub fn get_env(config: &Config, task_req: &TaskRequest, task_def: &TaskDef) -> Result<Vec<EnvVar>> {
     let provided_env = task_def.env.clone().unwrap_or_default();
 
     let mut env = vec![];
@@ -37,7 +43,7 @@ pub fn get_env(task_req: &TaskRequest, task_def: &TaskDef) -> Result<Vec<EnvVar>
         }
     }
 
-    let server_addr: &str = config::get().server_addr.as_ref();
+    let server_addr: &str = config.server_addr.as_ref();
 
     env.push(envvar(
         "WATERWHEEL_TRIGGER_DATETIME",

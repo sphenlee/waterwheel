@@ -1,8 +1,9 @@
-use crate::config;
+use crate::{config::Config, server::Server};
 use anyhow::Result;
 use cadence::StatsdClient;
 use lapin::Channel;
 use sqlx::PgPool;
+use std::sync::Arc;
 
 pub mod auth;
 mod config_cache;
@@ -19,9 +20,10 @@ mod updates;
 mod workers;
 
 pub struct State {
-    pool: PgPool,
-    channel: Channel,
+    db_pool: PgPool,
+    amqp_channel: Channel,
     statsd: StatsdClient,
+    config: Config,
 }
 
 impl highnoon::State for State {
@@ -44,15 +46,16 @@ macro_rules! get_file {
     };
 }
 
-pub async fn serve() -> Result<()> {
+pub async fn serve(server: Arc<Server>) -> Result<()> {
     let state = State {
-        pool: crate::db::get_pool(),
-        channel: crate::amqp::get_amqp_channel().await?,
-        statsd: crate::metrics::get_client(),
+        db_pool: server.db_pool.clone(),
+        amqp_channel: server.amqp_conn.create_channel().await?,
+        statsd: server.statsd.clone(),
+        config: server.config.clone(), // TODO - can we avoid this clone?
     };
 
-    updates::setup(&state.channel).await?;
-    config_cache::setup(&state.channel).await?;
+    updates::setup(&state.amqp_channel).await?;
+    config_cache::setup(&state.amqp_channel).await?;
 
     let mut app = highnoon::App::new(state);
     app.with(highnoon::filter::Log);
@@ -182,7 +185,7 @@ pub async fn serve() -> Result<()> {
             .get(get_file!(HTML; "text/html;charset=utf-8"));
     }
 
-    let host = &config::get().server_bind;
+    let host = &server.config.server_bind;
 
     app.listen(host).await?;
 

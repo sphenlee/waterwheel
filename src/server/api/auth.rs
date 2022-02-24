@@ -1,13 +1,13 @@
-use crate::config;
-use crate::server::api::job::get_job_project_id;
-use crate::server::api::request_ext::RequestExt;
-use crate::server::api::State;
+use crate::{
+    config::Config,
+    server::api::{job::get_job_project_id, request_ext::RequestExt, State},
+};
 use anyhow::Result;
-use highnoon::headers::authorization::Bearer;
-use highnoon::headers::Authorization;
-use highnoon::StatusCode;
-use serde::Deserialize;
-use serde::Serialize;
+use highnoon::{
+    headers::{authorization::Bearer, Authorization},
+    StatusCode,
+};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::{debug, error, warn};
 use uuid::Uuid;
@@ -81,12 +81,13 @@ fn derive_http<S: highnoon::State>(req: &highnoon::Request<S>) -> Result<Http> {
 }
 
 async fn authorize(
+    config: &Config,
     principal: Principal,
     action: Action,
     object: Object,
     http: Http,
 ) -> highnoon::Result<bool> {
-    let opa = if let Some(opa) = config::get().opa_sidecar_addr.as_ref() {
+    let opa = if let Some(opa) = config.opa_sidecar_addr.as_ref() {
         opa
     } else {
         error!("OPA sidecar address is unset (to disable authz you must set `WATERWHEEL_NO_AUTHZ=true`)");
@@ -149,7 +150,8 @@ impl Check {
     }
 
     pub async fn check(self, req: &highnoon::Request<State>) -> highnoon::Result<()> {
-        if config::get().no_authz {
+        let config = &req.state().config;
+        if config.no_authz {
             return Ok(());
         }
 
@@ -168,7 +170,7 @@ impl Check {
         // NOTE - this potentially logs credentials so don't leave it uncommented
         //debug!("http context", { http: Value::from_debug(&http) });
 
-        if authorize(principal, self.action, object, http).await? {
+        if authorize(config, principal, self.action, object, http).await? {
             Ok(())
         } else {
             Err(highnoon::Error::http(StatusCode::FORBIDDEN))

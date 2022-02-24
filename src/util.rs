@@ -36,17 +36,18 @@ pub fn format_duration_approx(duration: Duration) -> String {
 
 /// execute a future and retry it when it fails, using a circuit breaker
 /// to abort if the future fails too often too quickly (5 times in 1 minute)
-pub fn spawn_retry<F, Fut>(name: impl Into<String>, func: F)
+pub fn spawn_retry<F, C, Fut>(name: impl Into<String>, ctx: C, func: F)
 where
-    F: Fn() -> Fut + Send + Sync + 'static,
+    F: Fn(C) -> Fut + Send + Sync + 'static,
     Fut: Future<Output = Result<!>> + Send + 'static,
+    C: Clone + Send + Sync + 'static,
 {
     let name = name.into();
 
     let _ = tokio::spawn(async move {
         let mut cb = CircuitBreaker::new(5, Duration::minutes(1));
         while cb.retry() {
-            match func().await {
+            match func(ctx.clone()).await {
                 Ok(_) => unreachable!("func never returns"),
                 Err(err) => error!("task {} failed: {:?}", name, err),
             }
@@ -57,15 +58,16 @@ where
 }
 
 /// execute a future and if it returns (Ok or Err) then crash
-pub fn spawn_or_crash<F, Fut>(name: impl Into<String>, func: F)
+pub fn spawn_or_crash<F, C, Fut>(name: impl Into<String>, ctx: C, func: F)
 where
-    F: Fn() -> Fut + Send + Sync + 'static,
+    F: Fn(C) -> Fut + Send + Sync + 'static,
     Fut: Future<Output = Result<!>> + Send + 'static,
+    C: Send + Sync + 'static,
 {
     let name = name.into();
 
     let _ = tokio::spawn(async move {
-        match func().await {
+        match func(ctx).await {
             Ok(_) => unreachable!("func never returns"),
             Err(err) => error!("task {} failed: {:?}", name, err),
         }

@@ -1,16 +1,18 @@
-use crate::amqp::get_amqp_channel;
-use crate::messages::{TaskPriority, TaskRequest, Token};
-use crate::{db, metrics, postoffice};
+use crate::{
+    messages::{TaskPriority, TaskRequest, Token},
+    server::Server,
+};
 use anyhow::Result;
 use cadence::CountedExt;
 use chrono::Utc;
-use lapin::options::{
-    BasicPublishOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
+use lapin::{
+    options::{BasicPublishOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions},
+    types::FieldTable,
+    BasicProperties, ExchangeKind,
 };
-use lapin::types::FieldTable;
-use lapin::{BasicProperties, ExchangeKind};
 use postage::prelude::*;
 use sqlx::Connection;
+use std::sync::Arc;
 use tracing::{debug, info};
 use uuid::Uuid;
 
@@ -22,13 +24,13 @@ const PERSISTENT: u8 = 2;
 #[derive(Debug, Clone)]
 pub struct ExecuteToken(pub Token, pub TaskPriority);
 
-pub async fn process_executions() -> Result<!> {
-    let pool = db::get_pool();
-    let statsd = metrics::get_client();
+pub async fn process_executions(server: Arc<Server>) -> Result<!> {
+    let pool = server.db_pool.clone();
+    let statsd = server.statsd.clone();
 
-    let mut execute_rx = postoffice::receive_mail::<ExecuteToken>().await?;
+    let mut execute_rx = server.post_office.receive_mail::<ExecuteToken>().await?;
 
-    let chan = get_amqp_channel().await?;
+    let chan = server.amqp_conn.create_channel().await?;
 
     chan.exchange_declare(
         TASK_EXCHANGE,

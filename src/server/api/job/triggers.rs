@@ -1,6 +1,9 @@
-use crate::server::api::request_ext::RequestExt;
-use crate::server::api::types::{period_from_string, Job, Trigger};
-use crate::server::api::{auth, State};
+use crate::server::api::{
+    auth,
+    request_ext::RequestExt,
+    types::{period_from_string, Job, Trigger},
+    State,
+};
 use chrono::{DateTime, Utc};
 use highnoon::{Json, Request, Responder};
 use serde::{Deserialize, Serialize};

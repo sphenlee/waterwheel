@@ -1,10 +1,10 @@
 use crate::messages::SchedulerUpdate;
 use anyhow::Result;
-use lapin::options::{
-    BasicPublishOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
+use lapin::{
+    options::{BasicPublishOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions},
+    types::FieldTable,
+    BasicProperties, Channel, ExchangeKind,
 };
-use lapin::types::FieldTable;
-use lapin::{BasicProperties, Channel, ExchangeKind};
 
 const UPDATES_EXCHANGE: &str = "waterwheel.updates";
 const UPDATES_QUEUE: &str = "waterwheel.updates";

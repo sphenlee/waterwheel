@@ -11,10 +11,10 @@ pub trait RequestExt {
 
 impl RequestExt for Request<State> {
     fn get_pool(&self) -> PgPool {
-        self.state().pool.clone()
+        self.state().db_pool.clone()
     }
 
     fn get_channel(&self) -> &Channel {
-        &self.state().channel
+        &self.state().amqp_channel
     }
 }

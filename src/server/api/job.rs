@@ -1,8 +1,12 @@
-use crate::messages::{ConfigUpdate, SchedulerUpdate};
-use crate::server::api::{auth, config_cache, request_ext::RequestExt, types::Job, updates, State};
-use crate::server::body_parser::read_from_body;
-use crate::server::triggers::TriggerUpdate;
-use crate::util::{is_pg_integrity_error, pg_error};
+use crate::{
+    messages::{ConfigUpdate, SchedulerUpdate},
+    server::{
+        api::{auth, config_cache, request_ext::RequestExt, types::Job, updates, State},
+        body_parser::read_from_body,
+        triggers::TriggerUpdate,
+    },
+    util::{is_pg_integrity_error, pg_error},
+};
 use highnoon::{Json, Request, Responder, Response, StatusCode};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
@@ -11,19 +15,21 @@ use uuid::Uuid;
 
 mod duration;
 mod graph;
+pub mod reference;
 mod task_runs;
 mod tasks;
 mod tokens;
 mod triggers;
-pub mod reference;
 
-pub use self::duration::get_duration;
-pub use self::graph::get_graph;
-pub use self::tasks::list_tasks;
-pub use self::tokens::{
-    clear_tokens_trigger_datetime, get_tokens, get_tokens_overview, get_tokens_trigger_datetime,
+pub use self::{
+    duration::get_duration,
+    graph::get_graph,
+    tasks::list_tasks,
+    tokens::{
+        clear_tokens_trigger_datetime, get_tokens, get_tokens_overview, get_tokens_trigger_datetime,
+    },
+    triggers::{get_trigger, get_triggers_by_job},
 };
-pub use self::triggers::{get_trigger, get_triggers_by_job};
 pub use task_runs::{list_job_all_task_runs, list_task_runs};
 
 pub async fn get_job_project_id(pool: &PgPool, job_id: Uuid) -> highnoon::Result<Uuid> {

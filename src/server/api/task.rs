@@ -1,8 +1,11 @@
-use crate::messages::{SchedulerUpdate, TaskDef, TaskPriority, Token};
-use crate::server::api::request_ext::RequestExt;
-use crate::server::api::{auth, updates, State};
-use crate::server::jwt;
-use crate::server::tokens::ProcessToken;
+use crate::{
+    messages::{SchedulerUpdate, TaskDef, TaskPriority, Token},
+    server::{
+        api::{auth, request_ext::RequestExt, updates, State},
+        jwt,
+        tokens::ProcessToken,
+    },
+};
 use chrono::{DateTime, Utc};
 use futures::TryStreamExt;
 use highnoon::{Json, Request, Responder, Response, StatusCode};
@@ -73,8 +76,10 @@ pub async fn activate_multiple_tokens(mut req: Request<State>) -> highnoon::Resu
     let params: ActivateMultipleTokensParams = req.body_json().await?;
 
     if params.first.is_none() && params.last.is_none() && params.only_failed.is_none() {
-        return (StatusCode::BAD_REQUEST,
-                "one or more of 'first','last' and 'only_failed' must be specified")
+        return (
+            StatusCode::BAD_REQUEST,
+            "one or more of 'first','last' and 'only_failed' must be specified",
+        )
             .into_response();
     }
 

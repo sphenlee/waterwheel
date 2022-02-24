@@ -1,18 +1,18 @@
-use crate::messages::{TaskDef, TaskRequest};
-use crate::worker::config_cache::get_project_config;
-use crate::worker::engine::TaskEngineImpl;
-use crate::worker::env;
-use crate::worker::WORKER_ID;
+use crate::{
+    messages::{TaskDef, TaskRequest},
+    worker::{config_cache::get_project_config, engine::TaskEngineImpl, env, Worker, WORKER_ID},
+};
 use anyhow::Result;
 use futures::{StreamExt, TryStreamExt};
-use k8s_openapi::api::core::v1::Pod;
-use kube::api::{Api, DeleteParams, PostParams};
-use kube::{Client, Config, ResourceExt};
-use std::convert::TryFrom;
-use tracing::{trace, warn};
-use rand::seq::SliceRandom;
 use itertools::Itertools;
-use std::time::Duration;
+use k8s_openapi::api::core::v1::Pod;
+use kube::{
+    api::{Api, DeleteParams, PostParams},
+    Client, Config, ResourceExt,
+};
+use rand::seq::SliceRandom;
+use std::{convert::TryFrom, time::Duration};
+use tracing::{trace, warn};
 
 const DELETE_POD_TIMEOUT: Duration = Duration::from_secs(5 * 60);
 
@@ -20,28 +20,32 @@ pub struct KubeEngine;
 
 #[async_trait::async_trait]
 impl TaskEngineImpl for KubeEngine {
-    async fn run_task(&self, task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
-        run_kube(task_req, task_def).await
+    async fn run_task(
+        &self,
+        worker: &Worker,
+        task_req: TaskRequest,
+        task_def: TaskDef,
+    ) -> Result<bool> {
+        run_kube(worker, task_req, task_def).await
     }
 }
 
-pub async fn run_kube(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
+pub async fn run_kube(worker: &Worker, task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
     trace!("loading kubernetes config");
-    let config = Config::infer().await?;
-    trace!("kubernetes namespace {}", config.default_namespace);
-    let client = Client::try_from(config)?;
+    let kube_config = Config::infer().await?;
+    trace!("kubernetes namespace {}", kube_config.default_namespace);
+    let client = Client::try_from(kube_config)?;
 
     trace!("connecting to kubernetes...");
     let pods: Api<Pod> = Api::default_namespaced(client);
 
-    let pod = make_pod(task_req, task_def).await?;
+    let pod = make_pod(&worker, task_req, task_def).await?;
     let name = pod.name();
 
     // Create the pod
     trace!(pod_name=%name, "creating pod");
-    let pod = pods.create(&PostParams::default(), &pod).await?;
+    let _pod = pods.create(&PostParams::default(), &pod).await?;
     trace!(pod_name=%name, "created pod");
-
 
     let mut watcher = kube_runtime::watcher::watch_object(pods.clone(), &name).boxed();
 
@@ -91,7 +95,12 @@ pub async fn run_kube(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> 
 
     trace!(pod_name=%name, "deleting pod");
 
-    match tokio::time::timeout(DELETE_POD_TIMEOUT, pods.delete(&name, &DeleteParams::default())).await {
+    match tokio::time::timeout(
+        DELETE_POD_TIMEOUT,
+        pods.delete(&name, &DeleteParams::default()),
+    )
+    .await
+    {
         Ok(inner) => {
             inner?;
         }
@@ -101,22 +110,24 @@ pub async fn run_kube(task_req: TaskRequest, task_def: TaskDef) -> Result<bool> 
     }
     trace!(pod_name=%name, "deleted pod");
 
-
     Ok(result)
 }
-
 
 // TODO - make this a util, we should use this grist in a few other places too
 fn make_grist() -> String {
     let mut rng = rand::thread_rng();
     std::iter::from_fn(move || {
-        let byte = b"GHJKLMNPQRSTUVWXYZ".choose(&mut rng).expect("slice is not empty");
+        let byte = b"GHJKLMNPQRSTUVWXYZ"
+            .choose(&mut rng)
+            .expect("slice is not empty");
         Some(char::from(*byte))
-    }).take(5).join("")
+    })
+    .take(5)
+    .join("")
 }
 
-async fn make_pod(task_req: TaskRequest, task_def: TaskDef) -> Result<Pod> {
-    let env = env::get_env(&task_req, &task_def)?;
+async fn make_pod(worker: &Worker, task_req: TaskRequest, task_def: TaskDef) -> Result<Pod> {
+    let env = env::get_env(&worker.config, &task_req, &task_def)?;
 
     let grist = make_grist();
     let name = format!("{}--{}", task_req.task_run_id, grist);
@@ -148,7 +159,7 @@ async fn make_pod(task_req: TaskRequest, task_def: TaskDef) -> Result<Pod> {
         }
     });
 
-    let config = get_project_config(task_def.project_id).await?;
+    let config = get_project_config(worker, task_def.project_id).await?;
     let pod_merge = config.get("kubernetes_pod_merge");
 
     if let Some(json) = pod_merge {

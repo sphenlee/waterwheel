@@ -1,13 +1,13 @@
-use crate::messages::{TaskPriority, Token};
-use crate::server::execute::ExecuteToken;
-use crate::{db, postoffice};
+use crate::{
+    messages::{TaskPriority, Token},
+    server::{execute::ExecuteToken, Server},
+};
 use anyhow::Result;
 use futures::TryStreamExt;
 use postage::prelude::*;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Postgres, Transaction};
-use std::collections::HashMap;
-use std::fmt;
+use std::{collections::HashMap, fmt, sync::Arc};
 use tracing::{info, trace};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -41,13 +41,13 @@ async fn get_threshold(pool: &PgPool, token: &Token) -> Result<i32> {
     Ok(threshold)
 }
 
-pub async fn process_tokens() -> Result<!> {
-    let pool = db::get_pool();
+pub async fn process_tokens(server: Arc<Server>) -> Result<!> {
+    let pool = server.db_pool.clone();
 
-    let mut token_rx = postoffice::receive_mail::<ProcessToken>().await?;
-    let mut execute_tx = postoffice::post_mail::<ExecuteToken>().await?;
+    let mut token_rx = server.post_office.receive_mail::<ProcessToken>().await?;
+    let mut execute_tx = server.post_office.post_mail::<ExecuteToken>().await?;
 
-    let mut tokens = restore_tokens().await?;
+    let mut tokens = restore_tokens(&server).await?;
 
     while let Some(msg) = token_rx.recv().await {
         match msg {
@@ -107,12 +107,12 @@ pub async fn increment_token(txn: &mut Transaction<'_, Postgres>, token: &Token)
     Ok(())
 }
 
-async fn restore_tokens() -> Result<HashMap<Token, i32>> {
+async fn restore_tokens(server: &Server) -> Result<HashMap<Token, i32>> {
     info!("restoring tokens from database...");
 
-    let pool = db::get_pool();
+    let pool = server.db_pool.clone();
 
-    let mut execute_tx = postoffice::post_mail::<ExecuteToken>().await?;
+    let mut execute_tx = server.post_office.post_mail::<ExecuteToken>().await?;
 
     let mut tokens = HashMap::<Token, i32>::new();
 

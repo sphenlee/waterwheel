@@ -1,12 +1,14 @@
-use crate::messages::{SchedulerUpdate, Token};
-use crate::server::api::request_ext::RequestExt;
-use crate::server::api::{auth, updates, State};
-use crate::server::tokens::ProcessToken;
+use crate::{
+    messages::{SchedulerUpdate, Token},
+    server::{
+        api::{auth, request_ext::RequestExt, updates, State},
+        tokens::ProcessToken,
+    },
+};
 use chrono::{DateTime, Utc};
 use highnoon::{Json, Request, Responder};
 use serde::{Deserialize, Serialize};
-use std::cmp::Reverse;
-use std::collections::BTreeMap;
+use std::{cmp::Reverse, collections::BTreeMap};
 use uuid::Uuid;
 
 #[derive(Deserialize)]
