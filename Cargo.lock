@@ -3009,6 +3009,7 @@ dependencies = [
  "kube-runtime",
  "lapin",
  "lru_time_cache",
+ "mime",
  "once_cell",
  "postage",
  "rand",

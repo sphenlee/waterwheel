@@ -1,5 +1,6 @@
 use crate::messages::{ConfigUpdate, SchedulerUpdate};
 use crate::server::api::{auth, config_cache, request_ext::RequestExt, types::Job, updates, State};
+use crate::server::body_parser::read_from_body;
 use crate::server::triggers::TriggerUpdate;
 use crate::util::{is_pg_integrity_error, pg_error};
 use highnoon::{Json, Request, Responder, Response, StatusCode};
@@ -57,7 +58,7 @@ pub async fn get_project_id(pool: &PgPool, name: &str) -> highnoon::Result<Uuid>
 pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
     let pool = req.get_pool();
 
-    let job: Job = req.body_json().await?;
+    let job: Job = read_from_body(&mut req).await?;
 
     let project_id = get_project_id(&pool, &job.project).await?;
     auth::update().job(job.uuid, project_id).check(&req).await?;
