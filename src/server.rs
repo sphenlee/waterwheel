@@ -10,6 +10,7 @@ use std::sync::Arc;
 use tracing::warn;
 
 mod api;
+pub mod body_parser;
 mod execute;
 pub mod jwt;
 mod progress;
