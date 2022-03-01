@@ -13,7 +13,7 @@ import Moment from 'react-moment';
 
 import Body from '../components/Body';
 import State from '../components/State.jsx';
-import RelDate from '../components/Date.jsx';
+import RelDate from '../components/Date';
 import WorkerStatus from '../components/WorkerStatus.jsx';
 import { ColumnsType } from "antd/lib/table";
 

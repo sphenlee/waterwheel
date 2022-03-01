@@ -4,7 +4,11 @@ import Moment from 'react-moment';
 
 const { Text } = Typography;
 
-export default function(props) {
+type DateProps = {
+	children: string | number | Date | moment.Moment,
+};
+
+export default function(props: DateProps) {
 	return (
 		<Space>
 		    <Text>{props.children}</Text>
