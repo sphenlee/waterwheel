@@ -12,7 +12,7 @@ import Project from './pages/Project';
 import Projects from './pages/Projects';
 import Tokens from './pages/Tokens';
 import TopMenu from './components/TopMenu.jsx'
-import Triggers from './pages/Triggers.jsx';
+import Triggers from './pages/Triggers';
 import Worker from './pages/Worker.jsx';
 import Workers from './pages/Workers.jsx';
 

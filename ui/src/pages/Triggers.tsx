@@ -6,6 +6,7 @@ import axios from 'axios';
 
 import Body from '../components/Body.jsx';
 import State from '../components/State.jsx';
+import { ColumnsType } from "antd/lib/table";
 
 const { Content } = Layout;
 
@@ -37,9 +38,19 @@ function makeColumns(job_id) {
     ];
 }
 
+type TriggersProps = {
+    history: any;
+    match: any;
+};
+type TriggersState = {
+    trigger: any;
+};
 
-class Triggers extends Component {
-    constructor(props) {
+class Triggers extends Component<TriggersProps, TriggersState> {
+    columns: ColumnsType<any>;
+    interval: NodeJS.Timeout;
+
+    constructor(props: TriggersProps) {
         super(props);
 
         this.columns = makeColumns(props.match.params.job_id);
