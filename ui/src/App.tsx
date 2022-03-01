@@ -5,7 +5,7 @@ import { Layout, Breadcrumb } from 'antd';
 
 const { Content, Footer } = Layout;
 
-import Home from './pages/Home.jsx';
+import Home from './pages/Home';
 import Job from './pages/Job.jsx';
 import Login from './pages/Login.jsx';
 import Project from './pages/Project.jsx';

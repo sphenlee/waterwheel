@@ -9,8 +9,19 @@ import Navigation from '../components/Navigation.jsx'
 
 const { Content } = Layout;
 
+type HomeState = {
+  loading: boolean;
+  status: {
+    num_projects?: number;
+    num_workers?: number;
+    running_tasks?: number;
+  };
+};
 
-class Home extends Component {
+
+class Home extends Component<{}, HomeState> {
+  interval: NodeJS.Timeout;
+
   constructor(props) {
       super(props);
 
