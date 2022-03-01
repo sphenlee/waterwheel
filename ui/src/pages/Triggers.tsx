@@ -4,7 +4,7 @@ import { Table, Layout, Breadcrumb, PageHeader, Button, notification, Badge} fro
 import { geekblue, lime, red, grey, yellow } from '@ant-design/colors';
 import axios from 'axios';
 
-import Body from '../components/Body.jsx';
+import Body from '../components/Body';
 import State from '../components/State.jsx';
 import { ColumnsType } from "antd/lib/table";
 

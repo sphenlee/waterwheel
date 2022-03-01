@@ -7,7 +7,7 @@ import JSONPretty from 'react-json-pretty';
 import styled from 'styled-components';
 import axios from 'axios';
 
-import Body from '../components/Body.jsx';
+import Body from '../components/Body';
 import TokenTable from './Job/TokenTable.jsx';
 import Triggers from './Job/Triggers.jsx';
 import Graph from '../components/Graph.jsx';

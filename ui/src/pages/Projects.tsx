@@ -4,7 +4,7 @@ import { List, Avatar, Layout, Breadcrumb, Row, Col } from 'antd';
 import { ProjectOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
-import Body from '../components/Body.jsx';
+import Body from '../components/Body';
 
 const { Content } = Layout;
 

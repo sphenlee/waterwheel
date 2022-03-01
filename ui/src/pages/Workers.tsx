@@ -4,7 +4,7 @@ import { Table, Layout, Breadcrumb } from 'antd';
 import axios from 'axios';
 import Moment from 'react-moment';
 
-import Body from '../components/Body.jsx';
+import Body from '../components/Body';
 import WorkerStatus from '../components/WorkerStatus.jsx';
 import { ColumnsType } from "antd/lib/table";
 

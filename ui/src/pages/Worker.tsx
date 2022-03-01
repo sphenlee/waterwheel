@@ -11,7 +11,7 @@ const { Option } = Select;
 import axios from 'axios';
 import Moment from 'react-moment';
 
-import Body from '../components/Body.jsx';
+import Body from '../components/Body';
 import State from '../components/State.jsx';
 import RelDate from '../components/Date.jsx';
 import WorkerStatus from '../components/WorkerStatus.jsx';

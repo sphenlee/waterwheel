@@ -5,7 +5,7 @@ import { geekblue, lime, red, grey, yellow, orange } from '@ant-design/colors';
 import { PauseOutlined, PartitionOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
-import Body from '../components/Body.jsx';
+import Body from '../components/Body';
 
 const { Content } = Layout;
 

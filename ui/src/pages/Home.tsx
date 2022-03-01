@@ -4,7 +4,7 @@ import { Layout, Breadcrumb, Row, Col, Statistic } from 'antd';
 import { geekblue, lime, red, grey, yellow } from '@ant-design/colors';
 import axios from 'axios';
 
-import Body from '../components/Body.jsx';
+import Body from '../components/Body';
 import Navigation from '../components/Navigation.jsx'
 
 const { Content } = Layout;
