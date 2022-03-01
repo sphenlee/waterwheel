@@ -1,5 +1,5 @@
 use crate::{
-    amqp::amqp_connect, config, config::Config, db, logging, metrics, postoffice::PostOffice,
+    amqp::amqp_connect, config::Config, db, metrics, postoffice::PostOffice,
     util::spawn_or_crash,
 };
 use anyhow::Result;
@@ -9,7 +9,7 @@ use sqlx::PgPool;
 use std::sync::Arc;
 use tracing::warn;
 
-mod api;
+pub mod api;
 pub mod body_parser;
 mod execute;
 pub mod jwt;
@@ -28,10 +28,7 @@ pub struct Server {
 }
 
 impl Server {
-    pub async fn new() -> Result<Self> {
-        let config = config::load()?;
-        logging::setup(&config)?;
-
+    pub async fn new(config: Config) -> Result<Self> {
         let db_pool = db::create_pool(&config).await?;
         let amqp_conn = amqp_connect(&config).await?;
         let statsd = metrics::new_client(&config)?;

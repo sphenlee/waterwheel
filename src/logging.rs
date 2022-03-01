@@ -89,9 +89,11 @@ impl<'w> FormatFields<'w> for SemiCompact {
 }
 
 pub fn setup(config: &Config) -> Result<()> {
-    let use_json = config.json_log;
+    setup_raw(config.json_log, &config.log)
+}
 
-    let filter_layer = EnvFilter::new(&config.log);
+pub fn setup_raw(use_json: bool, filter: &str) -> Result<()> {
+    let filter_layer = EnvFilter::new(filter);
 
     if use_json {
         tracing_subscriber::registry()

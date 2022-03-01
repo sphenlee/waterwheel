@@ -62,8 +62,7 @@ pub trait TaskEngineImpl {
 mod null {
     use crate::{
         messages::{TaskDef, TaskRequest},
-        worker::engine::TaskEngineImpl,
-        Worker,
+        worker::{Worker, engine::TaskEngineImpl},
     };
 
     pub struct NullEngine;

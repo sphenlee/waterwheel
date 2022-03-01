@@ -11,10 +11,8 @@ use uuid::Uuid;
 
 use crate::{
     amqp::amqp_connect,
-    config,
     config::Config,
     counter::Counter,
-    logging,
     messages::TaskDef,
     metrics,
     server::jwt,
@@ -46,10 +44,7 @@ pub struct Worker {
 }
 
 impl Worker {
-    pub async fn new() -> Result<Self> {
-        let config = config::load()?;
-        logging::setup(&config)?;
-
+    pub async fn new(config: Config) -> Result<Self> {
         let amqp_conn = amqp_connect(&config).await?;
         let statsd = metrics::new_client(&config)?;
 

@@ -46,7 +46,7 @@ macro_rules! get_file {
     };
 }
 
-pub async fn serve(server: Arc<Server>) -> Result<()> {
+pub async fn make_app(server: &Server) -> Result<highnoon::App<State>> {
     let state = State {
         db_pool: server.db_pool.clone(),
         amqp_channel: server.amqp_conn.create_channel().await?,
@@ -142,8 +142,8 @@ pub async fn serve(server: Arc<Server>) -> Result<()> {
     app.at("/api/tasks/:id/runs/:trigger_datetime")
         .get(job::list_task_runs);
 
-    // task logs
-    app.at("/api/tasks/:id/logs").ws(task_logs::logs);
+    // task logs - TODO unimplemented
+    //app.at("/api/tasks/:id/logs").ws(task_logs::logs);
 
     // trigger times
     app.at("/api/triggers/:id").get(job::get_trigger);
@@ -185,9 +185,11 @@ pub async fn serve(server: Arc<Server>) -> Result<()> {
             .get(get_file!(HTML; "text/html;charset=utf-8"));
     }
 
-    let host = &server.config.server_bind;
+    Ok(app)
+}
 
-    app.listen(host).await?;
-
+pub async fn serve(server: Arc<Server>) -> Result<()> {
+    let app = make_app(&server).await?;
+    app.listen(&server.config.server_bind).await?;
     Ok(())
 }

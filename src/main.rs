@@ -1,31 +1,17 @@
-#![feature(never_type)]
-#![feature(assert_matches)]
-
-use crate::{server::Server, worker::Worker};
+use waterwheel::{config, logging, server::Server, worker::Worker};
 use anyhow::Result;
 
-mod amqp;
-pub mod circuit_breaker;
-pub mod config;
-pub mod counter;
-mod db;
-mod logging;
-pub mod messages;
-mod metrics;
-pub mod postoffice;
-mod server;
-pub mod util;
-mod worker;
-
-pub const GIT_VERSION: &str = git_version::git_version!();
 
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv::dotenv().ok();
 
+    let config = config::load()?;
+    logging::setup(&config)?;
+
     let app = clap::App::new("waterwheel")
         .author("Steve Lee <sphen.lee@gmail.com>")
-        .version(GIT_VERSION)
+        .version(waterwheel::GIT_VERSION)
         .setting(clap::AppSettings::SubcommandRequiredElseHelp)
         .subcommand(
             clap::App::new("scheduler")
@@ -47,15 +33,15 @@ async fn main() -> Result<()> {
 
     match args.subcommand() {
         ("scheduler", Some(_args)) => {
-            let server = Server::new().await?;
+            let server = Server::new(config).await?;
             server.run_scheduler().await?;
         }
         ("api", Some(_args)) => {
-            let server = Server::new().await?;
+            let server = Server::new(config).await?;
             server.run_api().await?;
         }
         ("worker", Some(_args)) => {
-            let worker = Worker::new().await?;
+            let worker = Worker::new(config).await?;
             worker.run_worker().await?;
         }
         _ => unreachable!("clap should have already checked the subcommands"),

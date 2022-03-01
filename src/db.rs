@@ -1,5 +1,5 @@
 use crate::config::Config;
-use sqlx::{postgres::PgPoolOptions, Executor, PgPool};
+use sqlx::{Executor, PgPool};
 use tracing::{debug, info, trace};
 
 const SCHEMA: &str = include_str!("schema.sql");
@@ -7,18 +7,6 @@ const SCHEMA: &str = include_str!("schema.sql");
 pub async fn create_pool(config: &Config) -> anyhow::Result<PgPool> {
     info!("connecting to database...");
 
-    #[cfg(test)]
-    let pool = PgPoolOptions::new()
-        .after_connect(|conn| {
-            Box::pin(async move {
-                conn.execute("SET search_path=pg_temp").await?;
-                Ok(())
-            })
-        })
-        .connect(&config.db_url)
-        .await?;
-
-    #[cfg(not(test))]
     let pool = PgPool::connect(&config.db_url).await?;
 
     let mut conn = pool.acquire().await?;
