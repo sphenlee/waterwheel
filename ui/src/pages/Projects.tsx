@@ -8,8 +8,13 @@ import Body from '../components/Body.jsx';
 
 const { Content } = Layout;
 
+type ProjectsState = {
+    loading: boolean;
+    data: any[];
+};
 
-class Projects extends Component {
+
+class Projects extends Component<{}, ProjectsState> {
     constructor(props) {
         super(props);
 
@@ -55,10 +60,10 @@ class Projects extends Component {
                             <Col span={12}>
                                 <List
                                     itemLayout="vertical"
-                                    bordered="true"
+                                    bordered={true}
                                     dataSource={this.state.data}
                                     loading={this.state.loading}
-                                    renderItem={item => (
+                                    renderItem={(item: any) => (
                                         <List.Item>
                                             <List.Item.Meta
                                                 avatar={<Avatar icon={<ProjectOutlined />} shape="square"></Avatar>}
