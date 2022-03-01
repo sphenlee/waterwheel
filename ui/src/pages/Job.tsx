@@ -13,6 +13,7 @@ import Triggers from './Job/Triggers';
 import Graph from '../components/Graph';
 import TaskGrid from './Job/TaskGrid';
 import Duration from './Job/Duration';
+import { JobExtra } from "../types/Job";
 
 const { Content } = Layout;
 
@@ -22,9 +23,7 @@ type JobProps = {
 };
 
 type JobState = {
-    loading: boolean;
-    job: any;
-    tokens: any[];
+    job?: JobExtra;
 }
 
 class Job extends Component<JobProps, JobState> {
@@ -33,20 +32,13 @@ class Job extends Component<JobProps, JobState> {
     constructor(props: JobProps) {
         super(props);
 
-        this.state = {
-            loading: true,
-            job: {},
-            tokens: []
-        };
+        this.state = {};
     }
 
     async fetchJob(id) {
         try {
-            let resp = await axios.get(`/api/jobs/${id}`);
-            this.setState({
-                job: resp.data,
-                loading: false,
-            });
+            let resp = await axios.get<JobExtra>(`/api/jobs/${id}`);
+            this.setState({job: resp.data});
         } catch(e) {
             console.log(e);
         }
@@ -66,7 +58,7 @@ class Job extends Component<JobProps, JobState> {
 
     render() {
         const { history, match } = this.props;
-        const { job, loading } = this.state;
+        const { job } = this.state;
 
         const job_id = match.params.id;
         const tab = match.params.tab || 'overview';
@@ -125,7 +117,7 @@ class Job extends Component<JobProps, JobState> {
                                 </Row>
                             </Tabs.TabPane>
                             <Tabs.TabPane tab="Grid" key="grid">
-                                <Spin spinning={loading}>
+                                <Spin spinning={!job}>
                                     <TaskGrid id={job_id} />
                                 </Spin>
                             </Tabs.TabPane>
