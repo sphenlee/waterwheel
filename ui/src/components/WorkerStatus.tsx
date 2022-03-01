@@ -6,7 +6,11 @@ import {
   WarningOutlined,
 } from '@ant-design/icons';
 
-function WorkerStatus({status}) {
+type WorkerStatusProps = {
+  status?: 'up' | 'gone' | 'error';
+};
+
+function WorkerStatus({status}: WorkerStatusProps) {
     let color;
     let icon;
     if (status == 'up') {
