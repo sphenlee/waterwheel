@@ -6,7 +6,7 @@ import { Layout, Breadcrumb } from 'antd';
 const { Content, Footer } = Layout;
 
 import Home from './pages/Home';
-import Job from './pages/Job.jsx';
+import Job from './pages/Job';
 import Login from './pages/Login.jsx';
 import Project from './pages/Project.jsx';
 import Projects from './pages/Projects.jsx';

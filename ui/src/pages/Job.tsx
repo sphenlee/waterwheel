@@ -16,9 +16,21 @@ import Duration from './Job/Duration.jsx';
 
 const { Content } = Layout;
 
+type JobProps = {
+    history: any;
+    match: any;
+};
 
-class Job extends Component {
-    constructor(props) {
+type JobState = {
+    loading: boolean;
+    job: any;
+    tokens: any[];
+}
+
+class Job extends Component<JobProps, JobState> {
+    interval: NodeJS.Timeout;
+
+    constructor(props: JobProps) {
         super(props);
 
         this.state = {
