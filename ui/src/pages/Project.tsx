@@ -6,6 +6,8 @@ import { PauseOutlined, PartitionOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
 import Body from '../components/Body';
+import { ProjectExtra, ProjectJob } from "../types/Project";
+import { Job, JobExtra } from "../types/Job";
 
 const { Content } = Layout;
 
@@ -15,8 +17,8 @@ type ProjectProps = {
 };
 
 type ProjectState = {
-    proj: any;
-    jobs: any;
+    proj?: ProjectExtra;
+    jobs?: ProjectJob[];
 };
 
 class Project extends Component<ProjectProps, ProjectState> {
@@ -25,18 +27,15 @@ class Project extends Component<ProjectProps, ProjectState> {
     constructor(props: ProjectProps) {
         super(props);
 
-        this.state = {
-            proj: {},
-            jobs: null
-        };
+        this.state = {};
     }
 
     async fetchProject() {
         const {match} = this.props;
         
         try {
-            let proj = await axios.get(`/api/projects/${match.params.id}`);
-            let jobs = await axios.get(`/api/projects/${match.params.id}/jobs`);
+            let proj = await axios.get<ProjectExtra>(`/api/projects/${match.params.id}`);
+            let jobs = await axios.get<ProjectJob[]>(`/api/projects/${match.params.id}/jobs`);
             this.setState({
                 proj: proj.data,
                 jobs: jobs.data,
@@ -118,7 +117,7 @@ class Project extends Component<ProjectProps, ProjectState> {
                                     itemLayout="vertical"
                                     dataSource={this.state.jobs ?? []}
                                     loading={this.state.jobs === null}
-                                    renderItem={(item: any) => (
+                                    renderItem={(item: ProjectJob) => (
                                         <List.Item
                                             key={item.job_id}
                                             actions={[
