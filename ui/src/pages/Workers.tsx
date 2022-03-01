@@ -6,6 +6,7 @@ import Moment from 'react-moment';
 
 import Body from '../components/Body.jsx';
 import WorkerStatus from '../components/WorkerStatus.jsx';
+import { ColumnsType } from "antd/lib/table";
 
 const { Content } = Layout;
 
@@ -41,8 +42,15 @@ function makeColumns() {
     ];
 }
 
+type WorkersState = {
+    workers: any[];
+    loading: boolean;
+};
 
-class Workers extends Component {
+class Workers extends Component<{}, WorkersState> {
+    columns: ColumnsType<any>;
+    interval: NodeJS.Timeout;
+
     constructor(props) {
         super(props);
 

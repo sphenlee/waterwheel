@@ -15,6 +15,7 @@ import Body from '../components/Body.jsx';
 import State from '../components/State.jsx';
 import RelDate from '../components/Date.jsx';
 import WorkerStatus from '../components/WorkerStatus.jsx';
+import { ColumnsType } from "antd/lib/table";
 
 const { Content } = Layout;
 
@@ -89,11 +90,27 @@ function expandedRowRender(record) {
 }
 
 
-class Worker extends Component {
-    constructor(props) {
+type WorkerProps = {
+    history: any;
+    match: any;
+};
+type WorkerState = {
+    tasks: any[];
+    filter: any;
+    last_seen_datetime?: any;
+    running_tasks?: any;
+    total_tasks?: any;
+    version?: any;
+    status?: any;
+};
+
+class Worker extends Component<WorkerProps, WorkerState> {
+    columns: ColumnsType<any>;
+
+    constructor(props: WorkerProps) {
         super(props);
 
-        this.columns = makeColumns(props.match.params.id);
+        this.columns = makeColumns();
 
         this.state = {
             tasks: [],
@@ -101,7 +118,7 @@ class Worker extends Component {
         }
     }
 
-    async fetchWorker(id, trigger_datetime) {
+    async fetchWorker(id) {
         try {
             let resp = await axios.get(`/api/workers/${id}`, {
                 params: {
