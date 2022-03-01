@@ -9,9 +9,20 @@ import Body from '../components/Body.jsx';
 
 const { Content } = Layout;
 
+type ProjectProps = {
+    match: any;
+    history: any;
+};
 
-class Project extends Component {
-    constructor(props) {
+type ProjectState = {
+    proj: any;
+    jobs: any;
+};
+
+class Project extends Component<ProjectProps, ProjectState> {
+    interval: NodeJS.Timeout;
+
+    constructor(props: ProjectProps) {
         super(props);
 
         this.state = {
@@ -103,11 +114,11 @@ class Project extends Component {
                             <Col span={12}>
                                 <List
                                     size="large"
-                                    bordered="true"
+                                    bordered={true}
                                     itemLayout="vertical"
                                     dataSource={this.state.jobs ?? []}
                                     loading={this.state.jobs === null}
-                                    renderItem={item => (
+                                    renderItem={(item: any) => (
                                         <List.Item
                                             key={item.job_id}
                                             actions={[
