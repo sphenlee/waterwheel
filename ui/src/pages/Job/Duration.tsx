@@ -23,7 +23,16 @@ const config = {
     }
   };
 
-class Duration extends Component {
+type DurationProps = {
+    id: string;
+};
+type DurationState = {
+    data: any | null;
+    limit: number;
+    before: any | null;
+};
+
+class Duration extends Component<DurationProps, DurationState> {
     constructor(props) {
         super(props);
 

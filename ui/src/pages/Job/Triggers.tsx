@@ -5,6 +5,7 @@ import axios from 'axios';
 import Moment from 'react-moment';
 import cronstrue from 'cronstrue';
 import prettyMilliseconds from 'pretty-ms';
+import { ColumnsType } from "antd/lib/table";
 
 const { Text } = Typography;
 
@@ -69,7 +70,17 @@ function Cron(props) {
 }
 
 
-class Triggers extends Component {
+type TriggersProps = {
+    id: string;
+    job: any;
+};
+type TriggersState = {
+    triggers: any[];
+};
+
+class Triggers extends Component<TriggersProps, TriggersState> {
+    columns: ColumnsType<any>;
+
     constructor(props) {
         super(props);
 

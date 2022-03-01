@@ -8,11 +8,11 @@ import styled from 'styled-components';
 import axios from 'axios';
 
 import Body from '../components/Body';
-import TokenTable from './Job/TokenTable.jsx';
-import Triggers from './Job/Triggers.jsx';
+import TokenTable from './Job/TokenTable';
+import Triggers from './Job/Triggers';
 import Graph from '../components/Graph';
-import TaskGrid from './Job/TaskGrid.jsx';
-import Duration from './Job/Duration.jsx';
+import TaskGrid from './Job/TaskGrid';
+import Duration from './Job/Duration';
 
 const { Content } = Layout;
 
@@ -130,7 +130,7 @@ class Job extends Component<JobProps, JobState> {
                                 </Spin>
                             </Tabs.TabPane>
                             <Tabs.TabPane tab="Triggers" key="triggers">
-                                <Triggers id={job_id} job={job}/>
+                                <Triggers id={job_id} job={job} />
                             </Tabs.TabPane>
                             <Tabs.TabPane tab="Tokens" key="tokens">
                                 <TokenTable id={job_id}/>

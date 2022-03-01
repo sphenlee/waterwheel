@@ -4,6 +4,7 @@ import { Table, Select, notification } from 'antd';
 import axios from 'axios';
 
 import State from '../../components/State';
+import { ColumnsType } from "antd/lib/table";
 
 const { Option } = Select;
 
@@ -32,8 +33,19 @@ function makeColumns(job_id) {
     ];
 }
 
+type Filter = 'active' | 'running';
+type TokenTableProps = {
+    id: string;
+};
+type TokenTableState = {
+    filter: Filter[];
+    tokens: any | null;
+};
 
-class TokenTable extends Component {
+class TokenTable extends Component<TokenTableProps, TokenTableState> {
+    columns: ColumnsType<any>;
+    interval: NodeJS.Timeout;
+
     constructor(props) {
         super(props);
 
@@ -86,7 +98,7 @@ class TokenTable extends Component {
                   mode="multiple"
                   defaultValue={["active", "running"]}
                   style={{ width: 350 }}
-                  onChange={(value) => {
+                  onChange={(value: Filter[]) => {
                     this.setState({
                         filter: value
                     }, () => {

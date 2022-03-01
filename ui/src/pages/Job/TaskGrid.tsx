@@ -81,8 +81,8 @@ function makeCell(task, tok) {
                 title={'Activate this task?'}
                 okText={'Confirm'}
                 cancelText={'Cancel'}
-                okButtonProps={{size: 'normal'}}
-                cancelButtonProps={{size: 'normal'}}
+                okButtonProps={{size: 'middle'}}
+                cancelButtonProps={{size: 'middle'}}
                 onConfirm={() => activateToken(tok.trigger_datetime, this_task.task_id)}
                 icon={<QuestionCircleOutlined style={{ color: geekblue[5] }}/>}
             >
@@ -123,8 +123,19 @@ function parseData(job_id, data) {
     return { columns, rows };
 }
 
+type TaskGridProps = {
+    id: string;
+};
+type TaskGridState = {
+    data: any | null;
+    limit: number;
+    before: any | null;
+    last?: any;
+}
 
-class TaskGrid extends Component {
+class TaskGrid extends Component<TaskGridProps, TaskGridState> {
+    interval: NodeJS.Timeout;
+
     constructor(props) {
         super(props);
 
