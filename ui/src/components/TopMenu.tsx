@@ -4,8 +4,6 @@ import { Layout, Menu } from 'antd';
 
 class TopMenu extends Component {
   render() {
-    const { pathname } = this.props.location;
-
     return (
       <Layout.Header className="header">
         <Menu theme="dark" mode="horizontal">
@@ -31,4 +29,3 @@ class TopMenu extends Component {
 }
 
 export default withRouter(TopMenu);
-
