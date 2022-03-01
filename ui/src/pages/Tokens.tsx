@@ -11,12 +11,27 @@ import Body from '../components/Body.jsx';
 import State from '../components/State.jsx';
 import Graph from '../components/Graph.jsx';
 import ActivateToken from '../components/ActivateToken.jsx';
-import TokenRuns from './TokenRuns.jsx';
+import TokenRuns from './TokenRuns';
+import { ColumnsType } from "antd/lib/table";
 
 const { Content } = Layout;
 
-class Tokens extends Component {
-    constructor(props) {
+type TokensProps = {
+    history: any;
+    match: any;
+};
+
+type TokensState = {
+    job: any;
+    tokens: any;
+    drawer_task_id: any;
+};
+
+class Tokens extends Component<TokensProps, TokensState> {
+    interval: NodeJS.Timeout;
+    columns: ColumnsType<any>;
+
+    constructor(props: TokensProps) {
         super(props);
 
         this.columns = this.makeColumns(props.match.params.id);
@@ -155,8 +170,8 @@ class Tokens extends Component {
                                     title={'Clear all tokens for this trigger time?'}
                                     okText={'Confirm'}
                                     cancelText={'Cancel'}
-                                    okButtonProps={{size: 'normal', danger: true}}
-                                    cancelButtonProps={{size: 'normal'}}
+                                    okButtonProps={{size: 'middle', danger: true}}
+                                    cancelButtonProps={{size: 'middle'}}
                                     onConfirm={() => this.clearAllTokens()}
                                     icon={<ExclamationCircleOutlined />}
                                 >

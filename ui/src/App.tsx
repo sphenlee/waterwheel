@@ -10,7 +10,7 @@ import Job from './pages/Job';
 import Login from './pages/Login';
 import Project from './pages/Project';
 import Projects from './pages/Projects';
-import Tokens from './pages/Tokens.jsx';
+import Tokens from './pages/Tokens';
 import TopMenu from './components/TopMenu.jsx'
 import Triggers from './pages/Triggers.jsx';
 import Worker from './pages/Worker.jsx';

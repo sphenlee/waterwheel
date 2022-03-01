@@ -11,6 +11,7 @@ import Body from '../components/Body.jsx';
 import State from '../components/State.jsx';
 import Graph from '../components/Graph.jsx';
 import ActivateToken from '../components/ActivateToken.jsx';
+import { ColumnsType } from "antd/lib/table";
 
 const { Content } = Layout;
 
@@ -22,8 +23,21 @@ function Json({children}) {
     }
 }
 
-class TokenRuns extends Component {
-    constructor(props) {
+type TokenRunsProps = {
+    task_id: any;
+    trigger_datetime: any;
+    visible: any;
+    onClose: any;
+};
+type TokenRunsState = {
+    runs: any[];
+    task: any;
+};
+
+class TokenRuns extends Component<TokenRunsProps, TokenRunsState> {
+    columns: ColumnsType<any>;
+
+    constructor(props: TokenRunsProps) {
         super(props);
 
         this.columns = this.makeColumns();
@@ -105,7 +119,7 @@ class TokenRuns extends Component {
         return (
             <Drawer title={`Task Runs for ${task?.task_name ?? '...'}`}
                     placement="bottom"
-                    size="large"
+                    // size="large"
                     height={736} // todo - remove after upgrading
                     onClose={onClose}
                     visible={visible}>
