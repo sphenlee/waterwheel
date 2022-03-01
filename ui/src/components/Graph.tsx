@@ -30,8 +30,20 @@ function stateColor(state) {
     }[state];
 }
 
-class JobGraph extends Component {
-    constructor(props) {
+type JobGraphProps = {
+    id: string;
+    trigger_datetime?: string;
+};
+
+type JobGraphState = {
+    loading: boolean;
+    graph: unknown | null;
+};
+
+class JobGraph extends Component<JobGraphProps, JobGraphState> {
+    interval: NodeJS.Timeout;
+
+    constructor(props: JobGraphProps) {
         super(props);
 
         this.state = {

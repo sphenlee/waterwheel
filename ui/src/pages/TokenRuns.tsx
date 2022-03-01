@@ -8,7 +8,6 @@ import { ExclamationCircleOutlined, EllipsisOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
 import State from '../components/State.jsx';
-import Graph from '../components/Graph.jsx';
 import ActivateToken from '../components/ActivateToken';
 import { ColumnsType } from "antd/lib/table";
 

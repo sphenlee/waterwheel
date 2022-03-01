@@ -10,7 +10,7 @@ import axios from 'axios';
 import Body from '../components/Body';
 import TokenTable from './Job/TokenTable.jsx';
 import Triggers from './Job/Triggers.jsx';
-import Graph from '../components/Graph.jsx';
+import Graph from '../components/Graph';
 import TaskGrid from './Job/TaskGrid.jsx';
 import Duration from './Job/Duration.jsx';
 
