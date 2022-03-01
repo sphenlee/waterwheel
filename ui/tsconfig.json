@@ -1,0 +1,10 @@
+{
+    "compilerOptions": {
+        "module": "CommonJS",
+        "esModuleInterop": true,
+        "outDir": "./dist/",
+        "removeComments": true,
+        "target": "ES2021",
+        "jsx": "react",
+    },
+}

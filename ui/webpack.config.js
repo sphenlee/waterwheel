@@ -2,12 +2,17 @@ const webpack = require('webpack');
 const HtmlWebPackPlugin = require("html-webpack-plugin");
 const { GitRevisionPlugin } = require('git-revision-webpack-plugin');
 const gitRevisionPlugin = new GitRevisionPlugin({
-        versionCommand: 'describe --always --tags --dirty=-modified'
-    });
+      versionCommand: 'describe --always --tags --dirty=-modified'
+  });
 
 module.exports = {
   module: {
     rules: [
+      {
+        test: /\.tsx?$/,
+        use: 'ts-loader',
+        exclude: /node_modules/,
+      },
       {
         test: /\.(js|jsx)$/,
         exclude: /node_modules/,
@@ -47,6 +52,9 @@ module.exports = {
         'COMMITHASH': JSON.stringify(gitRevisionPlugin.commithash()),
     })
   ],
+  resolve: {
+    extensions: ['.tsx', '.ts', '.js']
+  },
   output: {
     publicPath: '/static/',
   },
