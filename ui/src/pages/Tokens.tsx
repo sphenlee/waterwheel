@@ -10,7 +10,7 @@ import axios from 'axios';
 import Body from '../components/Body.jsx';
 import State from '../components/State.jsx';
 import Graph from '../components/Graph.jsx';
-import ActivateToken from '../components/ActivateToken.jsx';
+import ActivateToken from '../components/ActivateToken';
 import TokenRuns from './TokenRuns';
 import { ColumnsType } from "antd/lib/table";
 

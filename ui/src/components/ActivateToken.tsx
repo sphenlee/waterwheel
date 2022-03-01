@@ -2,10 +2,23 @@ import React, { Component } from "react";
 import { Button, notification } from 'antd';
 
 import axios from 'axios';
+import { ButtonType } from "antd/lib/button";
+import { SizeType } from "antd/lib/config-provider/SizeContext";
+
+type ActivateTokenProps = {
+    task_id: string;
+    trigger_datetime: string;
+    type?: ButtonType,
+    size?: SizeType,
+};
+
+type ActivateTokenState = {
+    loading: boolean;
+};
 
 
-class ActivateToken extends Component {
-    constructor(props) {
+class ActivateToken extends Component<ActivateTokenProps, ActivateTokenState> {
+    constructor(props: ActivateTokenProps) {
         super(props);
         this.state = {
             loading: false

@@ -10,7 +10,7 @@ import axios from 'axios';
 import Body from '../components/Body.jsx';
 import State from '../components/State.jsx';
 import Graph from '../components/Graph.jsx';
-import ActivateToken from '../components/ActivateToken.jsx';
+import ActivateToken from '../components/ActivateToken';
 import { ColumnsType } from "antd/lib/table";
 
 const { Content } = Layout;
@@ -125,7 +125,8 @@ class TokenRuns extends Component<TokenRunsProps, TokenRunsState> {
                     visible={visible}>
 
                 <ActivateToken
-                    type="primary" size="default"
+                    type="primary"
+                    size="middle"
                     task_id={task_id}
                     trigger_datetime={trigger_datetime} />
 
