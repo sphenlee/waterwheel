@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Table, Select, notification } from 'antd';
 import axios from 'axios';
 
-import State from '../../components/State.jsx';
+import State from '../../components/State';
 
 const { Option } = Select;
 

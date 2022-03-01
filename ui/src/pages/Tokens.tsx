@@ -8,7 +8,7 @@ import { ExclamationCircleOutlined, EllipsisOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
 import Body from '../components/Body';
-import State from '../components/State.jsx';
+import State from '../components/State';
 import Graph from '../components/Graph';
 import ActivateToken from '../components/ActivateToken';
 import TokenRuns from './TokenRuns';

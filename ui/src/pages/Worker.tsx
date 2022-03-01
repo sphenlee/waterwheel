@@ -12,7 +12,7 @@ import axios from 'axios';
 import Moment from 'react-moment';
 
 import Body from '../components/Body';
-import State from '../components/State.jsx';
+import State from '../components/State';
 import RelDate from '../components/Date';
 import WorkerStatus from '../components/WorkerStatus.jsx';
 import { ColumnsType } from "antd/lib/table";
