@@ -63,78 +63,82 @@ class Job extends Component<JobProps, JobState> {
         const job_id = match.params.id;
         const tab = match.params.tab || 'overview';
 
+        const content = job ? (
+            <>
+                <PageHeader
+                    onBack={() => history.goBack()}
+                    title={job.name}
+                    subTitle={job.description}
+                    tags={job.paused && <Tag color="warning" icon={<PauseOutlined />}>paused</Tag>}
+                />
+                <Tabs
+                    activeKey={tab}
+                    onChange={(activeKey) => history.replace(`/jobs/${job_id}/${activeKey}`)}
+                    destroyInactiveTabPane={true}
+                >
+                    <Tabs.TabPane tab="Overview" key="overview">
+                        <Row gutter={[16, 32]}>
+                            <Col span={4}>
+                                <Statistic title="Running Tasks"
+                                    valueStyle={{color: geekblue[5]}}
+                                    value={job.active_tasks} />
+                            </Col>
+                            <Col span={4}>
+                                <Statistic title="Waiting Tasks"
+                                    valueStyle={{color: grey[5]}}
+                                    value={job.waiting_tasks} />
+                            </Col>
+                            <Col span={4}>
+                                <Statistic title="Succeeded Tasks (last hour)"
+                                    valueStyle={{color: lime[5]}}
+                                    value={job.succeeded_tasks_last_hour} />
+                            </Col>
+                            <Col span={4}>
+                                <Statistic title="Failed Tasks (last hour)"
+                                    valueStyle={{color: red[5]}}
+                                    value={job.failed_tasks_last_hour} />
+                            </Col>
+                            <Col span={4}>
+                                <Statistic title="Error Tasks (last hour)"
+                                    valueStyle={{color: orange[5]}}
+                                    value={job.error_tasks_last_hour} />
+                            </Col>
+                            <Col span={24}>
+                                <Graph id={job_id} />
+                            </Col>
+                        </Row>
+                    </Tabs.TabPane>
+                    <Tabs.TabPane tab="Grid" key="grid">
+                        <Spin spinning={!job}>
+                            <TaskGrid id={job_id} />
+                        </Spin>
+                    </Tabs.TabPane>
+                    <Tabs.TabPane tab="Triggers" key="triggers">
+                        <Triggers id={job_id} job={job} />
+                    </Tabs.TabPane>
+                    <Tabs.TabPane tab="Tokens" key="tokens">
+                        <TokenTable id={job_id}/>
+                    </Tabs.TabPane>
+                    <Tabs.TabPane tab="Duration" key="duration">
+                        <Duration id={job_id} />
+                    </Tabs.TabPane>
+                    <Tabs.TabPane tab="Definition" key="definition">
+                        <JSONPretty data={job.raw_definition} />
+                    </Tabs.TabPane>
+                </Tabs>
+            </>
+        ) : <Spin size="large" />;
+
         return (
             <Layout>
                 <Content style={{padding: '50px'}}>
                     <Breadcrumb style={{paddingBottom: '12px'}}>
                         <Breadcrumb.Item><Link to="/">Home</Link></Breadcrumb.Item>
                         <Breadcrumb.Item><Link to="/projects">Projects</Link></Breadcrumb.Item>
-                        <Breadcrumb.Item><Link to={`/projects/${job.project_id}`}>{job.project || "..."}</Link></Breadcrumb.Item>
-                        <Breadcrumb.Item><Link to={`/jobs/${job_id}`}>{job.name || "..."}</Link></Breadcrumb.Item>
+                        <Breadcrumb.Item><Link to={`/projects/${job?.project_id}`}>{job?.project ?? "..."}</Link></Breadcrumb.Item>
+                        <Breadcrumb.Item><Link to={`/jobs/${job_id}`}>{job?.name ?? "..."}</Link></Breadcrumb.Item>
                     </Breadcrumb>
-                    <Body>
-                        <PageHeader
-                            onBack={() => history.goBack()}
-                            title={job.name}
-                            subTitle={job.description}
-                            tags={job.paused && <Tag color="warning" icon={<PauseOutlined />}>paused</Tag>}
-                        />
-                        <Tabs
-                            activeKey={tab}
-                            onChange={(activeKey) => history.replace(`/jobs/${job_id}/${activeKey}`)}
-                            destroyInactiveTabPane={true}
-                        >
-                            <Tabs.TabPane tab="Overview" key="overview">
-                                <Row gutter={[16, 32]}>
-                                    <Col span={4}>
-                                        <Statistic title="Running Tasks"
-                                            valueStyle={{color: geekblue[5]}}
-                                            value={job.active_tasks} />
-                                    </Col>
-                                    <Col span={4}>
-                                        <Statistic title="Waiting Tasks"
-                                            valueStyle={{color: grey[5]}}
-                                            value={job.waiting_tasks} />
-                                    </Col>
-                                    <Col span={4}>
-                                        <Statistic title="Succeeded Tasks (last hour)"
-                                            valueStyle={{color: lime[5]}}
-                                            value={job.succeeded_tasks_last_hour} />
-                                    </Col>
-                                    <Col span={4}>
-                                        <Statistic title="Failed Tasks (last hour)"
-                                            valueStyle={{color: red[5]}}
-                                            value={job.failed_tasks_last_hour} />
-                                    </Col>
-                                    <Col span={4}>
-                                        <Statistic title="Error Tasks (last hour)"
-                                            valueStyle={{color: orange[5]}}
-                                            value={job.error_tasks_last_hour} />
-                                    </Col>
-                                    <Col span={24}>
-                                        <Graph id={job_id} />
-                                    </Col>
-                                </Row>
-                            </Tabs.TabPane>
-                            <Tabs.TabPane tab="Grid" key="grid">
-                                <Spin spinning={!job}>
-                                    <TaskGrid id={job_id} />
-                                </Spin>
-                            </Tabs.TabPane>
-                            <Tabs.TabPane tab="Triggers" key="triggers">
-                                <Triggers id={job_id} job={job} />
-                            </Tabs.TabPane>
-                            <Tabs.TabPane tab="Tokens" key="tokens">
-                                <TokenTable id={job_id}/>
-                            </Tabs.TabPane>
-                            <Tabs.TabPane tab="Duration" key="duration">
-                                <Duration id={job_id} />
-                            </Tabs.TabPane>
-                            <Tabs.TabPane tab="Definition" key="definition">
-                                <JSONPretty data={job.raw_definition} />
-                            </Tabs.TabPane>
-                        </Tabs>
-                    </Body>
+                    <Body>{content}</Body>
                 </Content>
             </Layout>
         );
