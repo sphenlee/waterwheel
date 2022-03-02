@@ -16,6 +16,8 @@ import {
   LeftOutlined,
   DoubleRightOutlined,
 } from '@ant-design/icons';
+import { TokenOverview } from "../../types/Token";
+import { datetime } from "../../types/common";
 
 
 const HeaderCell = styled.td`
@@ -127,10 +129,10 @@ type TaskGridProps = {
     id: string;
 };
 type TaskGridState = {
-    data: any | null;
+    data: TokenOverview | null;
     limit: number;
-    before: any | null;
-    last?: any;
+    before: datetime | null;
+    last?: datetime;
 }
 
 class TaskGrid extends Component<TaskGridProps, TaskGridState> {
@@ -167,7 +169,7 @@ class TaskGrid extends Component<TaskGridProps, TaskGridState> {
             before: before,
         };
 
-        let resp = await axios.get(`/api/jobs/${id}/tokens-overview`, {
+        let resp = await axios.get<TokenOverview>(`/api/jobs/${id}/tokens-overview`, {
                 params: params
         });
 

@@ -5,10 +5,11 @@ import axios from 'axios';
 
 import State from '../../components/State';
 import { ColumnsType } from "antd/lib/table";
+import { Token } from "../../types/Token";
 
 const { Option } = Select;
 
-function makeColumns(job_id) {
+function makeColumns(job_id): ColumnsType<Token> {
     return [
       {
         title: 'Trigger Time',
@@ -39,11 +40,11 @@ type TokenTableProps = {
 };
 type TokenTableState = {
     filter: Filter[];
-    tokens: any | null;
+    tokens: Token[] | null;
 };
 
 class TokenTable extends Component<TokenTableProps, TokenTableState> {
-    columns: ColumnsType<any>;
+    columns: ColumnsType<Token>;
     interval: NodeJS.Timeout;
 
     constructor(props) {
@@ -59,7 +60,7 @@ class TokenTable extends Component<TokenTableProps, TokenTableState> {
 
     async fetchTokens(id) {
         try {
-            let resp = await axios.get(`/api/jobs/${id}/tokens`, {
+            let resp = await axios.get<Token[]>(`/api/jobs/${id}/tokens`, {
                 params: {
                     state: this.state.filter.join(',')
                 }

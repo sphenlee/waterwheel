@@ -1,4 +1,4 @@
-type uuid = string;
+import { uuid } from "./common";
 
 export type Project = {
     id: uuid;

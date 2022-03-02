@@ -6,10 +6,11 @@ import Moment from 'react-moment';
 import cronstrue from 'cronstrue';
 import prettyMilliseconds from 'pretty-ms';
 import { ColumnsType } from "antd/lib/table";
+import { Job, JobTrigger } from "../../types/Job";
 
 const { Text } = Typography;
 
-function makeColumns(job) {
+function makeColumns(job: Job): ColumnsType<JobTrigger> {
     return [
         {
             title: 'Name',
@@ -72,14 +73,14 @@ function Cron(props) {
 
 type TriggersProps = {
     id: string;
-    job: any;
+    job: Job;
 };
 type TriggersState = {
-    triggers: any[];
+    triggers: JobTrigger[];
 };
 
 class Triggers extends Component<TriggersProps, TriggersState> {
-    columns: ColumnsType<any>;
+    columns: ColumnsType<JobTrigger>;
 
     constructor(props) {
         super(props);
@@ -92,7 +93,7 @@ class Triggers extends Component<TriggersProps, TriggersState> {
     }
 
     async fetchTriggers(id) {
-        let resp = await axios.get(`/api/jobs/${id}/triggers`);
+        let resp = await axios.get<JobTrigger[]>(`/api/jobs/${id}/triggers`);
         this.setState({
             triggers: resp.data,
         });
