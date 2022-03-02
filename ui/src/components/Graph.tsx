@@ -30,6 +30,24 @@ function stateColor(state) {
     }[state];
 }
 
+type GraphRep = {
+    nodes: GraphNode[];
+    edges: GraphEdge[];
+};
+
+type GraphNode = {  // TODO: This should be PartItem from vis-data/data-interface.ts
+    id: string;
+    label: string;
+    title: string;
+    shape: string;
+    color: string;
+};
+
+type GraphEdge = {
+    to: string;
+    from: string;
+};
+
 type JobGraphProps = {
     id: string;
     trigger_datetime?: string;
@@ -37,7 +55,7 @@ type JobGraphProps = {
 
 type JobGraphState = {
     loading: boolean;
-    graph: unknown | null;
+    graph: GraphRep | null;
 };
 
 class JobGraph extends Component<JobGraphProps, JobGraphState> {
@@ -52,7 +70,7 @@ class JobGraph extends Component<JobGraphProps, JobGraphState> {
         }
     }
 
-    createGraph(data, id) {
+    createGraph(data, id): GraphRep {
         const nodeLabel = (n) => {
             if (n.job_id === id) {
                 return `${n.name}`;
@@ -155,8 +173,7 @@ class JobGraph extends Component<JobGraphProps, JobGraphState> {
 
         return (
             <Spin spinning={loading} size="large" tip="Loading..." delay={200}>
-                { graph && <Graph graph={graph} options={options}/>
-                }
+                { graph && <Graph graph={graph} options={options}/> }
             </Spin>
         );
     }

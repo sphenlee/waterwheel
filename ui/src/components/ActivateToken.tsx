@@ -8,7 +8,7 @@ import { SizeType } from "antd/lib/config-provider/SizeContext";
 type ActivateTokenProps = {
     task_id: string;
     trigger_datetime: string;
-    type?: ButtonType,
+    type: ButtonType,
     size?: SizeType,
 };
 

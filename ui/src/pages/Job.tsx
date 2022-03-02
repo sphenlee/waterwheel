@@ -69,7 +69,7 @@ class Job extends Component<JobProps, JobState> {
                     onBack={() => history.goBack()}
                     title={job.name}
                     subTitle={job.description}
-                    tags={job.paused && <Tag color="warning" icon={<PauseOutlined />}>paused</Tag>}
+                    tags={job.paused ? <Tag color="warning" icon={<PauseOutlined />}>paused</Tag> : <></>}
                 />
                 <Tabs
                     activeKey={tab}

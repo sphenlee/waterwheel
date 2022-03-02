@@ -40,7 +40,7 @@ type TokenTableProps = {
 };
 type TokenTableState = {
     filter: Filter[];
-    tokens: Token[] | null;
+    tokens: Token[];
 };
 
 class TokenTable extends Component<TokenTableProps, TokenTableState> {
@@ -54,7 +54,7 @@ class TokenTable extends Component<TokenTableProps, TokenTableState> {
 
         this.state = {
             filter: ['active', 'running'],
-            tokens: null
+            tokens: [],
         }
     }
 
