@@ -1,16 +1,17 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
-import { Table, Layout, Breadcrumb, PageHeader, Button, notification, Badge} from 'antd';
+import { Table, Layout, Breadcrumb, PageHeader, Button, notification, Badge, Spin} from 'antd';
 import { geekblue, lime, red, grey, yellow } from '@ant-design/colors';
 import axios from 'axios';
 
 import Body from '../components/Body';
 import { ColumnsType } from "antd/lib/table";
+import { Trigger, TriggerTime } from "../types/Job";
 
 const { Content } = Layout;
 
 
-function makeColumns(job_id) {
+function makeColumns(job_id): ColumnsType<TriggerTime> {
     return [
       {
         title: 'Trigger Time',
@@ -42,11 +43,11 @@ type TriggersProps = {
     match: any;
 };
 type TriggersState = {
-    trigger: any;
+    trigger?: Trigger;
 };
 
 class Triggers extends Component<TriggersProps, TriggersState> {
-    columns: ColumnsType<any>;
+    columns: ColumnsType<TriggerTime>;
     interval: NodeJS.Timeout;
 
     constructor(props: TriggersProps) {
@@ -54,14 +55,12 @@ class Triggers extends Component<TriggersProps, TriggersState> {
 
         this.columns = makeColumns(props.match.params.job_id);
 
-        this.state = {
-            trigger: {}
-        }
+        this.state = {};
     }
 
     async fetchTrigger(job_id, trigger_id) {
         try {
-            let resp = await axios.get(`/api/triggers/${trigger_id}`);
+            let resp = await axios.get<Trigger>(`/api/triggers/${trigger_id}`);
             this.setState({
                 trigger: resp.data,
             });
@@ -87,24 +86,28 @@ class Triggers extends Component<TriggersProps, TriggersState> {
         const { job_id, trigger_id } = match.params;
         const { trigger } = this.state;
 
+        const content = trigger ? (
+            <>
+                <PageHeader
+                    onBack={() => history.goBack()}
+                    title={trigger.trigger_name}
+                    subTitle={`Trigger in ${trigger.job_name}`}
+                />
+                <Table columns={this.columns} dataSource={trigger.times} pagination={{position: ['bottomLeft']}}/>
+            </>
+        ) : <Spin size="large" />;
+
         return (
             <Layout>
                 <Content style={{padding: '50px'}}>
                     <Breadcrumb style={{paddingBottom: '12px'}}>
                         <Breadcrumb.Item><Link to="/">Home</Link></Breadcrumb.Item>
                         <Breadcrumb.Item><Link to="/projects">Projects</Link></Breadcrumb.Item>
-                        <Breadcrumb.Item><Link to={`/projects/${trigger.project_id}`}>{trigger.project_name}</Link></Breadcrumb.Item>
-                        <Breadcrumb.Item><Link to={`/jobs/${job_id}`}>{trigger.job_name}</Link></Breadcrumb.Item>
-                        <Breadcrumb.Item><Link to={`/jobs/${job_id}/triggers/${trigger_id}`}>{trigger.trigger_name}</Link></Breadcrumb.Item>
+                        <Breadcrumb.Item><Link to={`/projects/${trigger?.project_id}`}>{trigger?.project_name}</Link></Breadcrumb.Item>
+                        <Breadcrumb.Item><Link to={`/jobs/${job_id}`}>{trigger?.job_name}</Link></Breadcrumb.Item>
+                        <Breadcrumb.Item><Link to={`/jobs/${job_id}/triggers/${trigger_id}`}>{trigger?.trigger_name}</Link></Breadcrumb.Item>
                     </Breadcrumb>
-                    <Body>
-                        <PageHeader
-                            onBack={() => history.goBack()}
-                            title={trigger.trigger_name}
-                            subTitle={`Trigger in ${trigger.job_name}`}
-                        />
-                        <Table columns={this.columns} dataSource={trigger.times} pagination={{position: ['bottomLeft']}}/>
-                    </Body>
+                    <Body>{content}</Body>
                 </Content>
             </Layout>
         );

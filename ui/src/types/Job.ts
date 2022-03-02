@@ -35,3 +35,22 @@ export type JobTrigger = {
     trigger_offset: string | null;
     catchup: string | null;
 };
+
+export type Trigger = {
+    trigger_id: uuid;
+    trigger_name: string;
+    job_id: uuid;
+    job_name: string;
+    project_id: uuid;
+    project_name: string;
+
+    times: TriggerTime[];
+};
+
+export type TriggerTime = {
+    trigger_datetime: datetime;
+    success: number;
+    running: number;
+    failure: number;
+    waiting: number;
+};
