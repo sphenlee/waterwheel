@@ -10,6 +10,8 @@ import axios from 'axios';
 import State from '../components/State';
 import ActivateToken from '../components/ActivateToken';
 import { ColumnsType } from "antd/lib/table";
+import { datetime } from "../types/common";
+import { Task, TaskRun } from "../types/Task";
 
 const { Content } = Layout;
 
@@ -22,18 +24,18 @@ function Json({children}) {
 }
 
 type TokenRunsProps = {
-    task_id: any;
-    trigger_datetime: any;
-    visible: any;
-    onClose: any;
+    task_id: string;
+    trigger_datetime: datetime;
+    visible: boolean;
+    onClose: React.EventHandler<React.MouseEvent | React.KeyboardEvent>;
 };
 type TokenRunsState = {
-    runs: any[];
-    task: any;
+    runs: TaskRun[];
+    task?: Task;
 };
 
 class TokenRuns extends Component<TokenRunsProps, TokenRunsState> {
-    columns: ColumnsType<any>;
+    columns: ColumnsType<TaskRun>;
 
     constructor(props: TokenRunsProps) {
         super(props);
@@ -42,11 +44,10 @@ class TokenRuns extends Component<TokenRunsProps, TokenRunsState> {
 
         this.state = {
             runs: [],
-            task: null,
         }
     }
 
-    makeColumns() {
+    makeColumns(): ColumnsType<TaskRun> {
         return [
           {
             title: 'Id',
@@ -83,13 +84,12 @@ class TokenRuns extends Component<TokenRunsProps, TokenRunsState> {
 
     async fetchRuns(task_id, trigger_datetime) {
         try {
-            let resp1 = await axios.get(`/api/tasks/${task_id}/runs/${trigger_datetime}`);
-            let runs = resp1.data;
+            let resp1 = await axios.get<TaskRun[]>(`/api/tasks/${task_id}/runs/${trigger_datetime}`);
 
-            let resp2 = await axios.get(`/api/tasks/${task_id}`);
+            let resp2 = await axios.get<Task>(`/api/tasks/${task_id}`);
             this.setState({
+                runs: resp1.data,
                 task: resp2.data,
-                runs: runs,
             });
         } catch(e) {
             console.log(e);
