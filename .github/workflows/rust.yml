@@ -2,9 +2,6 @@ name: Rust
 
 on: [ push, pull_request ]
 
-env:
-  CARGO_TERM_COLOR: always
-
 jobs:
   build:
 
@@ -21,11 +18,17 @@ jobs:
         override: true
         components: rustfmt, clippy
 
-    - name: Lint
-      run: cargo clippy
-
     - name: Build
-      run: cargo build --verbose
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
 
-    #- name: Run tests
-    #  run: cargo test --verbose
+    - name: Clippy
+      uses: actions-rs/clippy-check@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Test
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
