@@ -1,5 +1,5 @@
 import React, { Component, Fragment } from "react";
-import { Link } from "react-router-dom";
+import { Link, RouteComponentProps } from "react-router-dom";
 import { Table, Layout, Breadcrumb, PageHeader, Row, Col, Statistic,
     Descriptions, Button, Select, Spin } from 'antd';
 import { geekblue } from '@ant-design/colors';
@@ -91,10 +91,9 @@ function expandedRowRender(record) {
 }
 
 
-type WorkerProps = {
-    history: any;
-    match: any;
-};
+type WorkerProps = RouteComponentProps<{
+    id: string;
+}>;
 type WorkerState = {
     worker?: WorkerType;
     filter: string[];

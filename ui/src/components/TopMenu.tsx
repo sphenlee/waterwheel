@@ -1,8 +1,8 @@
 import React, { Component } from "react";
-import { Link, withRouter } from 'react-router-dom';
+import { Link, RouteComponentProps, withRouter } from 'react-router-dom';
 import { Layout, Menu } from 'antd';
 
-class TopMenu extends Component {
+class TopMenu extends Component<RouteComponentProps> {
   render() {
     return (
       <Layout.Header className="header">

@@ -1,5 +1,5 @@
 import React, { Component, Fragment } from "react";
-import { Link } from "react-router-dom";
+import { Link, RouteComponentProps } from "react-router-dom";
 import { Table, Layout, Breadcrumb, PageHeader, Button, notification, Popconfirm,
         Row, Col, Drawer, Spin } from 'antd';
 
@@ -18,10 +18,10 @@ import { Token } from "../types/Token";
 
 const { Content } = Layout;
 
-type TokensProps = {
-    history: any;
-    match: any;
-};
+type TokensProps = RouteComponentProps<{
+    id: string;
+    trigger_datetime: string;
+}>;
 
 type TokensState = {
     job?: JobExtra;

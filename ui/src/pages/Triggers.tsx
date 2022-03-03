@@ -1,5 +1,5 @@
 import React, { Component, Fragment } from "react";
-import { Link } from "react-router-dom";
+import { Link, RouteComponentProps } from "react-router-dom";
 import { Table, Layout, Breadcrumb, PageHeader, Button, notification, Badge, Spin} from 'antd';
 import { geekblue, lime, red, grey, yellow } from '@ant-design/colors';
 import axios from 'axios';
@@ -38,10 +38,10 @@ function makeColumns(job_id): ColumnsType<TriggerTime> {
     ];
 }
 
-type TriggersProps = {
-    history: any;
-    match: any;
-};
+type TriggersProps = RouteComponentProps<{
+    job_id: string;
+    trigger_id: string;
+}>;
 type TriggersState = {
     trigger?: Trigger;
 };

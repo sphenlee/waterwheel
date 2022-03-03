@@ -1,5 +1,5 @@
 import React, { Component, Fragment } from "react";
-import { Link } from "react-router-dom";
+import { Link, RouteComponentProps } from "react-router-dom";
 import { List, Avatar, Layout, Breadcrumb, PageHeader, Row, Col, Statistic, Badge, Tag, Spin  } from 'antd';
 import { geekblue, lime, red, grey, yellow, orange } from '@ant-design/colors';
 import { PauseOutlined, PartitionOutlined } from '@ant-design/icons';
@@ -11,10 +11,9 @@ import { Job, JobExtra } from "../types/Job";
 
 const { Content } = Layout;
 
-type ProjectProps = {
-    match: any;
-    history: any;
-};
+type ProjectProps = RouteComponentProps<{
+    id: string;
+}>;
 
 type ProjectState = {
     proj?: ProjectExtra;
