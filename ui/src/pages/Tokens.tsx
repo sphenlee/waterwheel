@@ -207,7 +207,7 @@ class Tokens extends Component<TokensProps, TokensState> {
                 </Content>
 
                 <TokenRuns
-                        task_id={drawer_task_id ?? ''}
+                        task_id={drawer_task_id}
                         trigger_datetime={trigger_datetime}
                         onClose={() => this.drawerClose()}
                         visible={drawer_task_id !== null} />

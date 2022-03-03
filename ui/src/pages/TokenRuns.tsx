@@ -24,7 +24,7 @@ function Json({json}: {json: any}) {
 }
 
 type TokenRunsProps = {
-    task_id: string;
+    task_id: string | null;
     trigger_datetime: datetime;
     visible: boolean;
     onClose: React.EventHandler<React.MouseEvent | React.KeyboardEvent>;
@@ -125,7 +125,7 @@ class TokenRuns extends Component<TokenRunsProps, TokenRunsState> {
                 <ActivateToken
                     type="primary"
                     size="middle"
-                    task_id={task_id}
+                    task_id={task_id ?? ''}
                     trigger_datetime={trigger_datetime} />
 
 
