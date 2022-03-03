@@ -12,12 +12,12 @@ export type TokenOverview = {
     tasks: string[],
 };
 
-type TokensRow = {
+export type TokensRow = {
     trigger_datetime: datetime;
-    tasks_states: Record<string, TokenState>;
+    task_states: Record<string, TokenState>;
 };
 
-type TokenState = {
+export type TokenState = {
     task_name: string;
     task_id: uuid;
     state: string;

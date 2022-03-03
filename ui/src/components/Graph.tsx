@@ -155,7 +155,7 @@ class JobGraph extends Component<JobGraphProps, JobGraphState> {
         }
     }
 
-    componentDidUpdate(oldprops) {
+    componentDidUpdate(oldprops: JobGraphProps) {
         if (this.props.id != oldprops.id) {
             this.fetchGraph()
         }

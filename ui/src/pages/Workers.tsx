@@ -52,7 +52,7 @@ class Workers extends Component<{}, WorkersState> {
     columns: ColumnsType<WorkerState>;
     interval: NodeJS.Timeout;
 
-    constructor(props) {
+    constructor(props: {}) {
         super(props);
 
         this.columns = makeColumns();

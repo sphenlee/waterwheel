@@ -17,7 +17,7 @@ type HomeState = {
 class Home extends Component<{}, HomeState> {
   interval: NodeJS.Timeout;
 
-  constructor(props) {
+  constructor(props: {}) {
       super(props);
 
       this.state = {};

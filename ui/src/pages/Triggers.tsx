@@ -11,7 +11,7 @@ import { Trigger, TriggerTime } from "../types/Job";
 const { Content } = Layout;
 
 
-function makeColumns(job_id): ColumnsType<TriggerTime> {
+function makeColumns(job_id: string): ColumnsType<TriggerTime> {
     return [
       {
         title: 'Trigger Time',
@@ -58,7 +58,7 @@ class Triggers extends Component<TriggersProps, TriggersState> {
         this.state = {};
     }
 
-    async fetchTrigger(job_id, trigger_id) {
+    async fetchTrigger(job_id: string, trigger_id: string) {
         try {
             let resp = await axios.get<Trigger>(`/api/triggers/${trigger_id}`);
             this.setState({

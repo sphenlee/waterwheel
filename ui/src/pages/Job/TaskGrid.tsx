@@ -16,8 +16,10 @@ import {
   LeftOutlined,
   DoubleRightOutlined,
 } from '@ant-design/icons';
-import { TokenOverview } from "../../types/Token";
+import { Token, TokenOverview, TokensRow, TokenState } from "../../types/Token";
 import { datetime } from "../../types/common";
+import { Moment } from "moment";
+import { Task } from "../../types/Task";
 
 
 const HeaderCell = styled.td`
@@ -40,7 +42,7 @@ const TRow = styled.tr`
 `;
 
 
-function iconForState(task) {
+function iconForState(task: TokenState) {
     if (task === undefined) {
         return <MinusOutlined style={{color: grey[0]}} />;
     }
@@ -64,7 +66,7 @@ function iconForState(task) {
     }
 }
 
-async function activateToken(trigger_datetime, task_id) {
+async function activateToken(trigger_datetime: string, task_id: string) {
     await axios.put(`/api/tasks/${task_id}/tokens/${trigger_datetime}`, {});
     notification.success({
         message: 'Task Activated',
@@ -73,7 +75,7 @@ async function activateToken(trigger_datetime, task_id) {
     })
 }
 
-function makeCell(task, tok) {
+function makeCell(task: string, tok: TokensRow) {
     let this_task = tok.task_states[task];
 
     return (
@@ -94,7 +96,7 @@ function makeCell(task, tok) {
     );
 }
 
-function parseData(job_id, data) {
+function parseData(job_id: string, data: TokenOverview) {
     let {tasks, tokens} = data;
 
 
@@ -138,7 +140,7 @@ type TaskGridState = {
 class TaskGrid extends Component<TaskGridProps, TaskGridState> {
     interval: NodeJS.Timeout;
 
-    constructor(props) {
+    constructor(props: TaskGridProps) {
         super(props);
 
         this.state = {
@@ -154,9 +156,9 @@ class TaskGrid extends Component<TaskGridProps, TaskGridState> {
         });
     }
 
-    onDatePicked(date) {
+    onDatePicked(date: Moment | null) {
         this.setState({
-            before: date.toISOString()
+            before: date && date.toISOString()
         });
     }
 

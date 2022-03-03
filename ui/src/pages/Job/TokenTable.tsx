@@ -9,7 +9,7 @@ import { Token } from "../../types/Token";
 
 const { Option } = Select;
 
-function makeColumns(job_id): ColumnsType<Token> {
+function makeColumns(job_id: string): ColumnsType<Token> {
     return [
       {
         title: 'Trigger Time',
@@ -47,7 +47,7 @@ class TokenTable extends Component<TokenTableProps, TokenTableState> {
     columns: ColumnsType<Token>;
     interval: NodeJS.Timeout;
 
-    constructor(props) {
+    constructor(props: TokenTableProps) {
         super(props);
 
         this.columns = makeColumns(props.id);
@@ -58,7 +58,7 @@ class TokenTable extends Component<TokenTableProps, TokenTableState> {
         }
     }
 
-    async fetchTokens(id) {
+    async fetchTokens(id: string) {
         try {
             let resp = await axios.get<Token[]>(`/api/jobs/${id}/tokens`, {
                 params: {

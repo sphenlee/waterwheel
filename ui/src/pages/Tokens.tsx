@@ -44,7 +44,7 @@ class Tokens extends Component<TokensProps, TokensState> {
         }
     }
 
-    makeColumns(job_id): ColumnsType<Token> {
+    makeColumns(job_id: string): ColumnsType<Token> {
         return [
           {
             title: 'Task',
@@ -76,7 +76,7 @@ class Tokens extends Component<TokensProps, TokensState> {
         ];
     }
 
-    async fetchTokens(id, trigger_datetime) {
+    async fetchTokens(id: string, trigger_datetime: string) {
         try {
             let resp = await axios.get(`/api/jobs/${id}/tokens/${trigger_datetime}`);
             this.setState({
@@ -87,7 +87,7 @@ class Tokens extends Component<TokensProps, TokensState> {
         }
     }
 
-    async fetchJob(id) {
+    async fetchJob(id: string) {
         try {
             let resp = await axios.get<JobExtra>(`/api/jobs/${id}`);
             this.setState({

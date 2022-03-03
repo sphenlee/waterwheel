@@ -15,11 +15,11 @@ import { Task, TaskRun } from "../types/Task";
 
 const { Content } = Layout;
 
-function Json({children}) {
-    if (typeof(children) == 'string') {
-        return <pre>{children}</pre>;
+function Json({json}: {json: any}) {
+    if (typeof(json) == 'string') {
+        return <pre>{json}</pre>;
     } else {
-        return <pre>{JSON.stringify(children)}</pre>;
+        return <pre>{JSON.stringify(json)}</pre>;
     }
 }
 
@@ -82,7 +82,7 @@ class TokenRuns extends Component<TokenRunsProps, TokenRunsState> {
         ];
     }
 
-    async fetchRuns(task_id, trigger_datetime) {
+    async fetchRuns(task_id: string, trigger_datetime: string) {
         try {
             let resp1 = await axios.get<TaskRun[]>(`/api/tasks/${task_id}/runs/${trigger_datetime}`);
 
@@ -104,7 +104,7 @@ class TokenRuns extends Component<TokenRunsProps, TokenRunsState> {
         }
     }
 
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps: TokenRunsProps) {
         if (this.props.task_id !== prevProps.task_id) {
             this.componentDidMount()
         }
@@ -139,13 +139,13 @@ class TokenRuns extends Component<TokenRunsProps, TokenRunsState> {
                             background: "#fff"
                         }}>
                     <Descriptions.Item label="Image">
-                        <Json>{task?.image}</Json>
+                        <Json json={task?.image} />
                     </Descriptions.Item>
                     <Descriptions.Item label="Args">
-                        <Json>{task?.args}</Json>
+                        <Json json={task?.args} />
                     </Descriptions.Item>
                     <Descriptions.Item label="Env">
-                        <Json>{task?.env}</Json>
+                        <Json json={task?.env} />
                     </Descriptions.Item>
                 </Descriptions>
 

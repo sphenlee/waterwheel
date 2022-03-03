@@ -7,6 +7,7 @@ import {
   DoubleRightOutlined,
 } from '@ant-design/icons';
 import { TaskDuration, TaskDurationList } from "../../types/Task";
+import { Moment } from "moment";
 
 const config = {
     xField: 'trigger_datetime',
@@ -34,7 +35,7 @@ type DurationState = {
 };
 
 class Duration extends Component<DurationProps, DurationState> {
-    constructor(props) {
+    constructor(props: DurationProps) {
         super(props);
 
         this.state = {
@@ -48,11 +49,13 @@ class Duration extends Component<DurationProps, DurationState> {
         this.fetchDuration(null);
     }
 
-    onDatePicked(date) {
-        this.fetchDuration(date.toISOString());
+    onDatePicked(date: Moment | null) {
+        if(date) {
+            this.fetchDuration(date.toISOString());
+        }
     }
 
-    async fetchDuration(before) {
+    async fetchDuration(before: string | null) {
         const { id } = this.props;
         const { limit } = this.state;
 

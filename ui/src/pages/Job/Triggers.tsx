@@ -23,7 +23,7 @@ function makeColumns(job: Job): ColumnsType<JobTrigger> {
         },{
             title: 'Schedule',
             key: 'period',
-            render: (text, record) => record.period ? <Period>{record.period}</Period> : <Cron>{record.cron}</Cron>,
+            render: (text, record) => record.period ? <Period period={record.period} /> : <Cron cron={record.cron ?? ''} />,
         },{
             title: 'Start',
             dataIndex: 'start_datetime',
@@ -49,23 +49,23 @@ function makeColumns(job: Job): ColumnsType<JobTrigger> {
 }
 
 
-function Period(props) {
-    let string = prettyMilliseconds(props.children * 1000);
+function Period(props: {period: number}) {
+    let string = prettyMilliseconds(props.period * 1000);
     return <Tag>{string}</Tag>;
 }
 
 
-function Cron(props) {
+function Cron(props: {cron: string}) {
     let desc;
     try {
-        desc = cronstrue.toString(props.children);
+        desc = cronstrue.toString(props.cron);
     } catch(e) {
         desc = e; 
     }
 
     return (
         <Tooltip title={desc}>
-            <Tag>{props.children}</Tag>
+            <Tag>{props.cron}</Tag>
         </Tooltip>
     );
 }
@@ -82,7 +82,7 @@ type TriggersState = {
 class Triggers extends Component<TriggersProps, TriggersState> {
     columns: ColumnsType<JobTrigger>;
 
-    constructor(props) {
+    constructor(props: TriggersProps) {
         super(props);
 
         this.columns = makeColumns(props.job);
@@ -92,7 +92,7 @@ class Triggers extends Component<TriggersProps, TriggersState> {
         }
     }
 
-    async fetchTriggers(id) {
+    async fetchTriggers(id: string) {
         let resp = await axios.get<JobTrigger[]>(`/api/jobs/${id}/triggers`);
         this.setState({
             triggers: resp.data,

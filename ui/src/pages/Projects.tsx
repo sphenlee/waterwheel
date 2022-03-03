@@ -17,7 +17,7 @@ type ProjectsState = {
 
 
 class Projects extends Component<{}, ProjectsState> {
-    constructor(props) {
+    constructor(props: {}) {
         super(props);
 
         this.state = {

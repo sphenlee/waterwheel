@@ -45,7 +45,7 @@ function makeColumns(): ColumnsType<WorkerTask> {
 }
 
 
-function expandedRowRender(record) {
+function expandedRowRender(record: WorkerTask) {
     return (
         <Descriptions
                 size="small"
@@ -112,7 +112,7 @@ class Worker extends Component<WorkerProps, WorkerState> {
         }
     }
 
-    async fetchWorker(id) {
+    async fetchWorker(id: string) {
         try {
             let resp = await axios.get<WorkerType>(`/api/workers/${id}`, {
                 params: {
@@ -146,7 +146,7 @@ class Worker extends Component<WorkerProps, WorkerState> {
                     title={`Worker ${id}`}
                     subTitle={
                         <Fragment>
-                            <WorkerStatus status={status} />
+                            <WorkerStatus status={worker.status} />
                             Version: {worker.version}
                         </Fragment>
                     }

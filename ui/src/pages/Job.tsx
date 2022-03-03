@@ -35,7 +35,7 @@ class Job extends Component<JobProps, JobState> {
         this.state = {};
     }
 
-    async fetchJob(id) {
+    async fetchJob(id: string) {
         try {
             let resp = await axios.get<JobExtra>(`/api/jobs/${id}`);
             this.setState({job: resp.data});
