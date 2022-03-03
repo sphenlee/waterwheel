@@ -54,3 +54,24 @@ export type TriggerTime = {
     failure: number;
     waiting: number;
 };
+
+export type JobGraph = {
+    nodes: JobGraphNode[];
+    edges: JobGraphEdge[];
+};
+
+export type JobGraphNode = {
+    id: uuid;
+    kind: string;
+    name: string;
+    job_id: uuid;
+    state: JobGraphNodeState | null;
+};
+
+export type JobGraphEdge = {
+    from: uuid;
+    to: uuid;
+    kind: string;
+};
+
+export type JobGraphNodeState = 'active' | 'success' | 'failure';
