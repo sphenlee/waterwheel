@@ -1,6 +1,6 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
-import Graph from "react-graph-vis";
+import Graph, { GraphRep } from "react-graph-vis";
 import { Table, Select, notification, Spin } from 'antd';
 import { geekblue, lime, red, grey, yellow } from '@ant-design/colors';
 import axios from 'axios';
@@ -31,23 +31,6 @@ function stateColor(state: JobGraphNodeState | null) {
     }[state] : grey[0];
 }
 
-type GraphRep = {
-    nodes: GraphNode[];
-    edges: GraphEdge[];
-};
-
-type GraphNode = {  // TODO: This should be PartItem from vis-data/data-interface.ts
-    id: string;
-    label: string;
-    title: string;
-    shape: string;
-    color: string;
-};
-
-type GraphEdge = {
-    to: string;
-    from: string;
-};
 
 type JobGraphProps = {
     id: string;

@@ -9,5 +9,9 @@
         "removeComments": true,
         "target": "ES2021",
         "jsx": "react",
+        "typeRoots": [
+            "node_modules/@types",
+            "dependency_types",
+        ]
     },
 }
