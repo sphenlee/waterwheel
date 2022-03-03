@@ -7,7 +7,7 @@ import {
 } from '@ant-design/icons';
 
 type WorkerStatusProps = {
-  status?: 'up' | 'gone' | 'error';
+  status: string;
 };
 
 function WorkerStatus({status}: WorkerStatusProps) {

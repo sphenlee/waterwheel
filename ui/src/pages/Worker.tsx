@@ -1,7 +1,7 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
 import { Table, Layout, Breadcrumb, PageHeader, Row, Col, Statistic,
-    Descriptions, Button, Select } from 'antd';
+    Descriptions, Button, Select, Spin } from 'antd';
 import { geekblue } from '@ant-design/colors';
 import { RightOutlined, DownOutlined } from "@ant-design/icons";
 
@@ -15,13 +15,14 @@ import Body from '../components/Body';
 import State from '../components/State';
 import RelDate from '../components/Date';
 import WorkerStatus from '../components/WorkerStatus';
+import { Worker as WorkerType, WorkerTask } from '../types/Worker';
 import { ColumnsType } from "antd/lib/table";
 
 const { Content } = Layout;
 
 const defaultFilter = ["active", "running"];
 
-function makeColumns() {
+function makeColumns(): ColumnsType<WorkerTask> {
     return [
         {
             title: 'Task',
@@ -95,17 +96,12 @@ type WorkerProps = {
     match: any;
 };
 type WorkerState = {
-    tasks: any[];
-    filter: any;
-    last_seen_datetime?: any;
-    running_tasks?: any;
-    total_tasks?: any;
-    version?: any;
-    status?: any;
+    worker?: WorkerType;
+    filter: string[];
 };
 
 class Worker extends Component<WorkerProps, WorkerState> {
-    columns: ColumnsType<any>;
+    columns: ColumnsType<WorkerTask>;
 
     constructor(props: WorkerProps) {
         super(props);
@@ -113,25 +109,19 @@ class Worker extends Component<WorkerProps, WorkerState> {
         this.columns = makeColumns();
 
         this.state = {
-            tasks: [],
             filter: defaultFilter,
         }
     }
 
     async fetchWorker(id) {
         try {
-            let resp = await axios.get(`/api/workers/${id}`, {
+            let resp = await axios.get<WorkerType>(`/api/workers/${id}`, {
                 params: {
                     state: this.state.filter.join(',')
                 }
             });
             this.setState({
-                tasks: resp.data.tasks,
-                last_seen_datetime: resp.data.last_seen_datetime,
-                running_tasks: resp.data.running_tasks,
-                total_tasks: resp.data.total_tasks,
-                version: resp.data.version,
-                status: resp.data.status,
+                worker: resp.data,
             });
         } catch(e) {
             console.log(e);
@@ -148,7 +138,79 @@ class Worker extends Component<WorkerProps, WorkerState> {
     render() {
         const { history, match } = this.props;
         const { id } = match.params;
-        const { tasks, last_seen_datetime, running_tasks, total_tasks, version, status } = this.state;
+        const { worker } = this.state;
+
+        const content = worker ? (
+            <>
+                <PageHeader
+                    onBack={() => history.goBack()}
+                    title={`Worker ${id}`}
+                    subTitle={
+                        <Fragment>
+                            <WorkerStatus status={status} />
+                            Version: {worker.version}
+                        </Fragment>
+                    }
+                    extra={
+                        <Button onClick={() => this.fetchWorker(id)}>
+                            Refresh
+                        </Button>
+                    }
+                />
+                <Row gutter={[16, 32]}>
+                    <Col span={6}>
+                        <Statistic title="Running Tasks"
+                            valueStyle={{color: geekblue[5]}}
+                            value={worker.running_tasks} />
+                    </Col>
+                    <Col span={6}>
+                        <Statistic title="Total Tasks"
+                            valueStyle={{color: geekblue[5]}}
+                            value={worker.total_tasks} />
+                    </Col>
+                    <Col span={6}>
+                        <Statistic title="Last Seen"
+                            value={worker.last_seen_datetime}
+                            formatter={(val) => <Moment fromNow withTitle>{val}</Moment>}
+                            />
+                    </Col>
+                    <Col span={24} />
+                </Row>
+                <Select
+                    mode="multiple"
+                    defaultValue={defaultFilter}
+                    style={{ width: 350 }}
+                    onChange={(value) => {
+                    this.setState({
+                        filter: value
+                    }, () => {
+                        this.fetchWorker(id);    
+                    });
+                    }}
+                >
+                    <Option value="active">Active</Option>
+                    <Option value="running">Running</Option>
+                    <Option value="success">Success</Option>
+                    <Option value="failure">Failure</Option>
+                    <Option value="error">Error</Option>
+                </Select>
+                <Table key="1"
+                    rowKey="task_run_id"
+                    columns={this.columns}
+                    dataSource={worker.tasks}
+                    expandable={{
+                        expandedRowRender: record => expandedRowRender(record),
+                        expandRowByClick: true,
+                        expandIcon: ({ expanded, onExpand, record }) =>
+                            expanded ? (
+                                <DownOutlined onClick={e => onExpand(record, e)} />
+                            ) : (
+                                <RightOutlined onClick={e => onExpand(record, e)} />
+                            )
+                    }}
+                    />
+            </>
+        ) : <Spin size="large" />;
 
         return (
             <Layout>
@@ -158,75 +220,7 @@ class Worker extends Component<WorkerProps, WorkerState> {
                         <Breadcrumb.Item><Link to="/workers">Workers</Link></Breadcrumb.Item>
                         <Breadcrumb.Item><Link to={`/workers/${id}`}>{id}</Link></Breadcrumb.Item>
                     </Breadcrumb>
-                    <Body>
-                        <PageHeader
-                            onBack={() => history.goBack()}
-                            title={`Worker ${id}`}
-                            subTitle={
-                                <Fragment>
-                                    <WorkerStatus status={status} />
-                                    Version: {version}
-                                </Fragment>
-                            }
-                            extra={
-                                <Button onClick={() => this.fetchWorker(id)}>
-                                    Refresh
-                                </Button>
-                            }
-                        />
-                        <Row gutter={[16, 32]}>
-                            <Col span={6}>
-                                <Statistic title="Running Tasks"
-                                    valueStyle={{color: geekblue[5]}}
-                                    value={running_tasks} />
-                            </Col>
-                            <Col span={6}>
-                                <Statistic title="Total Tasks"
-                                    valueStyle={{color: geekblue[5]}}
-                                    value={total_tasks} />
-                            </Col>
-                            <Col span={6}>
-                                <Statistic title="Last Seen"
-                                    value={last_seen_datetime}
-                                    formatter={(val) => <Moment fromNow withTitle>{val}</Moment>}
-                                    />
-                            </Col>
-                            <Col span={24} />
-                        </Row>
-                        <Select
-                          mode="multiple"
-                          defaultValue={defaultFilter}
-                          style={{ width: 350 }}
-                          onChange={(value) => {
-                            this.setState({
-                                filter: value
-                            }, () => {
-                                this.fetchWorker(id);    
-                            });
-                          }}
-                        >
-                            <Option value="active">Active</Option>
-                            <Option value="running">Running</Option>
-                            <Option value="success">Success</Option>
-                            <Option value="failure">Failure</Option>
-                            <Option value="error">Error</Option>
-                        </Select>
-                        <Table key="1"
-                            rowKey="task_run_id"
-                            columns={this.columns}
-                            dataSource={tasks}
-                            expandable={{
-                                expandedRowRender: record => expandedRowRender(record),
-                                expandRowByClick: true,
-                                expandIcon: ({ expanded, onExpand, record }) =>
-                                    expanded ? (
-                                      <DownOutlined onClick={e => onExpand(record, e)} />
-                                    ) : (
-                                      <RightOutlined onClick={e => onExpand(record, e)} />
-                                    )
-                            }}
-                            />
-                    </Body>
+                    <Body>{content}</Body>
                 </Content>
             </Layout>
         );

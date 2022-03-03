@@ -7,10 +7,11 @@ import Moment from 'react-moment';
 import Body from '../components/Body';
 import WorkerStatus from '../components/WorkerStatus';
 import { ColumnsType } from "antd/lib/table";
+import { WorkerState } from "../types/Worker";
 
 const { Content } = Layout;
 
-function makeColumns() {
+function makeColumns(): ColumnsType<WorkerState> {
     return [
         {
             title: 'Id',
@@ -43,12 +44,12 @@ function makeColumns() {
 }
 
 type WorkersState = {
-    workers: any[];
+    workers: WorkerState[];
     loading: boolean;
 };
 
 class Workers extends Component<{}, WorkersState> {
-    columns: ColumnsType<any>;
+    columns: ColumnsType<WorkerState>;
     interval: NodeJS.Timeout;
 
     constructor(props) {
@@ -67,7 +68,7 @@ class Workers extends Component<{}, WorkersState> {
             this.setState({
                 loading: true
             });
-            let resp = await axios.get('/api/workers');
+            let resp = await axios.get<WorkerState[]>('/api/workers');
             this.setState({
                 loading: false,
                 workers: resp.data
