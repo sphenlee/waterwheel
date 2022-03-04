@@ -26,24 +26,27 @@ where F: FnOnce() -> Fut,
     std::env::set_var("WATERWHEEL_AMQP_ADDR", amqp_addr);
 
     // other config setup
-    std::env::set_var("WATERWHEEL_SERVER_ADDR", "http://no.such.host/");
+    std::env::set_var("WATERWHEEL_SERVER_ADDR", "http://127.0.0.1:8080/");
     std::env::set_var("WATERWHEEL_NO_AUTHZ", "1");
+    std::env::set_var("WATERWHEEL_HMAC_SECRET", "testing value for hmac");
 
     // now run the test
     f().await
 }
 
+const DEFAULT_LOG: &str = "warn,waterwheel=trace,highnoon=info,testcontainers=info";
+
 // logging has to be setup manually before we luanch the containers so that we get log
 // output from testcontainers - we can't load Config yet because we don't know the
 // database URL until the containers are launched
 fn setup_logging() {
-    dotenv::dotenv().ok();
-
-    let filter = std::env::var_os("WATERWHEEL_LOG")
-        .unwrap_or("info".into());
-    let filter = filter
-        .to_str()
-        .expect("WATERWHEEL_LOG env var is not UTF-8");
+    let filter = std::env::var_os("WATERWHEEL_LOG");
+    let filter = match &filter {
+        None => DEFAULT_LOG,
+        Some(os_str) => {
+            os_str.to_str().expect("WATERWHEEL_LOG wasn't utf8")
+        }
+    };
 
     waterwheel::logging::setup_raw(false, filter).expect("failed to setup logging");
 }

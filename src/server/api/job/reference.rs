@@ -145,6 +145,7 @@ mod test {
     use super::*;
     use chrono::Duration;
     use std::assert_matches::assert_matches;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn test_parse_reference() {

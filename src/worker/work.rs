@@ -7,14 +7,10 @@ use anyhow::Result;
 use cadence::{CountedExt, Gauged};
 use chrono::{DateTime, Utc};
 use futures::TryStreamExt;
-use lapin::{
-    options::{
-        BasicAckOptions, BasicConsumeOptions, BasicPublishOptions, BasicQosOptions,
-        ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
-    },
-    types::FieldTable,
-    BasicProperties, Connection, Consumer, ExchangeKind,
-};
+use lapin::{options::{
+    BasicAckOptions, BasicConsumeOptions, BasicPublishOptions, BasicQosOptions,
+    ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
+}, types::FieldTable, BasicProperties, Consumer, ExchangeKind, Channel};
 use std::{sync::Arc, time::Duration};
 use tracing::{debug, error, info};
 
@@ -26,9 +22,7 @@ const RESULT_QUEUE: &str = "waterwheel.results";
 
 const DEFAULT_TASK_TIMEOUT: Duration = Duration::from_secs(29 * 60); // 29 minutes
 
-async fn setup(amqp_conn: &Connection) -> Result<Consumer> {
-    let chan = amqp_conn.create_channel().await?;
-
+pub async fn setup_queues(chan: &Channel) -> Result<()> {
     // declare queue for consuming incoming messages
     let mut args = FieldTable::default();
     args.insert("x-max-priority".into(), 3.into());
@@ -41,7 +35,7 @@ async fn setup(amqp_conn: &Connection) -> Result<Consumer> {
         },
         args,
     )
-    .await?;
+        .await?;
 
     // declare outgoing exchange and queue for progress reports
     chan.exchange_declare(
@@ -53,7 +47,7 @@ async fn setup(amqp_conn: &Connection) -> Result<Consumer> {
         },
         FieldTable::default(),
     )
-    .await?;
+        .await?;
 
     chan.queue_declare(
         RESULT_QUEUE,
@@ -63,7 +57,7 @@ async fn setup(amqp_conn: &Connection) -> Result<Consumer> {
         },
         FieldTable::default(),
     )
-    .await?;
+        .await?;
 
     chan.queue_bind(
         RESULT_QUEUE,
@@ -72,8 +66,12 @@ async fn setup(amqp_conn: &Connection) -> Result<Consumer> {
         QueueBindOptions::default(),
         FieldTable::default(),
     )
-    .await?;
+        .await?;
 
+    Ok(())
+}
+
+pub async fn create_consumer(chan: &Channel) -> Result<Consumer> {
     chan.basic_qos(1, BasicQosOptions::default()).await?;
 
     let consumer = chan
@@ -91,16 +89,23 @@ async fn setup(amqp_conn: &Connection) -> Result<Consumer> {
 pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
     let statsd = worker.statsd.clone();
 
-    let mut consumer = setup(&worker.amqp_conn).await?;
-
     let engine = worker.config.task_engine.get_impl()?;
 
+    let chan = worker.amqp_conn.create_channel().await?;
+    setup_queues(&chan).await?;
+    let mut consumer = create_consumer(&chan).await?;
+
+    debug!("worker consuming messages");
     while let Some((chan, msg)) = consumer.try_next().await? {
         let task_req: TaskRequest = serde_json::from_slice(&msg.data)?;
 
-        let task_def = config_cache::get_task_def(&worker, task_req.task_id).await?;
+        info!(task_run_id=?task_req.task_run_id,
+            task_id=?task_req.task_id,
+            trigger_datetime=?task_req.trigger_datetime.to_rfc3339(),
+            priority=?task_req.priority,
+            "received task");
 
-        let started_datetime = Utc::now();
+        let task_def = config_cache::get_task_def(&worker, task_req.task_id).await?;
 
         let running_task_guard = RUNNING_TASKS.boost();
         statsd
@@ -112,12 +117,7 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
             .with_tag("worker_id", &WORKER_ID.to_string())
             .send();
 
-        info!(task_run_id=?task_req.task_run_id,
-            task_id=?task_req.task_id,
-            trigger_datetime=?task_req.trigger_datetime.to_rfc3339(),
-            started_datetime=?started_datetime.to_rfc3339(),
-            priority=?task_req.priority,
-            "received task");
+        let started_datetime = Utc::now();
 
         let result = if task_def.image.is_some() {
             chan.basic_publish(

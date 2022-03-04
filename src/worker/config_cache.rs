@@ -38,6 +38,7 @@ pub async fn get_task_def(worker: &Worker, task_id: Uuid) -> Result<TaskDef> {
     let def = cache.get(&task_id);
 
     if let Some(def) = def {
+        trace!(?task_id, "task def cache hit");
         Ok(def.clone())
     } else {
         let def = fetch_task_def(&worker.config.server_addr, task_id).await?;
@@ -56,7 +57,7 @@ async fn fetch_project_config(server_addr: &str, proj_id: Uuid) -> Result<JsonVa
 
     let client = reqwest::Client::new();
 
-    trace!("fetching project config from api");
+    trace!(?proj_id, "fetching project config from api");
 
     let resp = client
         .get(url.clone())
@@ -67,7 +68,7 @@ async fn fetch_project_config(server_addr: &str, proj_id: Uuid) -> Result<JsonVa
 
     let config = resp.json().await?;
 
-    trace!("got config");
+    trace!(?proj_id, "got config");
     Ok(config)
 }
 
@@ -80,7 +81,7 @@ async fn fetch_task_def(server_addr: &str, task_id: Uuid) -> Result<TaskDef> {
 
     let client = reqwest::Client::new();
 
-    trace!("fetching task def from api");
+    trace!(?task_id, "fetching task def from api");
 
     let resp = client
         .get(url.clone())
@@ -90,7 +91,7 @@ async fn fetch_task_def(server_addr: &str, task_id: Uuid) -> Result<TaskDef> {
         .error_for_status()?;
     let def = resp.json().await?;
 
-    trace!("got task def");
+    trace!(?task_id, "got task def");
     Ok(def)
 }
 

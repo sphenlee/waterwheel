@@ -26,7 +26,7 @@ pub mod env;
 mod heartbeat;
 mod kube;
 mod kubejob;
-mod work;
+pub mod work;
 
 // TODO - move these statics
 static WORKER_ID: Lazy<Uuid> = Lazy::new(Uuid::new_v4);
