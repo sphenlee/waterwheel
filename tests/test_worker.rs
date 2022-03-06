@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::time::Duration;
 use chrono::{DateTime, Utc};
 use futures::TryStreamExt;
 use pretty_assertions::assert_eq;
@@ -6,9 +7,11 @@ use lapin::BasicProperties;
 use lapin::options::{BasicConsumeOptions, BasicPublishOptions};
 use lapin::types::FieldTable;
 use serde_json::{json, Value};
+use tokio::time::timeout;
 use uuid::Uuid;
 use waterwheel::config;
 use waterwheel::messages::TaskDef;
+use waterwheel::server::Server;
 use waterwheel::worker::engine::TaskEngine;
 use waterwheel::worker::{work, Worker};
 
@@ -28,7 +31,7 @@ pub async fn test_worker() -> highnoon::Result<()> {
         // insert a fake task def into the worker's cache
         {
             let mut cache = worker.task_def_cache.lock().await;
-            cache.insert(NULL_UUID, TaskDef {
+            cache.insert(NULL_UUID, Some(TaskDef {
                 task_id: NULL_UUID,
                 task_name: "testing task".to_string(),
                 job_id: NULL_UUID,
@@ -38,7 +41,7 @@ pub async fn test_worker() -> highnoon::Result<()> {
                 image: None,
                 args: vec![],
                 env: None
-            });
+            }));
         }
 
         let amqp_chan = worker.amqp_conn.create_channel().await?;
@@ -98,6 +101,61 @@ pub async fn test_worker() -> highnoon::Result<()> {
                 "worker_id": "<removed>",
                 "priority": "normal"
         }));
+
+        Ok(())
+    }).await
+}
+
+#[tokio::main]
+#[test]
+pub async fn test_worker_missing_taskid() -> highnoon::Result<()> {
+    common::with_external_services(|| async {
+        let mut config = config::load()?;
+        config.task_engine = TaskEngine::Null;
+
+        let server = Server::new(config.clone()).await?;
+        tokio::spawn(server.run_api());
+
+        let worker = Arc::new(Worker::new(config.clone()).await?);
+        let amqp_chan = worker.amqp_conn.create_channel().await?;
+        work::setup_queues(&amqp_chan).await?;
+        tokio::spawn(work::process_work(worker.clone()));
+
+        // PUBLISH A TASK (no task_def in the cache!)
+        let payload = serde_json::to_vec(&json!({
+            "task_run_id": NULL_UUID,
+            "task_id": NULL_UUID,
+            "trigger_datetime": "2000-01-01T00:00:00Z",
+            "priority": "normal",
+        }))?;
+
+        amqp_chan.basic_publish(
+            "",
+            "waterwheel.tasks",
+            BasicPublishOptions::default(),
+            payload,
+            BasicProperties::default()
+        ).await?;
+
+        // WAIT FOR TASK PROGRESS
+        let mut consumer = amqp_chan.basic_consume(
+            "waterwheel.results",
+            "test",
+            BasicConsumeOptions::default(),
+            FieldTable::default()
+        )
+            .await?;
+
+        let (_, msg) = timeout(
+            Duration::from_secs(30),
+            consumer.try_next()
+        )
+            .await??
+            .expect("no task result published");
+
+        let data: Value = serde_json::from_slice(&msg.data)?;
+
+        assert_eq!(data["result"].as_str(), Some("error"));
 
         Ok(())
     }).await

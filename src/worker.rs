@@ -40,13 +40,15 @@ pub struct Worker {
     pub statsd: StatsdClient,
     pub config: Config,
     pub proj_config_cache: Mutex<LruCache<Uuid, JsonValue>>,
-    pub task_def_cache: Mutex<LruCache<Uuid, TaskDef>>,
+    pub task_def_cache: Mutex<LruCache<Uuid, Option<TaskDef>>>,
 }
 
 impl Worker {
     pub async fn new(config: Config) -> Result<Self> {
         let amqp_conn = amqp_connect(&config).await?;
         let statsd = metrics::new_client(&config)?;
+
+        jwt::load_keys(&config)?;
 
         Ok(Worker {
             amqp_conn,
@@ -64,8 +66,6 @@ impl Worker {
     }
 
     pub async fn run_worker(self) -> Result<!> {
-        jwt::load_keys(&self.config)?;
-
         heartbeat::wait_for_server(&self.config).await;
 
         let this = Arc::new(self);

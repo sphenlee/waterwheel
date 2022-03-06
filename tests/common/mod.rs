@@ -1,13 +1,16 @@
 use std::future::Future;
+use std::sync::Once;
 use testcontainers::Docker;
 
 pub mod rabbitmq;
+
+static LOGGING_SETUP: Once = Once::new();
 
 pub async fn with_external_services<F, Fut, R>(f: F) -> R
 where F: FnOnce() -> Fut,
     Fut: Future<Output=R>
 {
-    setup_logging();
+    LOGGING_SETUP.call_once(setup_logging);
 
     let client = testcontainers::clients::Cli::default();
 
@@ -34,7 +37,7 @@ where F: FnOnce() -> Fut,
     f().await
 }
 
-const DEFAULT_LOG: &str = "warn,waterwheel=trace,highnoon=info,testcontainers=info";
+const DEFAULT_LOG: &str = "warn,waterwheel=trace,highnoon=info,testcontainers=info,lapin=none";
 
 // logging has to be setup manually before we luanch the containers so that we get log
 // output from testcontainers - we can't load Config yet because we don't know the

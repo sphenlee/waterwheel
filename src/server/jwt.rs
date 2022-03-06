@@ -9,7 +9,7 @@ use std::{
     fs,
     time::{Duration, SystemTime},
 };
-use tracing::debug;
+use tracing::{debug, trace};
 
 const WATERWHEEL_ISSUER: &str = "waterwheel";
 const STASH_AUDIENCE: &str = "waterwheel.stash";
@@ -57,18 +57,12 @@ fn load_rsa_keys(pub_key_file: &str, priv_key_file: &str) -> Result<()> {
     debug!("using RSA for stash keys");
 
     let pub_key = fs::read(pub_key_file)?;
-    DECODING_KEY
-        .set(DecodingKey::from_rsa_pem(&pub_key)?.into_static())
-        .expect("public key already set??");
+    let _ = DECODING_KEY.set(DecodingKey::from_rsa_pem(&pub_key)?.into_static());
 
     let priv_key = fs::read(priv_key_file)?;
-    ENCODING_KEY
-        .set(EncodingKey::from_rsa_pem(&priv_key)?)
-        .expect("private key already set??");
+    let _ = ENCODING_KEY.set(EncodingKey::from_rsa_pem(&priv_key)?);
 
-    ALGORITHM
-        .set(Algorithm::RS256)
-        .expect("algorithm already set??");
+    let _ = ALGORITHM.set(Algorithm::RS256);
 
     Ok(())
 }
@@ -77,17 +71,9 @@ fn load_rsa_keys(pub_key_file: &str, priv_key_file: &str) -> Result<()> {
 fn load_hmac_secret(secret: &str) -> Result<()> {
     debug!("using HMAC for stash keys");
 
-    DECODING_KEY
-        .set(DecodingKey::from_secret(secret.as_bytes()).into_static())
-        .expect("secret already set??");
-
-    ENCODING_KEY
-        .set(EncodingKey::from_secret(secret.as_bytes()))
-        .expect("secret already set??");
-
-    ALGORITHM
-        .set(Algorithm::HS256)
-        .expect("algorithm already set??");
+    let _ = DECODING_KEY.set(DecodingKey::from_secret(secret.as_bytes()).into_static());
+    let _ = ENCODING_KEY.set(EncodingKey::from_secret(secret.as_bytes()));
+    let _ = ALGORITHM.set(Algorithm::HS256);
 
     Ok(())
 }
@@ -102,6 +88,7 @@ pub fn generate_config_jwt(id: Uuid) -> Result<String> {
 }
 
 pub fn generate_jwt(aud: String, sub: String) -> Result<String> {
+    trace!("generating jwt for aud={} sub={}", aud, sub);
     let header = Header::new(*ALGORITHM.get().unwrap());
 
     let claims = Claims {

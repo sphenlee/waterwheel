@@ -105,7 +105,7 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
             priority=?task_req.priority,
             "received task");
 
-        let task_def = config_cache::get_task_def(&worker, task_req.task_id).await?;
+        let maybe_task_def = config_cache::get_task_def(&worker, task_req.task_id).await?;
 
         let running_task_guard = RUNNING_TASKS.boost();
         statsd
@@ -119,39 +119,43 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
 
         let started_datetime = Utc::now();
 
-        let result = if task_def.image.is_some() {
-            chan.basic_publish(
-                RESULT_EXCHANGE,
-                "",
-                BasicPublishOptions::default(),
-                task_progress_payload(&task_req, started_datetime, None, TokenState::Running)?,
-                BasicProperties::default(),
-            )
-            .await?;
+        let result = if let Some(task_def) = maybe_task_def {
+            if task_def.image.is_some() {
+                chan.basic_publish(
+                    RESULT_EXCHANGE,
+                    "",
+                    BasicPublishOptions::default(),
+                    task_progress_payload(&task_req, started_datetime, None, TokenState::Running)?,
+                    BasicProperties::default(),
+                )
+                    .await?;
 
-            let res = engine.run_task(&worker, task_req.clone(), task_def);
+                let res = engine.run_task(&worker, task_req.clone(), task_def);
 
-            match tokio::time::timeout(DEFAULT_TASK_TIMEOUT, res).await {
-                Ok(Ok(true)) => TokenState::Success,
-                Ok(Ok(false)) => TokenState::Failure,
-                Ok(Err(err)) => {
-                    error!(task_run_id=?task_req.task_run_id,
+                match tokio::time::timeout(DEFAULT_TASK_TIMEOUT, res).await {
+                    Ok(Ok(true)) => TokenState::Success,
+                    Ok(Ok(false)) => TokenState::Failure,
+                    Ok(Err(err)) => {
+                        error!(task_run_id=?task_req.task_run_id,
                         task_id=?task_req.task_id,
                         trigger_datetime=?task_req.trigger_datetime.to_rfc3339(),
                         "failed to run task: {:#}", err);
-                    TokenState::Error
-                }
-                Err(_) => {
-                    error!(task_run_id=?task_req.task_run_id,
+                        TokenState::Error
+                    }
+                    Err(_) => {
+                        error!(task_run_id=?task_req.task_run_id,
                         task_id=?task_req.task_id,
                         trigger_datetime=?task_req.trigger_datetime.to_rfc3339(),
                         "timeout running task");
-                    TokenState::Error
+                        TokenState::Error
+                    }
                 }
+            } else {
+                // task has no image, mark success immediately
+                TokenState::Success
             }
         } else {
-            // task has no image, mark success immediately
-            TokenState::Success
+            TokenState::Error
         };
 
         let finished_datetime = Utc::now();
