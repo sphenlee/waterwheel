@@ -39,7 +39,7 @@ pub async fn run_kubejob(
     trace!("connecting to kubernetes...");
     let jobs: Api<Job> = Api::default_namespaced(client);
 
-    let job = make_job(&worker, task_req, task_def).await?;
+    let job = make_job(worker, task_req, task_def).await?;
 
     // Create the pod
     let job = jobs.create(&PostParams::default(), &job).await?;

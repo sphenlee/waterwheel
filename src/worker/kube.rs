@@ -39,7 +39,7 @@ pub async fn run_kube(worker: &Worker, task_req: TaskRequest, task_def: TaskDef)
     trace!("connecting to kubernetes...");
     let pods: Api<Pod> = Api::default_namespaced(client);
 
-    let pod = make_pod(&worker, task_req, task_def).await?;
+    let pod = make_pod(worker, task_req, task_def).await?;
     let name = pod.name();
 
     // Create the pod
