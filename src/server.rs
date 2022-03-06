@@ -2,6 +2,7 @@ use crate::{
     amqp::amqp_connect, config::Config, db, metrics, postoffice::PostOffice, util::spawn_or_crash,
 };
 use anyhow::Result;
+use api::{jwt, jwt::JwtKeys};
 use cadence::StatsdClient;
 use lapin::Connection;
 use sqlx::PgPool;
@@ -11,7 +12,6 @@ use tracing::warn;
 pub mod api;
 pub mod body_parser;
 mod execute;
-pub mod jwt;
 mod progress;
 pub mod tokens;
 mod trigger_time;
@@ -24,6 +24,7 @@ pub struct Server {
     pub post_office: PostOffice,
     pub statsd: StatsdClient,
     pub config: Config,
+    pub jwt_keys: JwtKeys,
 }
 
 impl Server {
@@ -31,6 +32,7 @@ impl Server {
         let db_pool = db::create_pool(&config).await?;
         let amqp_conn = amqp_connect(&config).await?;
         let statsd = metrics::new_client(&config)?;
+        let jwt_keys = jwt::load_keys(&config)?;
 
         Ok(Server {
             db_pool,
@@ -38,6 +40,7 @@ impl Server {
             post_office: PostOffice::open(),
             statsd,
             config,
+            jwt_keys,
         })
     }
 
@@ -61,8 +64,6 @@ impl Server {
         if self.config.no_authz {
             warn!("authorization is disabled, this is not recommended in production");
         }
-
-        jwt::load_keys(&self.config)?;
 
         api::serve(self).await?;
 

@@ -15,7 +15,7 @@ use crate::{
     counter::Counter,
     messages::TaskDef,
     metrics,
-    server::jwt,
+    server::api::{jwt, jwt::JwtKeys},
     util::{spawn_or_crash, spawn_retry},
 };
 
@@ -41,6 +41,7 @@ pub struct Worker {
     pub config: Config,
     pub proj_config_cache: Mutex<LruCache<Uuid, JsonValue>>,
     pub task_def_cache: Mutex<LruCache<Uuid, Option<TaskDef>>>,
+    pub jwt_keys: JwtKeys,
 }
 
 impl Worker {
@@ -48,7 +49,7 @@ impl Worker {
         let amqp_conn = amqp_connect(&config).await?;
         let statsd = metrics::new_client(&config)?;
 
-        jwt::load_keys(&config)?;
+        let jwt_keys = jwt::load_keys(&config)?;
 
         Ok(Worker {
             amqp_conn,
@@ -62,6 +63,7 @@ impl Worker {
                 chrono::Duration::hours(24).to_std().unwrap(),
                 100,
             )),
+            jwt_keys,
         })
     }
 

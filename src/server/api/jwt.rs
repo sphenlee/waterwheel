@@ -1,8 +1,7 @@
-use crate::config::Config;
+use crate::{config::Config, server::api::State};
 use anyhow::{anyhow, Result};
-use highnoon::{Error, Request, State, StatusCode};
+use highnoon::{Error, Request, StatusCode};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation};
-use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 use sqlx::types::Uuid;
 use std::{
@@ -23,14 +22,16 @@ pub struct Claims {
     exp: u64,
 }
 
-static ALGORITHM: OnceCell<Algorithm> = OnceCell::new();
-static DECODING_KEY: OnceCell<DecodingKey> = OnceCell::new();
-static ENCODING_KEY: OnceCell<EncodingKey> = OnceCell::new();
+pub struct JwtKeys {
+    algorithm: Algorithm,
+    decoding: DecodingKey<'static>,
+    encoding: EncodingKey,
+}
 
 /// Loads the encryption/decryption keys used to verify access to the stash
 /// Prefers an RSA key pair if one is provided, otherwise will use an HMAC shared secret
 /// (which is easier to generate and share for local development)
-pub fn load_keys(config: &Config) -> Result<()> {
+pub fn load_keys(config: &Config) -> Result<JwtKeys> {
     match config.public_key.as_deref() {
         Some(pub_key_file) => {
             let priv_key_file = config
@@ -53,43 +54,42 @@ pub fn load_keys(config: &Config) -> Result<()> {
     }
 }
 
-fn load_rsa_keys(pub_key_file: &str, priv_key_file: &str) -> Result<()> {
+fn load_rsa_keys(pub_key_file: &str, priv_key_file: &str) -> Result<JwtKeys> {
     debug!("using RSA for stash keys");
 
     let pub_key = fs::read(pub_key_file)?;
-    let _ = DECODING_KEY.set(DecodingKey::from_rsa_pem(&pub_key)?.into_static());
-
     let priv_key = fs::read(priv_key_file)?;
-    let _ = ENCODING_KEY.set(EncodingKey::from_rsa_pem(&priv_key)?);
 
-    let _ = ALGORITHM.set(Algorithm::RS256);
-
-    Ok(())
+    Ok(JwtKeys {
+        algorithm: Algorithm::RS256,
+        decoding: DecodingKey::from_rsa_pem(&pub_key)?.into_static(),
+        encoding: EncodingKey::from_rsa_pem(&priv_key)?,
+    })
 }
 
 #[allow(clippy::unnecessary_wraps)] // for consistency with `load_rsa_keys`
-fn load_hmac_secret(secret: &str) -> Result<()> {
+fn load_hmac_secret(secret: &str) -> Result<JwtKeys> {
     debug!("using HMAC for stash keys");
 
-    let _ = DECODING_KEY.set(DecodingKey::from_secret(secret.as_bytes()).into_static());
-    let _ = ENCODING_KEY.set(EncodingKey::from_secret(secret.as_bytes()));
-    let _ = ALGORITHM.set(Algorithm::HS256);
-
-    Ok(())
+    Ok(JwtKeys {
+        algorithm: Algorithm::HS256,
+        decoding: DecodingKey::from_secret(secret.as_bytes()).into_static(),
+        encoding: EncodingKey::from_secret(secret.as_bytes()),
+    })
 }
 
-pub fn generate_stash_jwt(task_id: &str) -> Result<String> {
-    generate_jwt(STASH_AUDIENCE.to_owned(), task_id.to_owned())
+pub fn generate_stash_jwt(keys: &JwtKeys, task_id: &str) -> Result<String> {
+    generate_jwt(keys, STASH_AUDIENCE.to_owned(), task_id.to_owned())
 }
 
-pub fn generate_config_jwt(id: Uuid) -> Result<String> {
+pub fn generate_config_jwt(keys: &JwtKeys, id: Uuid) -> Result<String> {
     // note ID is either a task_id or a project_id depending on what config we need
-    generate_jwt(CONFIG_AUDIENCE.to_owned(), id.to_string())
+    generate_jwt(keys, CONFIG_AUDIENCE.to_owned(), id.to_string())
 }
 
-pub fn generate_jwt(aud: String, sub: String) -> Result<String> {
+pub fn generate_jwt(keys: &JwtKeys, aud: String, sub: String) -> Result<String> {
     trace!("generating jwt for aud={} sub={}", aud, sub);
-    let header = Header::new(*ALGORITHM.get().unwrap());
+    let header = Header::new(keys.algorithm);
 
     let claims = Claims {
         iss: WATERWHEEL_ISSUER.to_owned(),
@@ -100,22 +100,24 @@ pub fn generate_jwt(aud: String, sub: String) -> Result<String> {
             .as_secs(),
     };
 
-    let token = jsonwebtoken::encode(&header, &claims, ENCODING_KEY.get().unwrap())?;
+    let token = jsonwebtoken::encode(&header, &claims, &keys.encoding)?;
     Ok(token)
 }
 
-pub fn validate_stash_jwt(jwt: &str) -> Result<String> {
-    validate_jwt(jwt, STASH_AUDIENCE)
+pub fn validate_stash_jwt(keys: &JwtKeys, jwt: &str) -> Result<String> {
+    validate_jwt(keys, jwt, STASH_AUDIENCE)
 }
 
-pub fn validate_config_jwt<S: State>(req: &Request<S>, id: Uuid) -> highnoon::Result<String> {
+pub fn validate_config_jwt(req: &Request<State>, id: Uuid) -> highnoon::Result<String> {
     use highnoon::headers::{authorization::Bearer, Authorization};
 
     let bearer = req
         .header::<Authorization<Bearer>>()
         .ok_or_else(|| Error::http(StatusCode::FORBIDDEN))?;
 
-    let sub = validate_jwt(bearer.0.token(), CONFIG_AUDIENCE)?;
+    let keys = &req.state().server.jwt_keys;
+
+    let sub = validate_jwt(keys, bearer.0.token(), CONFIG_AUDIENCE)?;
     if sub != id.to_string() {
         Err(Error::http(StatusCode::FORBIDDEN))
     } else {
@@ -123,13 +125,12 @@ pub fn validate_config_jwt<S: State>(req: &Request<S>, id: Uuid) -> highnoon::Re
     }
 }
 
-fn validate_jwt(jwt: &str, aud: &str) -> Result<String> {
-    let mut validation = Validation::new(*ALGORITHM.get().unwrap());
+fn validate_jwt(keys: &JwtKeys, jwt: &str, aud: &str) -> Result<String> {
+    let mut validation = Validation::new(keys.algorithm);
     validation.set_audience(&[aud]);
     validation.iss = Some(WATERWHEEL_ISSUER.to_owned());
 
-    let token: TokenData<Claims> =
-        jsonwebtoken::decode(jwt, DECODING_KEY.get().unwrap(), &validation)?;
+    let token: TokenData<Claims> = jsonwebtoken::decode(jwt, &keys.decoding, &validation)?;
 
     Ok(token.claims.sub)
 }

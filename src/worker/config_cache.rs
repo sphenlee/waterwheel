@@ -1,6 +1,6 @@
 use crate::{
     messages::{ConfigUpdate, TaskDef},
-    server::jwt,
+    server::api::{jwt, jwt::JwtKeys},
     worker::Worker,
 };
 use anyhow::Result;
@@ -28,7 +28,8 @@ pub async fn get_project_config(worker: &Worker, proj_id: Uuid) -> Result<JsonVa
     if let Some(proj_config) = maybe_proj_config {
         Ok(proj_config.clone())
     } else {
-        let proj_config = fetch_project_config(&worker.config.server_addr, proj_id).await?;
+        let proj_config =
+            fetch_project_config(&worker.jwt_keys, &worker.config.server_addr, proj_id).await?;
         cache.insert(proj_id, proj_config.clone());
         Ok(proj_config)
     }
@@ -42,14 +43,19 @@ pub async fn get_task_def(worker: &Worker, task_id: Uuid) -> Result<Option<TaskD
         trace!(?task_id, "task def cache hit");
         Ok(def.clone())
     } else {
-        let maybe_def = fetch_task_def(&worker.config.server_addr, task_id).await?;
+        let maybe_def =
+            fetch_task_def(&worker.jwt_keys, &worker.config.server_addr, task_id).await?;
         cache.insert(task_id, maybe_def.clone());
         Ok(maybe_def)
     }
 }
 
-async fn fetch_project_config(server_addr: &str, proj_id: Uuid) -> Result<JsonValue> {
-    let token = "Bearer ".to_owned() + &jwt::generate_config_jwt(proj_id)?;
+async fn fetch_project_config(
+    keys: &JwtKeys,
+    server_addr: &str,
+    proj_id: Uuid,
+) -> Result<JsonValue> {
+    let token = "Bearer ".to_owned() + &jwt::generate_config_jwt(keys, proj_id)?;
 
     let url = reqwest::Url::parse(server_addr)?
         .join("int-api/projects/")?
@@ -75,8 +81,12 @@ async fn fetch_project_config(server_addr: &str, proj_id: Uuid) -> Result<JsonVa
     Ok(config)
 }
 
-async fn fetch_task_def(server_addr: &str, task_id: Uuid) -> Result<Option<TaskDef>> {
-    let token = "Bearer ".to_owned() + &jwt::generate_config_jwt(task_id)?;
+async fn fetch_task_def(
+    keys: &JwtKeys,
+    server_addr: &str,
+    task_id: Uuid,
+) -> Result<Option<TaskDef>> {
+    let token = "Bearer ".to_owned() + &jwt::generate_config_jwt(keys, task_id)?;
 
     let url = reqwest::Url::parse(server_addr)?
         .join("int-api/tasks/")?

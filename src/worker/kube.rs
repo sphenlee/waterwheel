@@ -127,7 +127,7 @@ fn make_grist() -> String {
 }
 
 async fn make_pod(worker: &Worker, task_req: TaskRequest, task_def: TaskDef) -> Result<Pod> {
-    let env = env::get_env(&worker.config, &task_req, &task_def)?;
+    let env = env::get_env(worker, &task_req, &task_def)?;
 
     let grist = make_grist();
     let name = format!("{}--{}", task_req.task_run_id, grist);
