@@ -1,5 +1,4 @@
-use std::future::Future;
-use std::sync::Once;
+use std::{future::Future, sync::Once};
 use testcontainers::Docker;
 
 pub mod rabbitmq;
@@ -7,8 +6,9 @@ pub mod rabbitmq;
 static LOGGING_SETUP: Once = Once::new();
 
 pub async fn with_external_services<F, Fut, R>(f: F) -> R
-where F: FnOnce() -> Fut,
-    Fut: Future<Output=R>
+where
+    F: FnOnce() -> Fut,
+    Fut: Future<Output = R>,
 {
     LOGGING_SETUP.call_once(setup_logging);
 
@@ -17,14 +17,18 @@ where F: FnOnce() -> Fut,
     // start database
     let postgres = client.run(testcontainers::images::postgres::Postgres::default());
 
-    let port = postgres.get_host_port(5432).expect("postgres port not exposed");
+    let port = postgres
+        .get_host_port(5432)
+        .expect("postgres port not exposed");
     let db_url = format!("postgres://postgres@localhost:{}/", port);
     std::env::set_var("WATERWHEEL_DB_URL", db_url);
 
     // start AMQP
     let rabbit = client.run(rabbitmq::RabbitMq);
 
-    let port = rabbit.get_host_port(5672).expect("rabbitmq port not exposed");
+    let port = rabbit
+        .get_host_port(5672)
+        .expect("rabbitmq port not exposed");
     let amqp_addr = format!("amqp://localhost:{}//", port);
     std::env::set_var("WATERWHEEL_AMQP_ADDR", amqp_addr);
 
@@ -46,9 +50,7 @@ fn setup_logging() {
     let filter = std::env::var_os("WATERWHEEL_LOG");
     let filter = match &filter {
         None => DEFAULT_LOG,
-        Some(os_str) => {
-            os_str.to_str().expect("WATERWHEEL_LOG wasn't utf8")
-        }
+        Some(os_str) => os_str.to_str().expect("WATERWHEEL_LOG wasn't utf8"),
     };
 
     waterwheel::logging::setup_raw(false, filter).expect("failed to setup logging");

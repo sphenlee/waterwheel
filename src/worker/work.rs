@@ -7,10 +7,14 @@ use anyhow::Result;
 use cadence::{CountedExt, Gauged};
 use chrono::{DateTime, Utc};
 use futures::TryStreamExt;
-use lapin::{options::{
-    BasicAckOptions, BasicConsumeOptions, BasicPublishOptions, BasicQosOptions,
-    ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
-}, types::FieldTable, BasicProperties, Consumer, ExchangeKind, Channel};
+use lapin::{
+    options::{
+        BasicAckOptions, BasicConsumeOptions, BasicPublishOptions, BasicQosOptions,
+        ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
+    },
+    types::FieldTable,
+    BasicProperties, Channel, Consumer, ExchangeKind,
+};
 use std::{sync::Arc, time::Duration};
 use tracing::{debug, error, info};
 
@@ -35,7 +39,7 @@ pub async fn setup_queues(chan: &Channel) -> Result<()> {
         },
         args,
     )
-        .await?;
+    .await?;
 
     // declare outgoing exchange and queue for progress reports
     chan.exchange_declare(
@@ -47,7 +51,7 @@ pub async fn setup_queues(chan: &Channel) -> Result<()> {
         },
         FieldTable::default(),
     )
-        .await?;
+    .await?;
 
     chan.queue_declare(
         RESULT_QUEUE,
@@ -57,7 +61,7 @@ pub async fn setup_queues(chan: &Channel) -> Result<()> {
         },
         FieldTable::default(),
     )
-        .await?;
+    .await?;
 
     chan.queue_bind(
         RESULT_QUEUE,
@@ -66,7 +70,7 @@ pub async fn setup_queues(chan: &Channel) -> Result<()> {
         QueueBindOptions::default(),
         FieldTable::default(),
     )
-        .await?;
+    .await?;
 
     Ok(())
 }
@@ -128,7 +132,7 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
                     task_progress_payload(&task_req, started_datetime, None, TokenState::Running)?,
                     BasicProperties::default(),
                 )
-                    .await?;
+                .await?;
 
                 let res = engine.run_task(&worker, task_req.clone(), task_def);
 

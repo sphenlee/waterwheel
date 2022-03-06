@@ -5,6 +5,7 @@ use crate::{
 };
 use anyhow::Result;
 use futures::TryStreamExt;
+use highnoon::StatusCode;
 use lapin::{
     options::{
         BasicAckOptions, BasicConsumeOptions, ExchangeDeclareOptions, QueueBindOptions,
@@ -14,9 +15,7 @@ use lapin::{
     ExchangeKind,
 };
 use serde_json::Value as JsonValue;
-use std::sync::Arc;
-use std::time::Duration;
-use highnoon::StatusCode;
+use std::{sync::Arc, time::Duration};
 use tracing::{trace, warn};
 use uuid::Uuid;
 
@@ -57,7 +56,9 @@ async fn fetch_project_config(server_addr: &str, proj_id: Uuid) -> Result<JsonVa
         .join(&format!("{}/", proj_id))?
         .join("config")?;
 
-    let client = reqwest::Client::builder().timeout(Duration::from_secs(10)).build()?;
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .build()?;
 
     trace!(?proj_id, "fetching project config from api");
 
@@ -81,7 +82,9 @@ async fn fetch_task_def(server_addr: &str, task_id: Uuid) -> Result<Option<TaskD
         .join("int-api/tasks/")?
         .join(&format!("{}", task_id))?;
 
-    let client = reqwest::Client::builder().timeout(Duration::from_secs(10)).build()?;
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .build()?;
 
     trace!(?task_id, "fetching task def from api");
 
@@ -103,10 +106,16 @@ async fn fetch_task_def(server_addr: &str, task_id: Uuid) -> Result<Option<TaskD
                 Ok(None)
             }
             otherwise => {
-                warn!(?task_id, "unexpected status code while fetching task_def: {}", otherwise);
-                anyhow::bail!("unexpected status code while fetching task_def: {}", otherwise);
+                warn!(
+                    ?task_id,
+                    "unexpected status code while fetching task_def: {}", otherwise
+                );
+                anyhow::bail!(
+                    "unexpected status code while fetching task_def: {}",
+                    otherwise
+                );
             }
-        }
+        },
         Err(err) => {
             warn!(?task_id, "error fetching task_def: {}", err);
             anyhow::bail!("error fetching task_def: {}", err);
