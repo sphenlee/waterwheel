@@ -1,11 +1,9 @@
 import React, { Component } from "react";
-import { Link, withRouter } from 'react-router-dom';
+import { Link, RouteComponentProps, withRouter } from 'react-router-dom';
 import { Layout, Menu } from 'antd';
 
-class TopMenu extends Component {
+class TopMenu extends Component<RouteComponentProps> {
   render() {
-    const { pathname } = this.props.location;
-
     return (
       <Layout.Header className="header">
         <Menu theme="dark" mode="horizontal">
@@ -31,4 +29,3 @@ class TopMenu extends Component {
 }
 
 export default withRouter(TopMenu);
-

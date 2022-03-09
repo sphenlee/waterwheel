@@ -6,6 +6,8 @@ import { Line } from '@ant-design/charts';
 import {
   DoubleRightOutlined,
 } from '@ant-design/icons';
+import { TaskDuration, TaskDurationList } from "../../types/Task";
+import { Moment } from "moment";
 
 const config = {
     xField: 'trigger_datetime',
@@ -23,8 +25,17 @@ const config = {
     }
   };
 
-class Duration extends Component {
-    constructor(props) {
+type DurationProps = {
+    id: string;
+};
+type DurationState = {
+    data: TaskDurationList | null;
+    limit: number;
+    before: string | null;  // TODO: datetime
+};
+
+class Duration extends Component<DurationProps, DurationState> {
+    constructor(props: DurationProps) {
         super(props);
 
         this.state = {
@@ -38,11 +49,13 @@ class Duration extends Component {
         this.fetchDuration(null);
     }
 
-    onDatePicked(date) {
-        this.fetchDuration(date.toISOString());
+    onDatePicked(date: Moment | null) {
+        if(date) {
+            this.fetchDuration(date.toISOString());
+        }
     }
 
-    async fetchDuration(before) {
+    async fetchDuration(before: string | null) {
         const { id } = this.props;
         const { limit } = this.state;
 
@@ -51,8 +64,8 @@ class Duration extends Component {
             before: before,
         };
 
-        let resp = await axios.get(`/api/jobs/${id}/duration`, {
-                params: params
+        let resp = await axios.get<TaskDurationList>(`/api/jobs/${id}/duration`, {
+            params: params
         });
 
         this.setState({

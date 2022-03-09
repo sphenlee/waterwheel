@@ -4,13 +4,20 @@ import { List, Avatar, Layout, Breadcrumb, Row, Col } from 'antd';
 import { ProjectOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
-import Body from '../components/Body.jsx';
+import Body from '../components/Body';
+import Project from "./Project";
+import { Project as ProjectType } from "../types/Project";
 
 const { Content } = Layout;
 
+type ProjectsState = {
+    loading: boolean;
+    data: ProjectType[];
+};
 
-class Projects extends Component {
-    constructor(props) {
+
+class Projects extends Component<{}, ProjectsState> {
+    constructor(props: {}) {
         super(props);
 
         this.state = {
@@ -24,7 +31,7 @@ class Projects extends Component {
             this.setState({
                 loading: true
             });
-            let resp = await axios.get('/api/projects');
+            let resp = await axios.get<ProjectType[]>('/api/projects');
             this.setState({
                 loading: false,
                 data: resp.data
@@ -55,10 +62,10 @@ class Projects extends Component {
                             <Col span={12}>
                                 <List
                                     itemLayout="vertical"
-                                    bordered="true"
+                                    bordered={true}
                                     dataSource={this.state.data}
                                     loading={this.state.loading}
-                                    renderItem={item => (
+                                    renderItem={(item: ProjectType) => (
                                         <List.Item>
                                             <List.Item.Meta
                                                 avatar={<Avatar icon={<ProjectOutlined />} shape="square"></Avatar>}

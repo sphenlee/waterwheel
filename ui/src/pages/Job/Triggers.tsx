@@ -5,10 +5,12 @@ import axios from 'axios';
 import Moment from 'react-moment';
 import cronstrue from 'cronstrue';
 import prettyMilliseconds from 'pretty-ms';
+import { ColumnsType } from "antd/lib/table";
+import { Job, JobTrigger } from "../../types/Job";
 
 const { Text } = Typography;
 
-function makeColumns(job) {
+function makeColumns(job: Job): ColumnsType<JobTrigger> {
     return [
         {
             title: 'Name',
@@ -21,7 +23,7 @@ function makeColumns(job) {
         },{
             title: 'Schedule',
             key: 'period',
-            render: (text, record) => record.period ? <Period>{record.period}</Period> : <Cron>{record.cron}</Cron>,
+            render: (text, record) => record.period ? <Period period={record.period} /> : <Cron cron={record.cron ?? ''} />,
         },{
             title: 'Start',
             dataIndex: 'start_datetime',
@@ -47,30 +49,40 @@ function makeColumns(job) {
 }
 
 
-function Period(props) {
-    let string = prettyMilliseconds(props.children * 1000);
+function Period(props: {period: number}) {
+    let string = prettyMilliseconds(props.period * 1000);
     return <Tag>{string}</Tag>;
 }
 
 
-function Cron(props) {
+function Cron(props: {cron: string}) {
     let desc;
     try {
-        desc = cronstrue.toString(props.children);
+        desc = cronstrue.toString(props.cron);
     } catch(e) {
         desc = e; 
     }
 
     return (
         <Tooltip title={desc}>
-            <Tag>{props.children}</Tag>
+            <Tag>{props.cron}</Tag>
         </Tooltip>
     );
 }
 
 
-class Triggers extends Component {
-    constructor(props) {
+type TriggersProps = {
+    id: string;
+    job: Job;
+};
+type TriggersState = {
+    triggers: JobTrigger[];
+};
+
+class Triggers extends Component<TriggersProps, TriggersState> {
+    columns: ColumnsType<JobTrigger>;
+
+    constructor(props: TriggersProps) {
         super(props);
 
         this.columns = makeColumns(props.job);
@@ -80,8 +92,8 @@ class Triggers extends Component {
         }
     }
 
-    async fetchTriggers(id) {
-        let resp = await axios.get(`/api/jobs/${id}/triggers`);
+    async fetchTriggers(id: string) {
+        let resp = await axios.get<JobTrigger[]>(`/api/jobs/${id}/triggers`);
         this.setState({
             triggers: resp.data,
         });

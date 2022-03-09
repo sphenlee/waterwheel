@@ -10,8 +10,12 @@ import {
   WarningOutlined,
 } from '@ant-design/icons';
 
+type States = 'active' | 'running' | 'waiting' | 'success' | 'failure' | 'error';
+type StateProps = {
+  state: States
+};
 
-class State extends Component {
+class State extends Component<StateProps> {
   render() {
     const { state } = this.props;
 
