@@ -19,7 +19,7 @@ pub async fn test_project() -> highnoon::Result<()> {
         let config = config::load()?;
         let server = Server::new(config).await?;
 
-        let tc = make_app(&server).await?.test();
+        let tc = make_app(server.clone()).await?.test();
 
         // (setup a queue to receive the config updates - these are a fanout broadcast so
         // no queue is subscribed by default)

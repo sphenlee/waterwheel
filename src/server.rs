@@ -28,39 +28,33 @@ pub struct Server {
 }
 
 impl Server {
-    pub async fn new(config: Config) -> Result<Self> {
+    pub async fn new(config: Config) -> Result<Arc<Self>> {
         let db_pool = db::create_pool(&config).await?;
         let amqp_conn = amqp_connect(&config).await?;
         let statsd = metrics::new_client(&config)?;
         let jwt_keys = jwt::load_keys(&config)?;
 
-        Ok(Server {
+        Ok(Arc::new(Server {
             db_pool,
             amqp_conn,
             post_office: PostOffice::open(),
             statsd,
             config,
             jwt_keys,
-        })
+        }))
     }
 
-    pub async fn run_scheduler(self) -> Result<!> {
-        let this = Arc::new(self);
+    pub async fn run_scheduler(self: Arc<Self>) -> Result<!> {
+        spawn_or_crash("triggers", self.clone(), triggers::process_triggers);
+        spawn_or_crash("tokens", self.clone(), tokens::process_tokens);
+        spawn_or_crash("executions", self.clone(), execute::process_executions);
+        spawn_or_crash("progress", self.clone(), progress::process_progress);
+        spawn_or_crash("updates", self.clone(), updates::process_updates);
 
-        spawn_or_crash("triggers", this.clone(), triggers::process_triggers);
-        spawn_or_crash("tokens", this.clone(), tokens::process_tokens);
-        spawn_or_crash("executions", this.clone(), execute::process_executions);
-        spawn_or_crash("progress", this.clone(), progress::process_progress);
-        spawn_or_crash("updates", this.clone(), updates::process_updates);
-
-        this.run_api_inner().await
+        self.run_api().await
     }
 
-    pub async fn run_api(self) -> Result<!> {
-        Arc::new(self).run_api_inner().await
-    }
-
-    async fn run_api_inner(self: Arc<Self>) -> Result<!> {
+    pub async fn run_api(self: Arc<Self>) -> Result<!> {
         if self.config.no_authz {
             warn!("authorization is disabled, this is not recommended in production");
         }
