@@ -10,12 +10,11 @@ use tracing::{
 use tracing_log::NormalizeEvent;
 use tracing_subscriber::{
     field::RecordFields,
-    fmt::{self, FmtContext, FormatEvent, FormatFields},
+    fmt::{self, format::Writer, FmtContext, FormatEvent, FormatFields},
     prelude::*,
     registry::LookupSpan,
     EnvFilter,
 };
-use tracing_subscriber::fmt::format::Writer;
 
 fn level_color(level: Level, msg: String) -> impl std::fmt::Display {
     match level {

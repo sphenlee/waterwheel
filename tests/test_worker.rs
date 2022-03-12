@@ -14,7 +14,7 @@ use waterwheel::{
     config,
     messages::TaskDef,
     server::Server,
-    worker::{engine::TaskEngine, work, Worker, heartbeat},
+    worker::{engine::TaskEngine, heartbeat, work, Worker},
 };
 
 mod common;
