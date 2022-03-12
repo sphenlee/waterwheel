@@ -4,32 +4,29 @@ import { Layout, Breadcrumb, Row, Col, Statistic } from 'antd';
 import { geekblue, lime, red, grey, yellow } from '@ant-design/colors';
 import axios from 'axios';
 
-import Body from '../components/Body.jsx';
-import Navigation from '../components/Navigation.jsx'
+import Body from '../components/Body';
+import { Status } from "../types/Status";
 
 const { Content } = Layout;
 
+type HomeState = {
+  status?: Status;
+};
 
-class Home extends Component {
-  constructor(props) {
+
+class Home extends Component<{}, HomeState> {
+  interval: NodeJS.Timeout;
+
+  constructor(props: {}) {
       super(props);
 
-      this.state = {
-          loading: true,
-          status: {},
-      };
+      this.state = {};
   }
 
   async fetchStatus() {
       try {
-          this.setState({
-              loading: true,
-          });
-          let resp = await axios.get(`/api/status`);
-          this.setState({
-              status: resp.data,
-              loading: false,
-          });
+          let resp = await axios.get<Status>(`/api/status`);
+          this.setState({status: resp.data});
       } catch(e) {
           console.log(e);
       }
@@ -59,17 +56,17 @@ class Home extends Component {
                 <Col span={6}>
                     <Statistic title="Projects"
                         valueStyle={{color: geekblue[5]}}
-                        value={status.num_projects} />
+                        value={status?.num_projects ?? 0} />
                 </Col>
                 <Col span={6}>
                     <Statistic title="Workers"
                         valueStyle={{color: geekblue[5]}}
-                        value={status.num_workers} />
+                        value={status?.num_workers ?? 0} />
                 </Col>
                 <Col span={6}>
                     <Statistic title="Running Tasks"
                         valueStyle={{color: geekblue[5]}}
-                        value={status.running_tasks} />
+                        value={status?.running_tasks ?? 0} />
                 </Col>
             </Row>
           </Body>

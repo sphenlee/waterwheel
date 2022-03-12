@@ -50,6 +50,25 @@ pub async fn create_task(
     .fetch_one(&mut *txn)
     .await?;
 
+    Ok(task_id)
+}
+
+pub async fn create_task_edges(
+    txn: &mut Transaction<'_, Postgres>,
+    task: &Task,
+    job: &Job,
+) -> highnoon::Result<()> {
+    let (task_id,): (Uuid,) = sqlx::query_as(
+        "SELECT id
+         FROM task
+         WHERE job_id = $1
+         AND name = $2",
+    )
+    .bind(&job.uuid)
+    .bind(&task.name)
+    .fetch_one(&mut *txn)
+    .await?;
+
     // remove existing edges
     sqlx::query(
         "DELETE FROM trigger_edge
@@ -103,7 +122,7 @@ pub async fn create_task(
         }
     }
 
-    Ok(task_id)
+    Ok(())
 }
 
 async fn create_trigger_edge(

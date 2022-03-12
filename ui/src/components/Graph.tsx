@@ -1,9 +1,11 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
-import Graph from "react-graph-vis";
+import Graph, { GraphRep } from "react-graph-vis";
 import { Table, Select, notification, Spin } from 'antd';
 import { geekblue, lime, red, grey, yellow } from '@ant-design/colors';
 import axios from 'axios';
+
+import { JobGraph as JobGraphType, JobGraphNode, JobGraphNodeState } from "../types/Job";
 
 const options = {
     width: '100%',
@@ -20,18 +22,30 @@ const options = {
     }*/
 }
 
-function stateColor(state) {
-    return {
-        null: grey[0],
+function stateColor(state: JobGraphNodeState | null) {
+    return state ? {
         waiting: grey[3],
         active: geekblue[3],
         success: lime[3],
         failure: red[3],
-    }[state];
+    }[state] : grey[0];
 }
 
-class JobGraph extends Component {
-    constructor(props) {
+
+type JobGraphProps = {
+    id: string;
+    trigger_datetime?: string;
+};
+
+type JobGraphState = {
+    loading: boolean;
+    graph: GraphRep | null;
+};
+
+class JobGraph extends Component<JobGraphProps, JobGraphState> {
+    interval: NodeJS.Timeout;
+
+    constructor(props: JobGraphProps) {
         super(props);
 
         this.state = {
@@ -40,8 +54,8 @@ class JobGraph extends Component {
         }
     }
 
-    createGraph(data, id) {
-        const nodeLabel = (n) => {
+    createGraph(data: JobGraphType, id: string): GraphRep {
+        const nodeLabel = (n: JobGraphNode) => {
             if (n.job_id === id) {
                 return `${n.name}`;
             } else {
@@ -49,7 +63,7 @@ class JobGraph extends Component {
             }
         }
 
-        const nodeTitle = (n) => {
+        const nodeTitle = (n: JobGraphNode) => {
             if (n.job_id === id) {
                 return `task ${n.name}`;
             } else {
@@ -98,7 +112,7 @@ class JobGraph extends Component {
                 url = `/api/jobs/${id}/graph`;
             }
 
-            let resp = await axios.get(url);
+            let resp = await axios.get<JobGraphType>(url);
 
             this.setState({
                 graph: this.createGraph(resp.data, id),
@@ -125,7 +139,7 @@ class JobGraph extends Component {
         }
     }
 
-    componentDidUpdate(oldprops) {
+    componentDidUpdate(oldprops: JobGraphProps) {
         if (this.props.id != oldprops.id) {
             this.fetchGraph()
         }
@@ -143,8 +157,7 @@ class JobGraph extends Component {
 
         return (
             <Spin spinning={loading} size="large" tip="Loading..." delay={200}>
-                { graph && <Graph graph={graph} options={options}/>
-                }
+                { graph && <Graph graph={graph} options={options}/> }
             </Spin>
         );
     }

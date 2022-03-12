@@ -5,16 +5,16 @@ import { Layout, Breadcrumb } from 'antd';
 
 const { Content, Footer } = Layout;
 
-import Home from './pages/Home.jsx';
-import Job from './pages/Job.jsx';
-import Login from './pages/Login.jsx';
-import Project from './pages/Project.jsx';
-import Projects from './pages/Projects.jsx';
-import Tokens from './pages/Tokens.jsx';
-import TopMenu from './components/TopMenu.jsx'
-import Triggers from './pages/Triggers.jsx';
-import Worker from './pages/Worker.jsx';
-import Workers from './pages/Workers.jsx';
+import Home from './pages/Home';
+import Job from './pages/Job';
+import Login from './pages/Login';
+import Project from './pages/Project';
+import Projects from './pages/Projects';
+import Tokens from './pages/Tokens';
+import TopMenu from './components/TopMenu'
+import Triggers from './pages/Triggers';
+import Worker from './pages/Worker';
+import Workers from './pages/Workers';
 
 class App extends Component {
   render() {

@@ -1,0 +1,45 @@
+uuid: '802fa6a7-e03b-48a8-8fd1-6f15c11e8ca2'
+
+project: test_project
+name: depends_on_past
+description: |
+  a job demonstrating how to simulate a "depends on past" relationship
+
+paused: false
+
+triggers:
+  - name: initial
+    # initial trigger is set to occur only once
+    start: '2022-01-01T00:00:00Z'
+    end: '2022-01-02T00:00:00Z'
+    period: '1d'
+
+  - name: daily
+    # daily trigger starts at the same time but is recurring
+    start: '2022-01-01T00:00:00Z'
+    period: '1d'
+
+tasks:
+  - name: next
+    # depends on both the daily trigger and the previous day completion
+    depends:
+      - trigger/daily
+      - task/end@1d
+
+  - name: start
+    threshold: 1
+    # depend on either the initial trigger or the "next" task from above
+    depends:
+      - trigger/initial
+      - task/next
+
+  - name: do_work
+    docker:
+      image: bash
+      args: ["-c", "echo \"job running for $WATERWHEEL_TRIGGER_DATETIME\""]
+    depends:
+      - task/start
+
+  - name: end
+    depends:
+      - task/do_work

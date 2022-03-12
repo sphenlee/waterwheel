@@ -126,6 +126,10 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
         tasks_to_tx.push(id);
     }
 
+    for task in &job.tasks {
+        tasks::create_task_edges(&mut txn, task, &job).await?;
+    }
+
     txn.commit().await?;
 
     for id in triggers_to_tx {

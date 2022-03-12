@@ -7,34 +7,47 @@ import { ExclamationCircleOutlined, EllipsisOutlined } from '@ant-design/icons';
 
 import axios from 'axios';
 
-import Body from '../components/Body.jsx';
-import State from '../components/State.jsx';
-import Graph from '../components/Graph.jsx';
-import ActivateToken from '../components/ActivateToken.jsx';
+import State from '../components/State';
+import ActivateToken from '../components/ActivateToken';
+import { ColumnsType } from "antd/lib/table";
+import { datetime } from "../types/common";
+import { Task, TaskRun } from "../types/Task";
 
 const { Content } = Layout;
 
-function Json({children}) {
-    if (typeof(children) == 'string') {
-        return <pre>{children}</pre>;
+function Json({json}: {json: any}) {
+    if (typeof(json) == 'string') {
+        return <pre>{json}</pre>;
     } else {
-        return <pre>{JSON.stringify(children)}</pre>;
+        return <pre>{JSON.stringify(json)}</pre>;
     }
 }
 
-class TokenRuns extends Component {
-    constructor(props) {
+type TokenRunsProps = {
+    task_id: string | null;
+    trigger_datetime: datetime;
+    visible: boolean;
+    onClose: React.EventHandler<React.MouseEvent | React.KeyboardEvent>;
+};
+type TokenRunsState = {
+    runs: TaskRun[];
+    task?: Task;
+};
+
+class TokenRuns extends Component<TokenRunsProps, TokenRunsState> {
+    columns: ColumnsType<TaskRun>;
+
+    constructor(props: TokenRunsProps) {
         super(props);
 
         this.columns = this.makeColumns();
 
         this.state = {
             runs: [],
-            task: null,
         }
     }
 
-    makeColumns() {
+    makeColumns(): ColumnsType<TaskRun> {
         return [
           {
             title: 'Id',
@@ -69,15 +82,14 @@ class TokenRuns extends Component {
         ];
     }
 
-    async fetchRuns(task_id, trigger_datetime) {
+    async fetchRuns(task_id: string, trigger_datetime: string) {
         try {
-            let resp1 = await axios.get(`/api/tasks/${task_id}/runs/${trigger_datetime}`);
-            let runs = resp1.data;
+            let resp1 = await axios.get<TaskRun[]>(`/api/tasks/${task_id}/runs/${trigger_datetime}`);
 
-            let resp2 = await axios.get(`/api/tasks/${task_id}`);
+            let resp2 = await axios.get<Task>(`/api/tasks/${task_id}`);
             this.setState({
+                runs: resp1.data,
                 task: resp2.data,
-                runs: runs,
             });
         } catch(e) {
             console.log(e);
@@ -92,7 +104,7 @@ class TokenRuns extends Component {
         }
     }
 
-    componentDidUpdate(prevProps) {
+    componentDidUpdate(prevProps: TokenRunsProps) {
         if (this.props.task_id !== prevProps.task_id) {
             this.componentDidMount()
         }
@@ -105,14 +117,15 @@ class TokenRuns extends Component {
         return (
             <Drawer title={`Task Runs for ${task?.task_name ?? '...'}`}
                     placement="bottom"
-                    size="large"
+                    // size="large"
                     height={736} // todo - remove after upgrading
                     onClose={onClose}
                     visible={visible}>
 
                 <ActivateToken
-                    type="primary" size="default"
-                    task_id={task_id}
+                    type="primary"
+                    size="middle"
+                    task_id={task_id ?? ''}
                     trigger_datetime={trigger_datetime} />
 
 
@@ -126,13 +139,13 @@ class TokenRuns extends Component {
                             background: "#fff"
                         }}>
                     <Descriptions.Item label="Image">
-                        <Json>{task?.image}</Json>
+                        <Json json={task?.image} />
                     </Descriptions.Item>
                     <Descriptions.Item label="Args">
-                        <Json>{task?.args}</Json>
+                        <Json json={task?.args} />
                     </Descriptions.Item>
                     <Descriptions.Item label="Env">
-                        <Json>{task?.env}</Json>
+                        <Json json={task?.env} />
                     </Descriptions.Item>
                 </Descriptions>
 

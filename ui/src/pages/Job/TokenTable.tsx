@@ -3,11 +3,13 @@ import { Link } from "react-router-dom";
 import { Table, Select, notification } from 'antd';
 import axios from 'axios';
 
-import State from '../../components/State.jsx';
+import State from '../../components/State';
+import { ColumnsType } from "antd/lib/table";
+import { Token } from "../../types/Token";
 
 const { Option } = Select;
 
-function makeColumns(job_id) {
+function makeColumns(job_id: string): ColumnsType<Token> {
     return [
       {
         title: 'Trigger Time',
@@ -32,22 +34,33 @@ function makeColumns(job_id) {
     ];
 }
 
+type Filter = 'active' | 'running';
+type TokenTableProps = {
+    id: string;
+};
+type TokenTableState = {
+    filter: Filter[];
+    tokens: Token[];
+};
 
-class TokenTable extends Component {
-    constructor(props) {
+class TokenTable extends Component<TokenTableProps, TokenTableState> {
+    columns: ColumnsType<Token>;
+    interval: NodeJS.Timeout;
+
+    constructor(props: TokenTableProps) {
         super(props);
 
         this.columns = makeColumns(props.id);
 
         this.state = {
             filter: ['active', 'running'],
-            tokens: null
+            tokens: [],
         }
     }
 
-    async fetchTokens(id) {
+    async fetchTokens(id: string) {
         try {
-            let resp = await axios.get(`/api/jobs/${id}/tokens`, {
+            let resp = await axios.get<Token[]>(`/api/jobs/${id}/tokens`, {
                 params: {
                     state: this.state.filter.join(',')
                 }
@@ -86,7 +99,7 @@ class TokenTable extends Component {
                   mode="multiple"
                   defaultValue={["active", "running"]}
                   style={{ width: 350 }}
-                  onChange={(value) => {
+                  onChange={(value: Filter[]) => {
                     this.setState({
                         filter: value
                     }, () => {

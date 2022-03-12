@@ -5,8 +5,7 @@ import { UserOutlined, LockOutlined } from '@ant-design/icons';
 
 import axios from 'axios';
 
-import Body from '../components/Body.jsx';
-import Navigation from '../components/Navigation.jsx'
+import Body from '../components/Body';
 
 const { Content } = Layout;
 
