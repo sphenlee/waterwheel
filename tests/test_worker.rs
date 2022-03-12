@@ -14,7 +14,7 @@ use waterwheel::{
     config,
     messages::TaskDef,
     server::Server,
-    worker::{engine::TaskEngine, work, Worker},
+    worker::{engine::TaskEngine, work, Worker, heartbeat},
 };
 
 mod common;
@@ -139,6 +139,7 @@ pub async fn test_worker_missing_taskid() -> highnoon::Result<()> {
 
         let server = Server::new(config.clone()).await?;
         tokio::spawn(server.run_api());
+        heartbeat::wait_for_server(&config).await;
 
         let worker = Arc::new(Worker::new(config.clone()).await?);
         let amqp_chan = worker.amqp_conn.create_channel().await?;

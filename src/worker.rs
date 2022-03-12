@@ -23,7 +23,7 @@ mod config_cache;
 mod docker;
 pub mod engine;
 pub mod env;
-mod heartbeat;
+pub mod heartbeat;
 mod kube;
 mod kubejob;
 pub mod work;

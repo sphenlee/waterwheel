@@ -41,7 +41,7 @@ where
     f().await
 }
 
-const DEFAULT_LOG: &str = "warn,waterwheel=trace,highnoon=info,testcontainers=info,lapin=none";
+const DEFAULT_LOG: &str = "warn,waterwheel=trace,highnoon=info,testcontainers=info,lapin=off";
 
 // logging has to be setup manually before we luanch the containers so that we get log
 // output from testcontainers - we can't load Config yet because we don't know the
