@@ -92,7 +92,6 @@ pub async fn make_app(server: &Server) -> Result<highnoon::App<State>> {
 
     // job
     app.at("/api/jobs")
-        .get(job::get_by_name)
         .post(job::create)
         .put(job::create);
     app.at("/api/jobs/:id")
