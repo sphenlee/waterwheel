@@ -7,7 +7,7 @@ use futures::TryStreamExt;
 use postage::prelude::*;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Postgres, Transaction};
-use std::{collections::HashMap, fmt, sync::Arc};
+use std::{fmt, sync::Arc};
 use tracing::{info, trace};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -28,55 +28,50 @@ impl fmt::Display for Token {
     }
 }
 
-async fn get_threshold(pool: &PgPool, token: &Token) -> Result<i32> {
-    let (threshold,) = sqlx::query_as(
-        "SELECT threshold
-        FROM task
-        WHERE id = $1",
+async fn get_count_and_threshold(pool: &PgPool, token: &Token) -> Result<(i32, i32)> {
+    let (count, threshold) = sqlx::query_as(
+        "SELECT k.count, t.threshold
+        FROM task t
+        JOIN token k ON k.task_id = t.id
+        WHERE t.id = $1
+        AND k.trigger_datetime = $2",
     )
     .bind(&token.task_id)
+    .bind(&token.trigger_datetime)
     .fetch_one(pool)
     .await?;
 
-    Ok(threshold)
+    Ok((count, threshold))
 }
 
 pub async fn process_tokens(server: Arc<Server>) -> Result<!> {
     let pool = server.db_pool.clone();
 
+    restore_tokens(&server).await?;
+
     let mut token_rx = server.post_office.receive_mail::<ProcessToken>().await?;
     let mut execute_tx = server.post_office.post_mail::<ExecuteToken>().await?;
-
-    let mut tokens = restore_tokens(&server).await?;
 
     while let Some(msg) = token_rx.recv().await {
         match msg {
             ProcessToken::Increment(token, priority) => {
-                let count = tokens.entry(token.clone()).or_insert(0);
-                *count += 1;
-
-                let threshold = get_threshold(&pool, &token).await?;
+                let (count, threshold) = get_count_and_threshold(&pool, &token).await?;
 
                 trace!(task_id=?token.task_id,
                     trigger_datetime=?token.trigger_datetime.to_rfc3339(),
-                    "count is {} (threshold {})", *count, threshold);
+                    "count is {} (threshold {})", count, threshold);
 
-                if *count >= threshold {
-                    *count -= threshold;
+                if count >= threshold {
                     execute_tx.send(ExecuteToken(token, priority)).await?;
                 }
             }
             ProcessToken::Activate(token, priority) => {
-                tokens.remove(&token); // effectively setting token back to 0
                 execute_tx.send(ExecuteToken(token, priority)).await?;
             }
-            ProcessToken::Clear(token) => {
-                tokens.remove(&token);
+            ProcessToken::Clear(_token) => {
+                // TODO - don't need to know about token clears anymore
             }
         }
-
-        // cleanup old tokens
-        tokens.retain(|_, v| *v > 0);
     }
 
     unreachable!("ProcessToken channel was closed!")
@@ -107,30 +102,27 @@ pub async fn increment_token(txn: &mut Transaction<'_, Postgres>, token: &Token)
     Ok(())
 }
 
-async fn restore_tokens(server: &Server) -> Result<HashMap<Token, i32>> {
+async fn restore_tokens(server: &Server) -> Result<()> {
     info!("restoring tokens from database...");
 
     let pool = server.db_pool.clone();
 
     let mut execute_tx = server.post_office.post_mail::<ExecuteToken>().await?;
 
-    let mut tokens = HashMap::<Token, i32>::new();
-
     // first load all tokens from the DB
     let mut cursor = sqlx::query_as(
         "SELECT
             task.id,
-            token.trigger_datetime,
-            token.count,
-            task.threshold
+            token.trigger_datetime
         FROM token
         JOIN task ON task.id = token.task_id
-        WHERE token.count > 0",
+        WHERE token.count > task.threshold",
     )
     .fetch(&pool);
 
+    let mut num_tokens_restored = 0;
     while let Some(row) = cursor.try_next().await? {
-        let (task_id, trigger_datetime, count, threshold) = row;
+        let (task_id, trigger_datetime) = row;
 
         let token = Token {
             task_id,
@@ -139,19 +131,16 @@ async fn restore_tokens(server: &Server) -> Result<HashMap<Token, i32>> {
 
         trace!(task_id=?token.task_id,
             trigger_datetime=?token.trigger_datetime.to_rfc3339(),
-            count,
             "restored token");
 
-        if count >= threshold {
-            execute_tx
-                .send(ExecuteToken(token.clone(), TaskPriority::Normal))
-                .await?;
-        }
+        execute_tx
+            .send(ExecuteToken(token.clone(), TaskPriority::Normal))
+            .await?;
 
-        tokens.insert(token, count);
+        num_tokens_restored += 1;
     }
 
-    info!("done restoring {} tokens from database", tokens.len());
+    info!("done restoring {} tokens from database", num_tokens_restored);
 
-    Ok(tokens)
+    Ok(())
 }
