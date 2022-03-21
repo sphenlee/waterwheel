@@ -5,4 +5,4 @@ max_tasks = 8
 task_engine = "docker"
 kube_namespace = "default"
 json_log = false
-log = "warn,waterwheel=info"
+log = "warn,waterwheel=info,lapin=off"

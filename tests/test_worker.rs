@@ -7,7 +7,6 @@ use lapin::options::{BasicConsumeOptions, BasicPublishOptions};
 use lapin::types::FieldTable;
 use serde_json::{json, Value};
 use uuid::Uuid;
-use waterwheel::config;
 use waterwheel::messages::TaskDef;
 use waterwheel::worker::engine::TaskEngine;
 use waterwheel::worker::{work, Worker};
@@ -19,8 +18,7 @@ const NULL_UUID: Uuid = Uuid::from_u128(0);
 #[tokio::main]
 #[test]
 pub async fn test_worker() -> highnoon::Result<()> {
-    common::with_external_services(|| async {
-        let mut config = config::load()?;
+    common::with_external_services(|mut config| async move {
         config.task_engine = TaskEngine::Null;
 
         let worker = Arc::new(Worker::new(config.clone()).await?);
