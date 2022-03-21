@@ -1,6 +1,5 @@
 use highnoon::StatusCode;
-use waterwheel::server::api::make_app;
-use waterwheel::server::Server;
+use waterwheel::server::{api::make_app, Server};
 
 mod common;
 
@@ -16,5 +15,6 @@ pub async fn test_healthcheck() -> highnoon::Result<()> {
         assert_eq!(resp.body_string().await?, "OK");
 
         Ok(())
-    }).await
+    })
+    .await
 }

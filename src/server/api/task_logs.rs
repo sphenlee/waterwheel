@@ -1,4 +1,7 @@
-use highnoon::{ws::{WebSocketReceiver, WebSocketSender}, Message};
+use highnoon::{
+    ws::{WebSocketReceiver, WebSocketSender},
+    Message,
+};
 use std::time::Duration;
 use tracing::info;
 

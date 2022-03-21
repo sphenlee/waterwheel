@@ -1,7 +1,6 @@
 use crate::worker::engine::TaskEngine;
 use anyhow::{Context, Result};
-use config::builder::DefaultState;
-use config::{ConfigBuilder, Environment, File, FileFormat};
+use config::{builder::DefaultState, ConfigBuilder, Environment, File, FileFormat};
 use reqwest::Url;
 
 /// config for Waterwheel

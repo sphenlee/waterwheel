@@ -1,6 +1,5 @@
 use crate::{
-    amqp::amqp_connect, config::Config, db, metrics, postoffice::PostOffice,
-    util::spawn_or_crash,
+    amqp::amqp_connect, config::Config, db, metrics, postoffice::PostOffice, util::spawn_or_crash,
 };
 use anyhow::Result;
 use cadence::StatsdClient;

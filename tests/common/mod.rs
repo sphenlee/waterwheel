@@ -8,8 +8,9 @@ pub mod rabbitmq;
 const DEFAULT_LOG: &str = "warn,waterwheel=trace,highnoon=info,testcontainers=info,lapin=off";
 
 pub async fn with_external_services<F, Fut>(f: F) -> Result<()>
-where F: FnOnce(Config) -> Fut,
-    Fut: Future<Output=Result<()>>
+where
+    F: FnOnce(Config) -> Fut,
+    Fut: Future<Output = Result<()>>,
 {
     let mut config: Config = config::loader()
         .set_default("db_url", "")?
@@ -25,13 +26,17 @@ where F: FnOnce(Config) -> Fut,
     // start database
     let postgres = client.run(testcontainers::images::postgres::Postgres::default());
 
-    let port = postgres.get_host_port(5432).expect("postgres port not exposed");
+    let port = postgres
+        .get_host_port(5432)
+        .expect("postgres port not exposed");
     config.db_url = format!("postgres://postgres@localhost:{}/", port);
 
     // start AMQP
     let rabbit = client.run(rabbitmq::RabbitMq);
 
-    let port = rabbit.get_host_port(5672).expect("rabbitmq port not exposed");
+    let port = rabbit
+        .get_host_port(5672)
+        .expect("rabbitmq port not exposed");
     config.amqp_addr = format!("amqp://localhost:{}//", port);
 
     // other config setup
@@ -42,4 +47,3 @@ where F: FnOnce(Config) -> Fut,
     // now run the test
     f(config).await
 }
-
