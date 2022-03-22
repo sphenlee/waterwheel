@@ -1,14 +1,13 @@
-use crate::{config::Config, server::Server};
+use crate::server::Server;
 use anyhow::Result;
-use cadence::StatsdClient;
 use lapin::Channel;
-use sqlx::PgPool;
 use std::sync::Arc;
 
 pub mod auth;
 mod config_cache;
 mod heartbeat;
 mod job;
+pub mod jwt;
 mod project;
 mod request_ext;
 mod stash;
@@ -20,10 +19,8 @@ mod updates;
 mod workers;
 
 pub struct State {
-    db_pool: PgPool,
     amqp_channel: Channel,
-    statsd: StatsdClient,
-    config: Config,
+    server: Arc<Server>,
 }
 
 impl highnoon::State for State {
@@ -46,12 +43,10 @@ macro_rules! get_file {
     };
 }
 
-pub async fn make_app(server: &Server) -> Result<highnoon::App<State>> {
+pub async fn make_app(server: Arc<Server>) -> Result<highnoon::App<State>> {
     let state = State {
-        db_pool: server.db_pool.clone(),
         amqp_channel: server.amqp_conn.create_channel().await?,
-        statsd: server.statsd.clone(),
-        config: server.config.clone(), // TODO - can we avoid this clone?
+        server,
     };
 
     updates::setup(&state.amqp_channel).await?;
@@ -188,7 +183,7 @@ pub async fn make_app(server: &Server) -> Result<highnoon::App<State>> {
 }
 
 pub async fn serve(server: Arc<Server>) -> Result<()> {
-    let app = make_app(&server).await?;
+    let app = make_app(server.clone()).await?;
     app.listen(&server.config.server_bind).await?;
     Ok(())
 }

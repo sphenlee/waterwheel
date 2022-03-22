@@ -1,8 +1,7 @@
 use crate::{
     messages::{SchedulerUpdate, TaskDef, TaskPriority, Token},
     server::{
-        api::{auth, request_ext::RequestExt, updates, State},
-        jwt,
+        api::{auth, jwt, request_ext::RequestExt, updates, State},
         tokens::ProcessToken,
     },
 };

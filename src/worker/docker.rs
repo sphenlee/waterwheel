@@ -31,7 +31,7 @@ impl TaskEngineImpl for DockerEngine {
 async fn run_docker(worker: &Worker, task_req: TaskRequest, task_def: TaskDef) -> Result<bool> {
     let docker = bollard::Docker::connect_with_local_defaults()?;
 
-    let env = env::get_env_string(&worker.config, &task_req, &task_def)?;
+    let env = env::get_env_string(worker, &task_req, &task_def)?;
 
     // task_def is partially move from here down
     let image = task_def.image.unwrap();

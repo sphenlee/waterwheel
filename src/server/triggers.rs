@@ -319,7 +319,7 @@ async fn catchup_trigger(
         Catchup::Random => tokens_to_tx.shuffle(&mut thread_rng()),
     }
 
-    send_to_token_processor(&server, tokens_to_tx, TaskPriority::BackFill).await?;
+    send_to_token_processor(server, tokens_to_tx, TaskPriority::BackFill).await?;
 
     Ok(())
 }

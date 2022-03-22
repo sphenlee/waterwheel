@@ -1,10 +1,11 @@
 use crate::{
     messages::{ConfigUpdate, TaskDef},
-    server::jwt,
+    server::api::{jwt, jwt::JwtKeys},
     worker::Worker,
 };
 use anyhow::Result;
 use futures::TryStreamExt;
+use highnoon::StatusCode;
 use lapin::{
     options::{
         BasicAckOptions, BasicConsumeOptions, ExchangeDeclareOptions, QueueBindOptions,
@@ -14,8 +15,8 @@ use lapin::{
     ExchangeKind,
 };
 use serde_json::Value as JsonValue;
-use std::sync::Arc;
-use tracing::trace;
+use std::{sync::Arc, time::Duration};
+use tracing::{trace, warn};
 use uuid::Uuid;
 
 const CONFIG_EXCHANGE: &str = "waterwheel.config";
@@ -27,35 +28,43 @@ pub async fn get_project_config(worker: &Worker, proj_id: Uuid) -> Result<JsonVa
     if let Some(proj_config) = maybe_proj_config {
         Ok(proj_config.clone())
     } else {
-        let proj_config = fetch_project_config(&worker.config.server_addr, proj_id).await?;
+        let proj_config =
+            fetch_project_config(&worker.jwt_keys, &worker.config.server_addr, proj_id).await?;
         cache.insert(proj_id, proj_config.clone());
         Ok(proj_config)
     }
 }
 
-pub async fn get_task_def(worker: &Worker, task_id: Uuid) -> Result<TaskDef> {
+pub async fn get_task_def(worker: &Worker, task_id: Uuid) -> Result<Option<TaskDef>> {
     let mut cache = worker.task_def_cache.lock().await;
-    let def = cache.get(&task_id);
+    let cache_def = cache.get(&task_id);
 
-    if let Some(def) = def {
+    if let Some(def) = cache_def {
         trace!(?task_id, "task def cache hit");
         Ok(def.clone())
     } else {
-        let def = fetch_task_def(&worker.config.server_addr, task_id).await?;
-        cache.insert(task_id, def.clone());
-        Ok(def)
+        let maybe_def =
+            fetch_task_def(&worker.jwt_keys, &worker.config.server_addr, task_id).await?;
+        cache.insert(task_id, maybe_def.clone());
+        Ok(maybe_def)
     }
 }
 
-async fn fetch_project_config(server_addr: &str, proj_id: Uuid) -> Result<JsonValue> {
-    let token = "Bearer ".to_owned() + &jwt::generate_config_jwt(proj_id)?;
+async fn fetch_project_config(
+    keys: &JwtKeys,
+    server_addr: &str,
+    proj_id: Uuid,
+) -> Result<JsonValue> {
+    let token = "Bearer ".to_owned() + &jwt::generate_config_jwt(keys, proj_id)?;
 
     let url = reqwest::Url::parse(server_addr)?
         .join("int-api/projects/")?
         .join(&format!("{}/", proj_id))?
         .join("config")?;
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .build()?;
 
     trace!(?proj_id, "fetching project config from api");
 
@@ -72,27 +81,56 @@ async fn fetch_project_config(server_addr: &str, proj_id: Uuid) -> Result<JsonVa
     Ok(config)
 }
 
-async fn fetch_task_def(server_addr: &str, task_id: Uuid) -> Result<TaskDef> {
-    let token = "Bearer ".to_owned() + &jwt::generate_config_jwt(task_id)?;
+async fn fetch_task_def(
+    keys: &JwtKeys,
+    server_addr: &str,
+    task_id: Uuid,
+) -> Result<Option<TaskDef>> {
+    let token = "Bearer ".to_owned() + &jwt::generate_config_jwt(keys, task_id)?;
 
     let url = reqwest::Url::parse(server_addr)?
         .join("int-api/tasks/")?
         .join(&format!("{}", task_id))?;
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .build()?;
 
     trace!(?task_id, "fetching task def from api");
 
-    let resp = client
+    let res = client
         .get(url.clone())
         .header(reqwest::header::AUTHORIZATION, token)
         .send()
-        .await?
-        .error_for_status()?;
-    let def = resp.json().await?;
+        .await;
 
-    trace!(?task_id, "got task def");
-    Ok(def)
+    match res {
+        Ok(resp) => match resp.status() {
+            StatusCode::OK => {
+                let def = resp.json().await?;
+                trace!(?task_id, "got task def");
+                Ok(Some(def))
+            }
+            StatusCode::NOT_FOUND => {
+                trace!(?task_id, "task def not found");
+                Ok(None)
+            }
+            otherwise => {
+                warn!(
+                    ?task_id,
+                    "unexpected status code while fetching task_def: {}", otherwise
+                );
+                anyhow::bail!(
+                    "unexpected status code while fetching task_def: {}",
+                    otherwise
+                );
+            }
+        },
+        Err(err) => {
+            warn!(?task_id, "error fetching task_def: {}", err);
+            anyhow::bail!("error fetching task_def: {}", err);
+        }
+    }
 }
 
 pub async fn process_updates(worker: Arc<Worker>) -> Result<!> {

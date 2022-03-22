@@ -1,32 +1,31 @@
 use crate::server::api::State;
+use highnoon::headers::ContentType;
 use serde::de::DeserializeOwned;
 
 const YAML_MIMES: &[&str] = &["application/x-yaml"];
 const SUPPORTED_MIMES: &[&str] = &["application/json"];
 
-pub fn content_type_is_yaml(content_type: &highnoon::headers::ContentType) -> bool {
-    YAML_MIMES.iter().any(|mime| {
-        *content_type == highnoon::headers::ContentType::from(mime.parse::<mime::Mime>().unwrap())
-    })
+pub fn content_type_is_yaml(content_type: &ContentType) -> bool {
+    YAML_MIMES
+        .iter()
+        .any(|mime| *content_type == ContentType::from(mime.parse::<mime::Mime>().unwrap()))
 }
 
 pub async fn read_from_body<T: DeserializeOwned>(
     req: &mut highnoon::Request<State>,
 ) -> highnoon::Result<T> {
     let content_type = req
-        .header::<highnoon::headers::ContentType>()
-        .unwrap_or(highnoon::headers::ContentType::json());
+        .header::<ContentType>()
+        .unwrap_or_else(ContentType::json);
     let reader = req.reader().await?;
 
-    if content_type == highnoon::headers::ContentType::json() {
+    if content_type == ContentType::json() {
         return serde_json::from_reader(reader).map_err(|err| {
-            let msg = format!("error parsing request body as json: {}", err);
-            highnoon::Error::http((highnoon::StatusCode::BAD_REQUEST, msg))
+            highnoon::Error::bad_request(format!("error parsing request body as json: {}", err))
         });
     } else if content_type_is_yaml(&content_type) {
         return serde_yaml::from_reader(reader).map_err(|err| {
-            let msg = format!("error parsing request body as yaml: {}", err);
-            highnoon::Error::http((highnoon::StatusCode::BAD_REQUEST, msg))
+            highnoon::Error::bad_request(format!("error parsing request body as yaml: {}", err))
         });
     }
 
