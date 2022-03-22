@@ -261,6 +261,7 @@ pub async fn delete(req: Request<State>) -> highnoon::Result<StatusCode> {
 struct ListJobQuery {
     limit: Option<u32>,
     after: Option<String>,
+    name: Option<String>,
 }
 
 #[derive(Serialize, sqlx::FromRow)]
@@ -326,11 +327,13 @@ pub async fn list_jobs(req: Request<State>) -> highnoon::Result<impl Responder> 
         LEFT OUTER JOIN job_stats js ON j.id = js.job_id
         WHERE project_id = $1
         AND ($2 IS NULL OR name > $2)
+        AND ($3 IS NULL OR name = $3)
         ORDER BY name
-        LIMIT $3",
+        LIMIT $4",
     )
     .bind(&id)
     .bind(query.after.as_ref())
+    .bind(query.name.as_ref())
     .bind(query.limit.unwrap_or(50))
     .fetch_all(&req.get_pool())
     .await?;
