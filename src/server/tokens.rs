@@ -140,7 +140,10 @@ async fn restore_tokens(server: &Server) -> Result<()> {
         num_tokens_restored += 1;
     }
 
-    info!("done restoring {} tokens from database", num_tokens_restored);
+    info!(
+        "done restoring {} tokens from database",
+        num_tokens_restored
+    );
 
     Ok(())
 }

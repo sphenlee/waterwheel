@@ -2,7 +2,7 @@ use crate::config::Config;
 use anyhow::Result;
 use chrono::SecondsFormat;
 use colored::Colorize;
-use std::fmt::{Debug, Result as FmtResult, Write};
+use std::fmt::{Debug, Result as FmtResult};
 use tracing::{
     field::{Field, Visit},
     Event, Level, Subscriber,
@@ -10,7 +10,7 @@ use tracing::{
 use tracing_log::NormalizeEvent;
 use tracing_subscriber::{
     field::RecordFields,
-    fmt::{self, FmtContext, FormatEvent, FormatFields},
+    fmt::{self, format::Writer, FmtContext, FormatEvent, FormatFields},
     prelude::*,
     registry::LookupSpan,
     EnvFilter,
@@ -54,7 +54,7 @@ where
     fn format_event(
         &self,
         ctx: &FmtContext<'_, C, N>,
-        writer: &mut dyn Write,
+        mut writer: Writer<'_>,
         event: &Event<'_>,
     ) -> FmtResult {
         let normalized_meta = event.normalized_metadata();
@@ -76,7 +76,7 @@ where
 }
 
 impl<'w> FormatFields<'w> for SemiCompact {
-    fn format_fields<R: RecordFields>(&self, writer: &'w mut dyn Write, fields: R) -> FmtResult {
+    fn format_fields<R: RecordFields>(&self, mut writer: Writer<'w>, fields: R) -> FmtResult {
         let mut visitor = SemiCompactVisitor {
             fields: String::new(),
             message: String::new(),

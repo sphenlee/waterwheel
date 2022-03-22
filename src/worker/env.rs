@@ -1,18 +1,18 @@
 use crate::{
-    config::Config,
     messages::{TaskDef, TaskRequest},
-    server::jwt,
+    server::api::jwt,
+    worker::Worker,
 };
 use anyhow::Result;
 use itertools::Itertools;
 use k8s_openapi::api::core::v1::EnvVar;
 
 pub fn get_env_string(
-    config: &Config,
+    worker: &Worker,
     task_req: &TaskRequest,
     task_def: &TaskDef,
 ) -> Result<Vec<String>> {
-    let env = get_env(config, task_req, task_def)?;
+    let env = get_env(worker, task_req, task_def)?;
 
     Ok(env
         .iter()
@@ -28,7 +28,7 @@ fn envvar(name: &str, val: impl std::fmt::Display) -> EnvVar {
     }
 }
 
-pub fn get_env(config: &Config, task_req: &TaskRequest, task_def: &TaskDef) -> Result<Vec<EnvVar>> {
+pub fn get_env(worker: &Worker, task_req: &TaskRequest, task_def: &TaskDef) -> Result<Vec<EnvVar>> {
     let provided_env = task_def.env.clone().unwrap_or_default();
 
     let mut env = vec![];
@@ -43,7 +43,7 @@ pub fn get_env(config: &Config, task_req: &TaskRequest, task_def: &TaskDef) -> R
         }
     }
 
-    let server_addr: &str = config.server_addr.as_ref();
+    let server_addr: &str = worker.config.server_addr.as_ref();
 
     env.push(envvar(
         "WATERWHEEL_TRIGGER_DATETIME",
@@ -59,7 +59,7 @@ pub fn get_env(config: &Config, task_req: &TaskRequest, task_def: &TaskDef) -> R
     env.push(envvar("WATERWHEEL_PROJECT_ID", task_def.project_id));
     env.push(envvar("WATERWHEEL_SERVER_ADDR", server_addr));
 
-    let stash_jwt = jwt::generate_stash_jwt(&task_req.task_id.to_string())?;
+    let stash_jwt = jwt::generate_stash_jwt(&worker.jwt_keys, &task_req.task_id.to_string())?;
     env.push(envvar("WATERWHEEL_JWT", stash_jwt));
 
     Ok(env)

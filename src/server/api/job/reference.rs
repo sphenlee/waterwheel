@@ -144,8 +144,8 @@ pub fn resolve_reference(mut reference: Reference, job: &Job) -> Reference {
 mod test {
     use super::*;
     use chrono::Duration;
-    use std::assert_matches::assert_matches;
     use pretty_assertions::assert_eq;
+    use std::assert_matches::assert_matches;
 
     #[test]
     fn test_parse_reference() {

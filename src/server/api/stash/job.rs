@@ -105,8 +105,7 @@ pub async fn get(req: Request<State>) -> highnoon::Result<impl Responder> {
     .fetch_optional(&db)
     .await?;
 
-    req.state()
-        .statsd
+    req.get_statsd()
         .incr_with_tags("stash.get")
         .with_tag_value("job")
         .with_tag("job_id", &job_id.to_string())

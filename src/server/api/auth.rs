@@ -150,7 +150,7 @@ impl Check {
     }
 
     pub async fn check(self, req: &highnoon::Request<State>) -> highnoon::Result<()> {
-        let config = &req.state().config;
+        let config = &req.state().server.config;
         if config.no_authz {
             return Ok(());
         }

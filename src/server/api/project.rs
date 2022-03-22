@@ -1,7 +1,7 @@
 use super::{auth, config_cache, request_ext::RequestExt, State};
 use crate::{
     messages::ConfigUpdate,
-    server::jwt,
+    server::api::jwt,
     util::{is_pg_integrity_error, pg_error},
 };
 use highnoon::{Json, Request, Responder, Response, StatusCode};
