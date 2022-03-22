@@ -1,6 +1,5 @@
 use highnoon::StatusCode;
 use waterwheel::{
-    config,
     server::{api::make_app, Server},
 };
 
@@ -9,8 +8,7 @@ mod common;
 #[tokio::main]
 #[test]
 pub async fn test_healthcheck() -> highnoon::Result<()> {
-    common::with_external_services(|| async {
-        let config = config::load()?;
+    common::with_external_services(|config| async {
         let server = Server::new(config).await?;
         let tc = make_app(server).await?.test();
 

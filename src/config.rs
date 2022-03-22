@@ -1,13 +1,16 @@
 use crate::worker::engine::TaskEngine;
 use anyhow::{Context, Result};
-use config as config_loader;
+use config::{builder::DefaultState, ConfigBuilder, Environment, File, FileFormat};
 use reqwest::Url;
 
+/// config for Waterwheel
+/// note that the default values are loaded from default_config.toml,
+/// mandatory values are not Option *and* not present in that file
 #[derive(serde::Deserialize, Clone)]
 pub struct Config {
-    pub db_url: String,
+    pub db_url: String, // mandatory
     pub amqp_addr: String,
-    pub server_addr: String,
+    pub server_addr: String, // mandatory
     pub server_bind: String,
     pub worker_bind: String,
     pub max_tasks: u32,
@@ -23,19 +26,22 @@ pub struct Config {
     pub log: String,
 }
 
-pub fn load() -> Result<Config> {
-    let mut loader = config_loader::Config::new();
+pub fn loader() -> ConfigBuilder<DefaultState> {
+    let builder = config::Config::builder();
 
-    loader
-        .merge(config_loader::File::from_str(
+    builder
+        .add_source(File::from_str(
             include_str!("default_config.toml"),
-            config_loader::FileFormat::Toml,
-        ))?
-        .merge(config_loader::File::with_name("waterwheel").required(false))?
-        .merge(config_loader::Environment::with_prefix("WATERWHEEL"))?;
+            FileFormat::Toml,
+        ))
+        .add_source(File::with_name("waterwheel").required(false))
+        .add_source(Environment::with_prefix("WATERWHEEL"))
+}
 
-    let config = loader
-        .try_into()
+pub fn load() -> Result<Config> {
+    let config = loader()
+        .build()?
+        .try_deserialize()
         .context("mandatory configuration value not set")?;
 
     Ok(config)

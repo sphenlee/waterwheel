@@ -1,16 +1,29 @@
-use std::{future::Future, sync::Once};
+use highnoon::Result;
+use std::future::Future;
+use std::sync::Once;
 use testcontainers::Docker;
+use waterwheel::config::{self, Config};
 
 pub mod rabbitmq;
 
+const DEFAULT_LOG: &str = "warn,waterwheel=trace,highnoon=info,testcontainers=info,lapin=off";
 static LOGGING_SETUP: Once = Once::new();
 
-pub async fn with_external_services<F, Fut, R>(f: F) -> R
+pub async fn with_external_services<F, Fut>(f: F) -> Result<()>
 where
-    F: FnOnce() -> Fut,
-    Fut: Future<Output = R>,
+    F: FnOnce(Config) -> Fut,
+    Fut: Future<Output = Result<()>>,
 {
-    LOGGING_SETUP.call_once(setup_logging);
+    let mut config: Config = config::loader()
+        .set_default("db_url", "")?
+        .set_default("server_addr", "")?
+        .set_override("log", DEFAULT_LOG)?
+        .build()?
+        .try_deserialize()?;
+
+    LOGGING_SETUP.call_once(|| {
+        waterwheel::logging::setup(&config).expect("failed to setup logging");
+    });
 
     let client = testcontainers::clients::Cli::default();
 
@@ -20,8 +33,7 @@ where
     let port = postgres
         .get_host_port(5432)
         .expect("postgres port not exposed");
-    let db_url = format!("postgres://postgres@localhost:{}/", port);
-    std::env::set_var("WATERWHEEL_DB_URL", db_url);
+    config.db_url = format!("postgres://postgres@localhost:{}/", port);
 
     // start AMQP
     let rabbit = client.run(rabbitmq::RabbitMq);
@@ -29,29 +41,13 @@ where
     let port = rabbit
         .get_host_port(5672)
         .expect("rabbitmq port not exposed");
-    let amqp_addr = format!("amqp://localhost:{}//", port);
-    std::env::set_var("WATERWHEEL_AMQP_ADDR", amqp_addr);
+    config.amqp_addr = format!("amqp://localhost:{}//", port);
 
     // other config setup
-    std::env::set_var("WATERWHEEL_SERVER_ADDR", "http://127.0.0.1:8080/");
-    std::env::set_var("WATERWHEEL_NO_AUTHZ", "1");
-    std::env::set_var("WATERWHEEL_HMAC_SECRET", "testing value for hmac");
+    config.server_addr = "http://127.0.0.1:8080/".to_owned();
+    config.no_authz = true;
+    config.hmac_secret = Some("testing value for hmac".to_owned());
 
     // now run the test
-    f().await
-}
-
-const DEFAULT_LOG: &str = "warn,waterwheel=trace,highnoon=info,testcontainers=info,lapin=off";
-
-// logging has to be setup manually before we luanch the containers so that we get log
-// output from testcontainers - we can't load Config yet because we don't know the
-// database URL until the containers are launched
-fn setup_logging() {
-    let filter = std::env::var_os("WATERWHEEL_LOG");
-    let filter = match &filter {
-        None => DEFAULT_LOG,
-        Some(os_str) => os_str.to_str().expect("WATERWHEEL_LOG wasn't utf8"),
-    };
-
-    waterwheel::logging::setup_raw(false, filter).expect("failed to setup logging");
+    f(config).await
 }

@@ -11,7 +11,6 @@ use std::{sync::Arc, time::Duration};
 use tokio::time::timeout;
 use uuid::Uuid;
 use waterwheel::{
-    config,
     messages::TaskDef,
     server::Server,
     worker::{engine::TaskEngine, heartbeat, work, Worker},
@@ -24,8 +23,7 @@ const NULL_UUID: Uuid = Uuid::from_u128(0);
 #[tokio::main]
 #[test]
 pub async fn test_worker() -> highnoon::Result<()> {
-    common::with_external_services(|| async {
-        let mut config = config::load()?;
+    common::with_external_services(|mut config| async move {
         config.task_engine = TaskEngine::Null;
 
         let worker = Arc::new(Worker::new(config.clone()).await?);
@@ -133,8 +131,7 @@ pub async fn test_worker() -> highnoon::Result<()> {
 #[tokio::main]
 #[test]
 pub async fn test_worker_missing_taskid() -> highnoon::Result<()> {
-    common::with_external_services(|| async {
-        let mut config = config::load()?;
+    common::with_external_services(|mut config| async move {
         config.task_engine = TaskEngine::Null;
 
         let server = Server::new(config.clone()).await?;
