@@ -11,11 +11,10 @@ mod common;
 #[test]
 
 pub async fn test_project_jobs() -> highnoon::Result<()> {
-    common::with_external_services(|| async {
-        let config = config::load()?;
+    common::with_external_services(|config| async {
         let server = Server::new(config).await?;
 
-        let tc = make_app(&server).await?.test();
+        let tc = make_app(server).await?.test();
 
         let project_uuid = "00000000-0000-0000-0000-000000000000";
         let project_name = "integration_tests";
