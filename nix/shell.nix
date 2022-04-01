@@ -1,10 +1,9 @@
-{ pkgs ? import <nixpkgs> {} }:
-
+{pkgs ? import <nixpkgs> {}}:
 with pkgs;
-
-mkShell {
-  buildInputs = [
-    rust-bin.nightly.latest.default
-    nodejs
-  ];
-}
+  mkShell {
+    buildInputs = [
+      rust-bin.nightly.latest.default
+      nodejs
+      just
+    ];
+  }

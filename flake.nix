@@ -60,7 +60,7 @@
     defaultPackage."x86_64-darwin" = packages."x86_64-darwin"."waterwheel-x86_64-apple-darwin";
     defaultPackage."x86_64-linux" = packages."x86_64-linux"."waterwheel-x86_64-unknown-linux-gnu";
 
-    devShell."x86_64-linux" = import ./nix/shell.nix { pkgs = nixpkgs."x86_64-linux"; };
+    devShell."x86_64-linux" = import ./nix/shell.nix {pkgs = nixpkgs."x86_64-linux";};
 
     packages."aarch64-darwin" = with nixpkgs."aarch64-darwin";
       buildBinariesForHost "aarch64-darwin" [
