@@ -12,58 +12,11 @@
   };
 
   outputs = inputs: let
-    commit = inputs.self.shortRev or "dirty";
-    date = inputs.self.lastModifiedDate or inputs.self.lastModified or "19700101";
-    version = "${builtins.substring 0 8 date}.${commit}";
     nixpkgsForHost = host:
       import inputs.nixpkgs {
         overlays = [
           inputs.rust-overlay.overlay
-          (final: prev: let
-            npmlock2nix = import inputs.npmlock2nix {pkgs = prev;};
-          in {
-            waterwheel-ui = npmlock2nix.build {
-              src = ./ui;
-              installPhase = "cp -r dist $out";
-              preBuild = ''
-                substituteInPlace webpack.config.js \
-                --replace 'gitRevisionPlugin.version()' '"${version}"' \
-                --replace 'gitRevisionPlugin.commithash()' '"${commit}"'
-              '';
-              buildCommands = ["npm run build"];
-            };
-
-            waterwheel = prev.rustPlatform.buildRustPackage {
-              pname = "waterwheel";
-              inherit version;
-              buildInputs = [prev.openssl];
-              nativeBuildInputs = [
-                final.rust-bin.nightly.latest.default
-                prev.pkg-config
-              ];
-
-              src = ./.;
-
-              preBuild = ''
-                substituteInPlace src/lib.rs \
-                --replace 'git_version::git_version!()' '"${version}"'
-
-                cp -rf ${final.waterwheel-ui} ui/dist
-              '';
-
-              cargoLock.lockFile = ./Cargo.lock;
-
-              doCheck = false;
-
-              meta = with prev; {
-                description = "The Uncompromising Nix Code Formatter.";
-                homepage = "https://github.com/sphenlee/waterwheel";
-                license = lib.licenses.mit;
-                maintainers = [lib.maintainers.gtrunsec];
-                platforms = lib.systems.doubles.all;
-              };
-            };
-          })
+          (import ./nix {inherit inputs;})
         ];
         system = host;
       };
@@ -106,6 +59,8 @@
     defaultPackage."i686-linux" = packages."i686-linux"."waterwheel-i686-unknown-linux-gnu";
     defaultPackage."x86_64-darwin" = packages."x86_64-darwin"."waterwheel-x86_64-apple-darwin";
     defaultPackage."x86_64-linux" = packages."x86_64-linux"."waterwheel-x86_64-unknown-linux-gnu";
+
+    devShell."x86_64-linux" = import ./nix/shell.nix { pkgs = nixpkgs."x86_64-linux"; };
 
     packages."aarch64-darwin" = with nixpkgs."aarch64-darwin";
       buildBinariesForHost "aarch64-darwin" [
