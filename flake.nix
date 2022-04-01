@@ -26,8 +26,9 @@
               src = ./ui;
               installPhase = "cp -r dist $out";
               preBuild = ''
-                sed -i 's|gitRevisionPlugin.version()|"${version}"|' webpack.config.js
-                sed -i 's|gitRevisionPlugin.commithash()|"${commit}"|' webpack.config.js
+                substituteInPlace webpack.config.js \
+                --replace 'gitRevisionPlugin.version()' '"${version}"' \
+                --replace 'gitRevisionPlugin.commithash()' '"${commit}"'
               '';
               buildCommands = ["npm run build"];
             };
@@ -44,7 +45,9 @@
               src = ./.;
 
               preBuild = ''
-                sed -i 's|git_version::git_version!()|"${version}"|' src/lib.rs
+                substituteInPlace src/lib.rs \
+                --replace 'git_version::git_version!()' '"${version}"'
+
                 cp -rf ${final.waterwheel-ui} ui/dist
               '';
 
