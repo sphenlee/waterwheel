@@ -1,5 +1,5 @@
 use crate::{
-    messages::{SchedulerUpdate, Token},
+    messages::{SchedulerUpdate, Token, TokenState},
     server::{
         api::{auth, request_ext::RequestExt, updates, State},
         tokens::ProcessToken,
@@ -32,7 +32,15 @@ async fn get_tokens_common(req: Request<State>) -> highnoon::Result<Vec<GetToken
 
     auth::get().job(job_id, None).check(&req).await?;
 
-    let states: Option<Vec<_>> = q.state.as_ref().map(|s| s.split(',').collect());
+    let maybe_states: Option<Vec<_>> = q.state.as_ref().map(|s| s.split(',').collect());
+
+    if let Some(states) = &maybe_states {
+        for state in states {
+            let _ = state.parse::<TokenState>().map_err(|err| {
+                highnoon::Error::bad_request(err.0)
+            })?;
+        }
+    }
 
     let tokens: Vec<GetToken> = sqlx::query_as(
         "WITH these_tokens AS (
@@ -67,7 +75,7 @@ async fn get_tokens_common(req: Request<State>) -> highnoon::Result<Vec<GetToken
     .bind(job_id)
     .bind(&q.before)
     .bind(q.limit.unwrap_or(200))
-    .bind(states)
+    .bind(maybe_states)
     .fetch_all(&req.get_pool())
     .await?;
 
@@ -80,21 +88,21 @@ pub async fn get_tokens(req: Request<State>) -> highnoon::Result<impl Responder>
 }
 
 #[derive(Serialize)]
-struct TokenState {
+struct TokenOverviewState {
     task_name: String,
     task_id: Uuid,
     state: String,
 }
 
 #[derive(Serialize)]
-struct TokensRow {
+struct TokenOverviewRow {
     trigger_datetime: DateTime<Utc>,
-    task_states: BTreeMap<String, TokenState>,
+    task_states: BTreeMap<String, TokenOverviewState>,
 }
 
 #[derive(Serialize)]
 struct GetTokensOverview {
-    tokens: Vec<TokensRow>,
+    tokens: Vec<TokenOverviewRow>,
     tasks: Vec<String>,
 }
 
@@ -109,7 +117,7 @@ pub async fn get_tokens_overview(req: Request<State>) -> highnoon::Result<impl R
     tasks.sort();
     tasks.dedup();
 
-    let mut tokens_by_time = BTreeMap::<DateTime<Utc>, BTreeMap<String, TokenState>>::new();
+    let mut tokens_by_time = BTreeMap::<DateTime<Utc>, BTreeMap<String, TokenOverviewState>>::new();
 
     for token in &tokens {
         tokens_by_time
@@ -117,7 +125,7 @@ pub async fn get_tokens_overview(req: Request<State>) -> highnoon::Result<impl R
             .or_default()
             .insert(
                 token.task_name.clone(),
-                TokenState {
+                TokenOverviewState {
                     task_name: token.task_name.clone(),
                     task_id: token.task_id,
                     state: token.state.clone(),
@@ -127,7 +135,7 @@ pub async fn get_tokens_overview(req: Request<State>) -> highnoon::Result<impl R
 
     let mut tokens_by_time = tokens_by_time
         .into_iter()
-        .map(|(k, v)| TokensRow {
+        .map(|(k, v)| TokenOverviewRow {
             trigger_datetime: k,
             task_states: v,
         })

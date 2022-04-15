@@ -52,7 +52,7 @@ pub async fn process_progress(server: Arc<Server>) -> Result<!> {
     while let Some((chan, msg)) = consumer.try_next().await? {
         let task_progress: TaskProgress = serde_json::from_slice(&msg.data)?;
 
-        debug!(result=task_progress.result.as_str(),
+        debug!(result=task_progress.result.as_ref(),
             task_id=?task_progress.task_id,
             trigger_datetime=?task_progress.trigger_datetime.to_rfc3339(),
             "received task progress");

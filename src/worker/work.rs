@@ -174,10 +174,10 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
         statsd
             .incr_with_tags("tasks.total")
             .with_tag("worker_id", &WORKER_ID.to_string())
-            .with_tag("result", result.as_str())
+            .with_tag("result", result.as_ref())
             .send();
 
-        info!(result=result.as_str(),
+        info!(result=result.as_ref(),
             task_run_id=?task_req.task_run_id,
             task_id=?task_req.task_id,
             trigger_datetime=?task_req.trigger_datetime.to_rfc3339(),

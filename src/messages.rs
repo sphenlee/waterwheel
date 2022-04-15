@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use crate::server::{tokens::ProcessToken, triggers::TriggerUpdate};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -25,7 +26,18 @@ pub enum TokenState {
 }
 
 impl TokenState {
-    pub fn as_str(&self) -> &'static str {
+
+
+    pub fn is_final(&self) -> bool {
+        matches!(
+            self,
+            TokenState::Success | TokenState::Failure | TokenState::Error
+        )
+    }
+}
+
+impl AsRef<str> for TokenState {
+    fn as_ref(&self) -> &str {
         match self {
             TokenState::Waiting => "waiting",
             TokenState::Active => "active",
@@ -35,24 +47,23 @@ impl TokenState {
             TokenState::Error => "error",
         }
     }
+}
 
-    pub fn from_string(s: &str) -> Self {
+pub struct TokenStateParseError(pub String);
+
+impl FromStr for TokenState {
+    type Err = TokenStateParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "waiting" => TokenState::Waiting,
-            "active" => TokenState::Active,
-            "running" => TokenState::Running,
-            "success" => TokenState::Success,
-            "failure" => TokenState::Failure,
-            "error" => TokenState::Error,
-            _ => panic!("invalid token state! {}", s),
+            "waiting" => Ok(TokenState::Waiting),
+            "active" => Ok(TokenState::Active),
+            "running" => Ok(TokenState::Running),
+            "success" => Ok(TokenState::Success),
+            "failure" => Ok(TokenState::Failure),
+            "error" => Ok(TokenState::Error),
+            _ => Err(TokenStateParseError(format!("invalid token state: '{}'", s))),
         }
-    }
-
-    pub fn is_final(&self) -> bool {
-        matches!(
-            self,
-            TokenState::Success | TokenState::Failure | TokenState::Error
-        )
     }
 }
 
