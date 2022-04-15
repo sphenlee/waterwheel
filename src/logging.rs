@@ -98,7 +98,9 @@ pub fn setup_raw(use_json: bool, filter: &str) -> Result<()> {
     if use_json {
         tracing_subscriber::registry()
             .with(filter_layer)
-            .with(fmt::layer().json())
+            .with(fmt::layer().json()
+                .with_file(true)
+                .with_line_number(true))
             .init();
     } else {
         let fmt_layer = fmt::layer()
