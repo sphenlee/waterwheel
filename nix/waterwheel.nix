@@ -1,17 +1,16 @@
 {
-  nix-filter,
   rustPlatform,
   openssl,
   rust-bin,
   pkg-config,
-  version,
+  waterwheel-version,
   waterwheel-ui,
   lib,
   stdenv,
 }:
 rustPlatform.buildRustPackage {
   pname = "waterwheel";
-  inherit version;
+  version = waterwheel-version;
   buildInputs = [openssl];
   nativeBuildInputs = [
     rust-bin.nightly.latest.default
@@ -37,7 +36,7 @@ rustPlatform.buildRustPackage {
 
   preBuild = ''
     substituteInPlace src/lib.rs \
-    --replace 'git_version::git_version!()' '"${version}"'
+    --replace 'git_version::git_version!()' '"${waterwheel-version}"'
   '';
 
   cargoLock.lockFile = ../Cargo.lock;
@@ -45,7 +44,7 @@ rustPlatform.buildRustPackage {
   doCheck = false;
 
   meta = with lib; {
-    description = "The Uncompromising Nix Code Formatter.";
+    description = "A workflow scheduler based on petri-nets";
     homepage = "https://github.com/sphenlee/waterwheel";
     license = lib.licenses.mit;
     maintainers = [lib.maintainers.gtrunsec];

@@ -11,12 +11,16 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
   };
 
-  outputs = inputs: let
+  outputs = {
+    self,
+    nixpkgs,
+    ...
+  } @ inputs: let
     nixpkgsForHost = host:
       import inputs.nixpkgs {
         overlays = [
           inputs.rust-overlay.overlay
-          (import ./nix {inherit inputs;})
+          self.overlays.default
         ];
         system = host;
       };
@@ -47,54 +51,58 @@
           binaries
         );
       };
-  in rec {
-    checks."aarch64-darwin" = packages."aarch64-darwin";
-    checks."aarch64-linux" = packages."aarch64-linux";
-    checks."i686-linux" = packages."i686-linux";
-    checks."x86_64-darwin" = packages."x86_64-darwin";
-    checks."x86_64-linux" = packages."x86_64-linux";
+  in
+    rec {
+      checks."aarch64-darwin" = packages."aarch64-darwin";
+      checks."aarch64-linux" = packages."aarch64-linux";
+      checks."i686-linux" = packages."i686-linux";
+      checks."x86_64-darwin" = packages."x86_64-darwin";
+      checks."x86_64-linux" = packages."x86_64-linux";
 
-    defaultPackage."aarch64-darwin" = packages."aarch64-darwin"."waterwheel-aarch64-apple-darwin";
-    defaultPackage."aarch64-linux" = packages."aarch64-linux"."waterwheel-aarch64-unknown-linux-gnu";
-    defaultPackage."i686-linux" = packages."i686-linux"."waterwheel-i686-unknown-linux-gnu";
-    defaultPackage."x86_64-darwin" = packages."x86_64-darwin"."waterwheel-x86_64-apple-darwin";
-    defaultPackage."x86_64-linux" = packages."x86_64-linux"."waterwheel-x86_64-unknown-linux-gnu";
+      defaultPackage."aarch64-darwin" = packages."aarch64-darwin"."waterwheel-aarch64-apple-darwin";
+      defaultPackage."aarch64-linux" = packages."aarch64-linux"."waterwheel-aarch64-unknown-linux-gnu";
+      defaultPackage."i686-linux" = packages."i686-linux"."waterwheel-i686-unknown-linux-gnu";
+      defaultPackage."x86_64-darwin" = packages."x86_64-darwin"."waterwheel-x86_64-apple-darwin";
+      defaultPackage."x86_64-linux" = packages."x86_64-linux"."waterwheel-x86_64-unknown-linux-gnu";
 
-    devShell."x86_64-linux" = import ./nix/shell.nix {pkgs = nixpkgs."x86_64-linux";};
+      devShell."x86_64-linux" = import ./nix/shell.nix {pkgs = nixpkgs."x86_64-linux";};
 
-    packages."aarch64-darwin" = with nixpkgs."aarch64-darwin";
-      buildBinariesForHost "aarch64-darwin" [
-        waterwheel
-      ];
-    packages."aarch64-linux" = with nixpkgs."aarch64-linux";
-      buildBinariesForHost "aarch64-linux" [
-        waterwheel
-        pkgsStatic.waterwheel
-      ];
-    packages."i686-linux" = with nixpkgs."i686-linux";
-      buildBinariesForHost "i686-linux" [
-        waterwheel
-      ];
-    packages."x86_64-darwin" = with nixpkgs."x86_64-darwin";
-      buildBinariesForHost "x86_64-darwin" [
-        waterwheel
-      ];
-    packages."x86_64-linux" = with nixpkgs."x86_64-linux";
-      (buildBinariesForHost "x86_64-linux" [
-        waterwheel
+      packages."aarch64-darwin" = with nixpkgs."aarch64-darwin";
+        buildBinariesForHost "aarch64-darwin" [
+          waterwheel
+        ];
+      packages."aarch64-linux" = with nixpkgs."aarch64-linux";
+        buildBinariesForHost "aarch64-linux" [
+          waterwheel
+          pkgsStatic.waterwheel
+        ];
+      packages."i686-linux" = with nixpkgs."i686-linux";
+        buildBinariesForHost "i686-linux" [
+          waterwheel
+        ];
+      packages."x86_64-darwin" = with nixpkgs."x86_64-darwin";
+        buildBinariesForHost "x86_64-darwin" [
+          waterwheel
+        ];
+      packages."x86_64-linux" = with nixpkgs."x86_64-linux";
+        (buildBinariesForHost "x86_64-linux" [
+          waterwheel
 
-        pkgsStatic.waterwheel
+          pkgsStatic.waterwheel
 
-        pkgsCross.aarch64-multiplatform.pkgsStatic.waterwheel
+          pkgsCross.aarch64-multiplatform.pkgsStatic.waterwheel
 
-        pkgsCross.armv7l-hf-multiplatform.pkgsStatic.waterwheel
+          pkgsCross.armv7l-hf-multiplatform.pkgsStatic.waterwheel
 
-        pkgsCross.gnu32.pkgsStatic.waterwheel
+          pkgsCross.gnu32.pkgsStatic.waterwheel
 
-        pkgsCross.raspberryPi.pkgsStatic.waterwheel
-      ])
-      // {
-        waterwheel-ui = nixpkgs.x86_64-linux.waterwheel-ui;
-      };
-  };
+          pkgsCross.raspberryPi.pkgsStatic.waterwheel
+        ])
+        // {
+          waterwheel-ui = nixpkgs.x86_64-linux.waterwheel-ui;
+        };
+    }
+    // {
+      overlays = import ./nix {inherit inputs;};
+    };
 }
