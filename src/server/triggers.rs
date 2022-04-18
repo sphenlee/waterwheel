@@ -380,8 +380,7 @@ async fn update_trigger(server: &Server, uuid: &Uuid, queue: &mut Queue) -> Resu
         catchup_trigger(server, &trigger, queue).await?;
     } else {
         debug!(trigger_id=?uuid,
-            "trigger {} has been paused, it had been removed from the queue",
-            uuid
+            "trigger has been paused, it has been removed from the queue"
         );
     }
 

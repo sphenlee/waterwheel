@@ -8,13 +8,15 @@ use postage::prelude::*;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Postgres, Transaction};
 use std::{fmt, sync::Arc};
-use tracing::{info, trace};
+use tracing::{debug, trace};
+use uuid::Uuid;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ProcessToken {
     Increment(Token, TaskPriority),
     Activate(Token, TaskPriority),
     Clear(Token),
+    UnpauseJob(Uuid),
 }
 
 impl fmt::Display for Token {
@@ -28,10 +30,21 @@ impl fmt::Display for Token {
     }
 }
 
-async fn get_count_and_threshold(pool: &PgPool, token: &Token) -> Result<(i32, i32)> {
-    let (count, threshold) = sqlx::query_as(
-        "SELECT k.count, t.threshold
+#[derive(sqlx::FromRow)]
+struct IncrementInfo {
+    count: i32,
+    threshold: i32,
+    paused: bool,
+}
+
+async fn get_count_and_threshold(pool: &PgPool, token: &Token) -> Result<IncrementInfo> {
+    let info = sqlx::query_as(
+        "SELECT
+            k.count AS count,
+            t.threshold AS threshold,
+            j.paused AS paused
         FROM task t
+        JOIN job j ON j.id = t.job_id
         JOIN token k ON k.task_id = t.id
         WHERE t.id = $1
         AND k.trigger_datetime = $2",
@@ -41,13 +54,13 @@ async fn get_count_and_threshold(pool: &PgPool, token: &Token) -> Result<(i32, i
     .fetch_one(pool)
     .await?;
 
-    Ok((count, threshold))
+    Ok(info)
 }
 
 pub async fn process_tokens(server: Arc<Server>) -> Result<!> {
     let pool = server.db_pool.clone();
 
-    restore_tokens(&server).await?;
+    restore_tokens(&server, None).await?;
 
     let mut token_rx = server.post_office.receive_mail::<ProcessToken>().await?;
     let mut execute_tx = server.post_office.post_mail::<ExecuteToken>().await?;
@@ -55,13 +68,13 @@ pub async fn process_tokens(server: Arc<Server>) -> Result<!> {
     while let Some(msg) = token_rx.recv().await {
         match msg {
             ProcessToken::Increment(token, priority) => {
-                let (count, threshold) = get_count_and_threshold(&pool, &token).await?;
+                let info = get_count_and_threshold(&pool, &token).await?;
 
                 trace!(task_id=?token.task_id,
                     trigger_datetime=?token.trigger_datetime.to_rfc3339(),
-                    "count is {} (threshold {})", count, threshold);
+                    "count is {} (threshold {})", info.count, info.threshold);
 
-                if count >= threshold {
+                if !info.paused && info.count >= info.threshold {
                     execute_tx.send(ExecuteToken(token, priority)).await?;
                 }
             }
@@ -70,6 +83,9 @@ pub async fn process_tokens(server: Arc<Server>) -> Result<!> {
             }
             ProcessToken::Clear(_token) => {
                 // TODO - don't need to know about token clears anymore
+            }
+            ProcessToken::UnpauseJob(job_id) => {
+                restore_tokens(&server, Some(job_id)).await?;
             }
         }
     }
@@ -102,8 +118,8 @@ pub async fn increment_token(txn: &mut Transaction<'_, Postgres>, token: &Token)
     Ok(())
 }
 
-async fn restore_tokens(server: &Server) -> Result<()> {
-    info!("restoring tokens from database...");
+async fn restore_tokens(server: &Server, job_id: Option<Uuid>) -> Result<()> {
+    debug!(?job_id, "restoring tokens from database...");
 
     let pool = server.db_pool.clone();
 
@@ -116,8 +132,12 @@ async fn restore_tokens(server: &Server) -> Result<()> {
             token.trigger_datetime
         FROM token
         JOIN task ON task.id = token.task_id
-        WHERE token.count > task.threshold",
+        JOIN job ON job.id = task.job_id
+        WHERE token.count >= task.threshold
+        AND ($1 IS NULL OR job.id = $1)
+        AND NOT job.paused",
     )
+    .bind(&job_id)
     .fetch(&pool);
 
     let mut num_tokens_restored = 0;
@@ -140,7 +160,8 @@ async fn restore_tokens(server: &Server) -> Result<()> {
         num_tokens_restored += 1;
     }
 
-    info!(
+    debug!(
+        ?job_id,
         "done restoring {} tokens from database",
         num_tokens_restored
     );

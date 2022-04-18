@@ -31,6 +31,7 @@ pub use self::{
     triggers::{get_trigger, get_triggers_by_job},
 };
 pub use task_runs::{list_job_all_task_runs, list_task_runs};
+use crate::server::tokens::ProcessToken;
 
 pub async fn get_job_project_id(pool: &PgPool, job_id: Uuid) -> highnoon::Result<Uuid> {
     let row: Option<(Uuid,)> = sqlx::query_as(
@@ -300,9 +301,9 @@ struct Paused {
 }
 
 pub async fn set_paused(mut req: Request<State>) -> impl Responder {
-    let id = req.param("id")?.parse::<Uuid>()?;
+    let job_id = req.param("id")?.parse::<Uuid>()?;
 
-    auth::update().job(id, None).check(&req).await?;
+    auth::update().job(job_id, None).check(&req).await?;
 
     let Paused { paused } = req.body_json().await?;
 
@@ -311,7 +312,7 @@ pub async fn set_paused(mut req: Request<State>) -> impl Responder {
         SET paused = $2
         WHERE id = $1",
     )
-    .bind(&id)
+    .bind(&job_id)
     .bind(&paused)
     .execute(&req.get_pool())
     .await;
@@ -320,17 +321,17 @@ pub async fn set_paused(mut req: Request<State>) -> impl Responder {
         Ok(done) => {
             if done.rows_affected() == 1 {
                 if paused {
-                    info!("paused job {}", id);
+                    info!("paused job {}", job_id);
                 } else {
-                    info!("unpaused job {}", id);
+                    info!("unpaused job {}", job_id);
                 }
             } else {
-                info!("no job with id {}", id);
+                info!("no job with id {}", job_id);
                 return Ok(StatusCode::NOT_FOUND);
             }
         }
         Err(err) => {
-            warn!("error pausing job: {}", err);
+            warn!("error pausing job: {:?}", err);
             return Ok(StatusCode::INTERNAL_SERVER_ERROR);
         }
     }
@@ -341,7 +342,7 @@ pub async fn set_paused(mut req: Request<State>) -> impl Responder {
         FROM trigger
         WHERE job_id = $1",
     )
-    .bind(&id)
+    .bind(&job_id)
     .fetch_all(&req.get_pool())
     .await?;
 
@@ -351,6 +352,14 @@ pub async fn set_paused(mut req: Request<State>) -> impl Responder {
             SchedulerUpdate::TriggerUpdate(TriggerUpdate(id)),
         )
         .await?;
+    }
+
+    if !paused {
+        updates::send(
+            req.get_channel(),
+            SchedulerUpdate::ProcessToken(ProcessToken::UnpauseJob(job_id))
+        )
+            .await?;
     }
 
     Ok(StatusCode::NO_CONTENT)
