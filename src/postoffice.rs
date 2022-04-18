@@ -5,12 +5,13 @@ use typemap::SendMap;
 
 struct Mailbox<T> {
     tx: Sender<T>,
+    rx: Receiver<T>,
 }
 
 impl<T: Clone> Mailbox<T> {
     fn new() -> Mailbox<T> {
-        let (tx, _) = postage::dispatch::channel(128);
-        Mailbox { tx }
+        let (tx, rx) = postage::dispatch::channel(128);
+        Mailbox { tx, rx }
     }
 }
 
@@ -39,7 +40,7 @@ impl PostOffice {
     }
 
     pub async fn receive_mail<T: Clone + Send + 'static>(&self) -> Result<Receiver<T>> {
-        self.with_mailbox(|mailbox| Ok(mailbox.tx.subscribe()))
+        self.with_mailbox(|mailbox| Ok(mailbox.rx.clone()))
             .await
     }
 
