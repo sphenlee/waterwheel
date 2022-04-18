@@ -3,32 +3,32 @@
   "project": "test_project",
   "name": "catchup_job",
   "description": "a simple job to test catchup",
-  "paused": false,
+  "paused": true,
   "triggers": [
     {
       "name": "none",
       "start": "2022-01-01T00:00:00Z",
-      "period": "1h",
+      "period": "1d",
       "catchup": "none"
     },{
       "name": "latest",
       "start": "2022-01-01T00:00:00Z",
-      "period": "1h",
+      "period": "1d",
       "catchup": "latest"
     },{
       "name": "earliest",
       "start": "2022-01-01T00:00:00Z",
-      "period": "1h",
+      "period": "1d",
       "catchup": "earliest"
     },{
       "name": "random",
       "start": "2022-01-01T00:00:00Z",
-      "period": "1h",
+      "period": "1d",
       "catchup": "random"
     },{
       "name": "default",
       "start": "2022-01-01T00:00:00Z",
-      "period": "1h"
+      "period": "1d"
     }
   ],
   "tasks": [
