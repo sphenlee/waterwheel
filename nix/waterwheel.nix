@@ -34,10 +34,7 @@ rustPlatform.buildRustPackage {
     src = ../src;
   };
 
-  preBuild = ''
-    substituteInPlace src/lib.rs \
-    --replace 'git_version::git_version!()' '"${waterwheel-version}"'
-  '';
+  GIT_HASH = waterwheel-version;
 
   cargoLock.lockFile = ../Cargo.lock;
 

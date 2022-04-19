@@ -5,5 +5,7 @@ with pkgs;
       rust-bin.nightly.latest.default
       nodejs
       just
+      openssl
+      pkg-config
     ];
   }
