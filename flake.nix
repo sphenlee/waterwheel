@@ -103,6 +103,6 @@
         };
     }
     // {
-      overlays = import ./nix {inherit inputs;};
+      overlays = import ./nix/overlays.nix {inherit inputs;};
     };
 }

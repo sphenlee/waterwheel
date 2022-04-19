@@ -1,12 +1,50 @@
-{inputs}: let
-  inherit (inputs) nix-filter;
-  waterwheel-commit = inputs.self.shortRev or "dirty";
-  waterwheel-date = inputs.self.lastModifiedDate or inputs.self.lastModified or "19700101";
-  waterwheel-version = "${builtins.substring 0 8 waterwheel-date}.${waterwheel-commit}";
-in {
-  default = final: prev: rec {
-    npmlock2nix = import inputs.npmlock2nix {pkgs = prev;};
-    waterwheel = prev.callPackage ./waterwheel.nix {inherit waterwheel-version waterwheel-ui;};
-    waterwheel-ui = prev.callPackage ./waterwheel-ui.nix {inherit waterwheel-version npmlock2nix waterwheel-commit;};
+{
+  rustPlatform,
+  openssl,
+  rust-bin,
+  pkg-config,
+  waterwheel-version,
+  waterwheel-ui,
+  lib,
+  stdenv,
+}:
+rustPlatform.buildRustPackage {
+  pname = "waterwheel";
+  version = waterwheel-version;
+  buildInputs = [openssl];
+  nativeBuildInputs = [
+    rust-bin.nightly.latest.default
+    pkg-config
+  ];
+
+  src = stdenv.mkDerivation {
+    name = "src";
+    builder = builtins.toFile "builder.sh" ''
+      source $stdenv/setup
+      mkdir $out
+      cp -rT --no-preserve=mode,ownership $src $out/src/
+      cp $cargoLock $out/Cargo.lock
+      cp $cargoToml $out/Cargo.toml
+      mkdir $out/ui
+      cp -rT --no-preserve=mode,ownership $ui $out/ui/dist
+    '';
+    cargoLock = ../Cargo.lock;
+    cargoToml = ../Cargo.toml;
+    ui = waterwheel-ui;
+    src = ../src;
+  };
+
+  GIT_HASH = waterwheel-version;
+
+  cargoLock.lockFile = ../Cargo.lock;
+
+  doCheck = false;
+
+  meta = with lib; {
+    description = "A workflow scheduler based on petri-nets";
+    homepage = "https://github.com/sphenlee/waterwheel";
+    license = lib.licenses.mit;
+    maintainers = [lib.maintainers.gtrunsec];
+    platforms = lib.systems.doubles.all;
   };
 }
