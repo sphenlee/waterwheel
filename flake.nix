@@ -65,7 +65,7 @@
       defaultPackage."x86_64-darwin" = packages."x86_64-darwin"."waterwheel-x86_64-apple-darwin";
       defaultPackage."x86_64-linux" = packages."x86_64-linux"."waterwheel-x86_64-unknown-linux-gnu";
 
-      devShell."x86_64-linux" = import ./nix/shell.nix {pkgs = nixpkgs."x86_64-linux";};
+      devShells."x86_64-linux".default = import ./nix/shell.nix {pkgs = nixpkgs."x86_64-linux";};
 
       packages."aarch64-darwin" = with nixpkgs."aarch64-darwin";
         buildBinariesForHost "aarch64-darwin" [
@@ -99,10 +99,23 @@
           pkgsCross.raspberryPi.pkgsStatic.waterwheel
         ])
         // {
-          waterwheel-ui = nixpkgs.x86_64-linux.waterwheel-ui;
+          inherit
+            (nixpkgs.x86_64-linux)
+            waterwheel-ui
+            ;
+          inherit
+            (nixpkgs.x86_64-linux.waterwheel-vm-tests)
+            waterwheel-vm-systemd
+            ;
         };
     }
     // {
       overlays = import ./nix/overlays.nix {inherit inputs;};
+      nixosModules.waterwheel = {
+        imports = [./nix/module.nix];
+        _module.args = {
+          waterwheel = self.packages.x86_64-linux.waterwheel-x86_64-unknown-linux-gnu;
+        };
+      };
     };
 }

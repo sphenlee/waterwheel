@@ -8,5 +8,9 @@ in {
     npmlock2nix = import inputs.npmlock2nix {pkgs = prev;};
     waterwheel = prev.callPackage ./. {inherit waterwheel-version waterwheel-ui;};
     waterwheel-ui = prev.callPackage ./waterwheel-ui.nix {inherit waterwheel-version npmlock2nix waterwheel-commit;};
+    waterwheel-vm-tests = prev.callPackage ./nixos-test.nix {
+      makeTest = import (prev.path + "/nixos/tests/make-test-python.nix");
+      inherit inputs;
+    };
   };
 }
