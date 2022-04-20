@@ -2,7 +2,10 @@
 with pkgs;
   mkShell {
     buildInputs = [
-      rust-bin.nightly.latest.default
+      (pkgs.rust-bin.selectLatestNightlyWith (toolchain:
+        toolchain.default.override {
+          extensions = ["rust-src"];
+        }))
       nodejs
       just
       openssl
