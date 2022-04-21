@@ -22,7 +22,7 @@ in {
     };
 
     host = mkOption {
-      default = "http://localhost:8080";
+      default = "http://127.0.0.1:8080";
       type = lib.types.str;
       description = ''
         Which waterwheel address to use.
@@ -115,28 +115,30 @@ in {
         description = "Path to the unix socket file to use for authentication.";
       };
     };
+
+    worker = lib.mkOption {
+      description = "worker settings";
+      default = {};
+      type = lib.types.submodule {
+        options = {
+          enable = mkEnableOption "enable waterwheel worker";
+        };
+      };
+    };
   };
 
-  config = mkIf cfg.enable {
-    environment.systemPackages = [cfg.package];
-
-    systemd.services.waterwheel = {
+  config = let
+    commonService = {
       wantedBy = ["multi-user.target"];
       after = ["postgresql.service" "rabbitmq.service"];
-
-      script = ''
-        export WATERWHEEL_HMAC_SECRET=$(cat $CREDENTIALS_DIRECTORY/HMAC_SECRET)
-        export WATERWHEEL_DB_URL=postgres://${cfg.database.user}:$(cat $CREDENTIALS_DIRECTORY/DATABASE_PASSWORD)@${cfg.database.host}:${toString config.services.postgresql.port}/${cfg.database.name}
-        ${cfg.package}/bin/waterwheel scheduler
-      '';
       serviceConfig = {
-        Type = "simple";
+        User = "${name}";
+        Group = "${name}";
         ExecStop = "${pkgs.coreutils}/bin/kill -INT $MAINPID";
         LoadCredential = [
           "DATABASE_PASSWORD:${cfg.database.passwordFile}"
           "HMAC_SECRET:${cfg.secrets.hmac_secret}"
         ];
-        DynamicUser = true;
         NoNewPrivileges = true;
         ProtectKernelTunables = true;
         ProtectControlGroups = true;
@@ -155,25 +157,64 @@ in {
         }
       );
     };
+  in
+    lib.mkMerge [
+      {
+        users.users.${name} = {
+          isSystemUser = true;
+          group = "${name}";
+        };
+        users.groups.${name} = {};
+      }
+      (lib.mkIf cfg.worker.enable {
+        environment.systemPackages = [cfg.package];
+        systemd.services.waterwheel-worker = lib.recursiveUpdate commonService {
+          script = ''
+            export WATERWHEEL_HMAC_SECRET=$(cat $CREDENTIALS_DIRECTORY/HMAC_SECRET)
+            export WATERWHEEL_DB_URL=postgres://${cfg.database.user}:$(cat $CREDENTIALS_DIRECTORY/DATABASE_PASSWORD)@${cfg.database.host}:${toString config.services.postgresql.port}/${cfg.database.name}
+            ${cfg.package}/bin/waterwheel worker > var/lib/${name}/worker.log;
+          '';
+          serviceConfig = {
+            Type = "notify";
+          };
+          after = [
+            "network-online.target"
+            "waterwheel.service"
+          ];
+        };
+      })
+      (lib.mkIf cfg.enable {
+        environment.systemPackages = [cfg.package];
+        systemd.services.waterwheel =
+          lib.recursiveUpdate commonService
+          {
+            script = ''
+              export WATERWHEEL_HMAC_SECRET=$(cat $CREDENTIALS_DIRECTORY/HMAC_SECRET)
+              export WATERWHEEL_DB_URL=postgres://${cfg.database.user}:$(cat $CREDENTIALS_DIRECTORY/DATABASE_PASSWORD)@${cfg.database.host}:${toString config.services.postgresql.port}/${cfg.database.name}
+              ${cfg.package}/bin/waterwheel scheduler
+            '';
+            serviceConfig = {Type = "simple";};
+          };
 
-    networking.firewall = mkIf cfg.openFirewall {
-      allowedTCPPorts = [port];
-      allowedUDPPorts = [port];
-    };
+        networking.firewall = mkIf cfg.openFirewall {
+          allowedTCPPorts = [port];
+          allowedUDPPorts = [port];
+        };
 
-    services.rabbitmq = {
-      enable = true;
-    };
+        services.rabbitmq = {
+          enable = true;
+        };
 
-    services.postgresql = {
-      enable = true;
-      ensureDatabases = [cfg.database.name];
-      ensureUsers = [
-        {
-          name = cfg.database.user;
-          ensurePermissions = {"DATABASE ${cfg.database.name}" = "ALL PRIVILEGES";};
-        }
-      ];
-    };
-  };
+        services.postgresql = {
+          enable = true;
+          ensureDatabases = [cfg.database.name];
+          ensureUsers = [
+            {
+              name = cfg.database.user;
+              ensurePermissions = {"DATABASE ${cfg.database.name}" = "ALL PRIVILEGES";};
+            }
+          ];
+        };
+      })
+    ];
 }

@@ -17,7 +17,6 @@
 
         imports = [
           inputs.self.nixosModules.waterwheel
-          inputs.self.nixosModules.waterwheel-worker
         ];
 
         virtualisation = {
@@ -25,13 +24,9 @@
           cores = 4;
         };
 
-        services.waterwheel-worker = {
-          enable = true;
-          host = "http://localhost:8080";
-        };
-
         services.waterwheel = {
           enable = true;
+          worker.enable = true;
           database.passwordFile = pkgs.writeText "text" "password";
           secrets.hmac_secret = pkgs.writeText "text" "shared";
         };
@@ -55,7 +50,7 @@
         # create jobs
         machine.wait_until_succeeds("curl -X POST -H 'Content-Type: application/json' -d @${../sample/jobs/simple.json} localhost:8080/api/jobs -i")
         machine.sleep(2)
-        print(machine.succeed("cat /var/lib/waterwheel-worker/worker.log"))
+        print(machine.succeed("cat /var/lib/waterwheel/worker.log"))
       '';
     }
     {
