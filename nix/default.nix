@@ -38,8 +38,6 @@ rustPlatform.buildRustPackage {
 
   cargoLock.lockFile = ../Cargo.lock;
 
-  doCheck = false;
-
   meta = with lib; {
     description = "A workflow scheduler based on petri-nets";
     homepage = "https://github.com/sphenlee/waterwheel";

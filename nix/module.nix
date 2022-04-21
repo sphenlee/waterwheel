@@ -67,7 +67,7 @@ in {
         default =
           {
             # mysql = 3306;
-            pgsql = 5432;
+            pgsql = config.services.postgresql.port;
           }
           .${cfg.database.type};
         defaultText = literalExpression "5432";
@@ -108,7 +108,7 @@ in {
       socket = mkOption {
         type = types.nullOr types.path;
         default =
-          if cfg.database.type == "mysql"
+          if cfg.database.type == "pgsql"
           then "/run/postgresql"
           else null;
         defaultText = literalExpression "/run/postgresql";
@@ -126,7 +126,7 @@ in {
 
       script = ''
         export WATERWHEEL_HMAC_SECRET=$(cat $CREDENTIALS_DIRECTORY/HMAC_SECRET)
-        export WATERWHEEL_DB_URL=postgres://${cfg.database.user}:$(cat $CREDENTIALS_DIRECTORY/DATABASE_PASSWORD)@${cfg.database.host}/${cfg.database.name}
+        export WATERWHEEL_DB_URL=postgres://${cfg.database.user}:$(cat $CREDENTIALS_DIRECTORY/DATABASE_PASSWORD)@${cfg.database.host}:${toString config.services.postgresql.port}/${cfg.database.name}
         ${cfg.package}/bin/waterwheel scheduler
       '';
       serviceConfig = {
@@ -147,16 +147,13 @@ in {
         RuntimeDirectory = name;
         StateDirectory = name;
       };
-      environment =
-        (
-          lib.mapAttrs' (n: v: lib.nameValuePair "WATERWHEEL_${n}" (toString v))
-          {
-            SERVER_ADDR = cfg.host;
-            NO_AUTHZ = toString cfg.secrets.no_authz;
-          }
-        )
-        // {
-        };
+      environment = (
+        lib.mapAttrs' (n: v: lib.nameValuePair "WATERWHEEL_${n}" (toString v))
+        {
+          SERVER_ADDR = cfg.host;
+          NO_AUTHZ = toString cfg.secrets.no_authz;
+        }
+      );
     };
 
     networking.firewall = mkIf cfg.openFirewall {
