@@ -17,11 +17,17 @@
 
         imports = [
           inputs.self.nixosModules.waterwheel
+          inputs.self.nixosModules.waterwheel-worker
         ];
 
         virtualisation = {
           memorySize = 6000;
           cores = 4;
+        };
+
+        services.waterwheel-worker = {
+          enable = true;
+          host = "http://localhost:8080";
         };
 
         services.waterwheel = {
@@ -48,6 +54,8 @@
         machine.wait_until_succeeds("curl -X POST -H 'Content-Type: application/json' -d @${../sample/project.json} localhost:8080/api/projects -i")
         # create jobs
         machine.wait_until_succeeds("curl -X POST -H 'Content-Type: application/json' -d @${../sample/jobs/simple.json} localhost:8080/api/jobs -i")
+        machine.sleep(2)
+        print(machine.succeed("cat /var/lib/waterwheel-worker/worker.log"))
       '';
     }
     {

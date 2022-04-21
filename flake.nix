@@ -112,9 +112,14 @@
     // {
       overlays = import ./nix/overlays.nix {inherit inputs;};
       nixosModules.waterwheel = {
-        imports = [./nix/module.nix];
+        imports = [./nix/module-server.nix];
         _module.args = {
           waterwheel = self.packages.x86_64-linux.waterwheel-x86_64-unknown-linux-gnu;
+        };
+      };
+      nixosModules.waterwheel-worker = {
+        imports = [./nix/module-worker.nix];
+        _module.args = {
         };
       };
     };
