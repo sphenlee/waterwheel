@@ -1,6 +1,6 @@
 {pkgs ? import <nixpkgs> {}}:
-with pkgs;
-  mkShell {
+with pkgs; {
+  default = mkShell {
     buildInputs = [
       (pkgs.rust-bin.selectLatestNightlyWith (toolchain:
         toolchain.default.override {
@@ -15,4 +15,5 @@ with pkgs;
     WATERWHEEL_SERVER_ADDR = "http://localhost:8080";
     WATERWHEEL_HMAC_SECRET = "shared";
     WATERWHEEL_NO_AUTHZ = true;
-  }
+  };
+}

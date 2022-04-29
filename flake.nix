@@ -8,22 +8,19 @@
     npmlock2nix.url = "github:tweag/npmlock2nix";
     npmlock2nix.flake = false;
 
+    naersk.url = "github:nmattia/naersk";
+    naersk.inputs.nixpkgs.follows = "nixpkgs";
+
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
   };
 
-  outputs = {
-    self,
-    nixpkgs,
-    ...
-  } @ inputs: let
-    nixpkgsForHost = host:
-      import inputs.nixpkgs {
-        overlays = [
-          inputs.rust-overlay.overlay
-          self.overlays.default
-        ];
-        system = host;
-      };
+  outputs = {self, ...} @ inputs: let
+    nixpkgsForHost = system:
+      inputs.nixpkgs.legacyPackages.${system}.appendOverlays [
+        self.overlays.default
+        inputs.rust-overlay.overlay
+        inputs.naersk.overlay
+      ];
 
     nixpkgs."aarch64-darwin" = nixpkgsForHost "aarch64-darwin";
     nixpkgs."aarch64-linux" = nixpkgsForHost "aarch64-linux";
@@ -65,7 +62,7 @@
       defaultPackage."x86_64-darwin" = packages."x86_64-darwin"."waterwheel-x86_64-apple-darwin";
       defaultPackage."x86_64-linux" = packages."x86_64-linux"."waterwheel-x86_64-unknown-linux-gnu";
 
-      devShells."x86_64-linux".default = import ./nix/shell.nix {pkgs = nixpkgs."x86_64-linux";};
+      devShells."x86_64-linux" = import ./nix/shell.nix {pkgs = nixpkgs."x86_64-linux";};
 
       packages."aarch64-darwin" = with nixpkgs."aarch64-darwin";
         buildBinariesForHost "aarch64-darwin" [

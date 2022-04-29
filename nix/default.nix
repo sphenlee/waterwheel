@@ -1,42 +1,42 @@
 {
-  rustPlatform,
-  openssl,
+  naersk,
   rust-bin,
-  pkg-config,
   waterwheel-version,
   waterwheel-ui,
   lib,
-  stdenv,
+  openssl,
+  pkg-config,
+  runCommand,
 }:
-rustPlatform.buildRustPackage {
-  pname = "waterwheel";
+(naersk.override {
+  rustc = rust-bin.nightly.latest.default;
+  cargo = rust-bin.nightly.latest.default;
+})
+.buildPackage {
   version = waterwheel-version;
-  buildInputs = [openssl];
-  nativeBuildInputs = [
-    rust-bin.nightly.latest.default
-    pkg-config
-  ];
-
-  src = stdenv.mkDerivation {
-    name = "src";
-    builder = builtins.toFile "builder.sh" ''
-      source $stdenv/setup
-      mkdir $out
+  root =
+    runCommand "${waterwheel-version}-src" {
+      cargoLock = ../Cargo.lock;
+      cargoToml = ../Cargo.toml;
+      ui = waterwheel-ui;
+      src = ../src;
+    } ''
+      mkdir -p "$out"
       cp -rT --no-preserve=mode,ownership $src $out/src/
       cp $cargoLock $out/Cargo.lock
       cp $cargoToml $out/Cargo.toml
       mkdir $out/ui
       cp -rT --no-preserve=mode,ownership $ui $out/ui/dist
     '';
-    cargoLock = ../Cargo.lock;
-    cargoToml = ../Cargo.toml;
-    ui = waterwheel-ui;
-    src = ../src;
-  };
+
+  nativeBuildInputs = [openssl.dev pkg-config];
 
   GIT_HASH = waterwheel-version;
 
-  cargoLock.lockFile = ../Cargo.lock;
+  doCheck = true;
+  checkPhase = ''
+    cargo test
+  '';
 
   meta = with lib; {
     description = "A workflow scheduler based on petri-nets";
