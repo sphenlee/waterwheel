@@ -106,7 +106,6 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
         info!(task_run_id=?task_req.task_run_id,
             task_id=?task_req.task_id,
             trigger_datetime=?task_req.trigger_datetime.to_rfc3339(),
-            priority=?task_req.priority,
             "received task");
 
         let maybe_task_def = config_cache::get_task_def(&worker, task_req.task_id).await?;
@@ -216,7 +215,6 @@ fn task_progress_payload(
         finished_datetime,
         worker_id: *WORKER_ID,
         result,
-        priority: task_req.priority,
     })?;
 
     Ok(payload)

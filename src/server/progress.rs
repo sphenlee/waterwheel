@@ -17,6 +17,7 @@ use sqlx::{Connection, PgPool, Postgres, Transaction};
 use std::sync::Arc;
 use tracing::debug;
 use uuid::Uuid;
+use crate::messages::TaskPriority;
 
 const RESULT_QUEUE: &str = "waterwheel.results";
 
@@ -66,7 +67,7 @@ pub async fn process_progress(server: Arc<Server>) -> Result<!> {
             Vec::<Token>::new()
         };
 
-        update_task_progress(&mut txn, &task_progress).await?;
+        let priority = update_task_progress(&mut txn, &task_progress).await?;
 
         txn.commit().await?;
 
@@ -78,7 +79,7 @@ pub async fn process_progress(server: Arc<Server>) -> Result<!> {
         // after committing the transaction we can tell the token processor increment tokens
         for token in tokens_to_tx {
             token_tx
-                .send(ProcessToken::Increment(token, task_progress.priority))
+                .send(ProcessToken::Increment(token, priority))
                 .await?;
         }
     }
@@ -132,7 +133,7 @@ pub async fn advance_tokens(
 async fn update_task_progress(
     txn: &mut Transaction<'_, Postgres>,
     task_progress: &TaskProgress,
-) -> Result<()> {
+) -> Result<TaskPriority> {
     sqlx::query(
         "UPDATE token
             SET state = $1
@@ -145,21 +146,22 @@ async fn update_task_progress(
     .execute(&mut *txn)
     .await?;
 
-    sqlx::query(
+    let (priority,) = sqlx::query_as(
         "UPDATE task_run
             SET state = $1,
                 started_datetime = $2,
                 finish_datetime = $3,
                 worker_id = $4
-        WHERE id = $5",
+        WHERE id = $5
+        RETURNING priority",
     )
     .bind(&task_progress.result)
     .bind(&task_progress.started_datetime)
     .bind(&task_progress.finished_datetime)
     .bind(&task_progress.worker_id)
     .bind(&task_progress.task_run_id)
-    .execute(&mut *txn)
+    .fetch_one(&mut *txn)
     .await?;
 
-    Ok(())
+    Ok(priority)
 }

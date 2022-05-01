@@ -81,7 +81,6 @@ pub async fn process_executions(server: Arc<Server>) -> Result<!> {
             task_run_id: Uuid::new_v4(),
             task_id: token.task_id,
             trigger_datetime: token.trigger_datetime,
-            priority,
         };
 
         let props = BasicProperties::default()
@@ -114,15 +113,16 @@ pub async fn process_executions(server: Arc<Server>) -> Result<!> {
         sqlx::query(
             "INSERT INTO task_run(id, task_id, trigger_datetime,
                 queued_datetime, started_datetime, finish_datetime,
-                worker_id, state)
+                worker_id, state, priority)
             VALUES ($1, $2, $3,
                 $4, NULL, NULL,
-                NULL, 'active')",
+                NULL, 'active', $5)",
         )
         .bind(&task_req.task_run_id)
         .bind(token.task_id)
         .bind(token.trigger_datetime)
         .bind(Utc::now())
+        .bind(priority)
         .execute(&mut txn)
         .await?;
 

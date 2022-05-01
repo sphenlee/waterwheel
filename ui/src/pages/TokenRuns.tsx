@@ -8,6 +8,7 @@ import { ExclamationCircleOutlined, EllipsisOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
 import State from '../components/State';
+import Priority from '../components/Priority';
 import ActivateToken from '../components/ActivateToken';
 import { ColumnsType } from "antd/lib/table";
 import { datetime } from "../types/common";
@@ -62,6 +63,10 @@ class TokenRuns extends Component<TokenRunsProps, TokenRunsState> {
             dataIndex: 'state',
             render: text => <State state={text} />,
           },{
+            title: 'Priority',
+            dataIndex: 'priority',
+            render: text => <Priority priority={text} />,
+            },{
             title: 'Queued',
             dataIndex: 'queued_datetime',
           },{

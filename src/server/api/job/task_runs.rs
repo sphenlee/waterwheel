@@ -3,6 +3,7 @@ use chrono::{DateTime, Utc};
 use highnoon::{Json, Request, Responder};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use crate::messages::{TaskPriority, TokenState};
 
 #[derive(Deserialize)]
 struct ListTaskRunsQuery {
@@ -19,7 +20,8 @@ struct ListJobAllTaskRuns {
     queued_datetime: Option<DateTime<Utc>>,
     started_datetime: Option<DateTime<Utc>>,
     finish_datetime: Option<DateTime<Utc>>,
-    state: String,
+    state: TokenState,
+    priority: TaskPriority,
     worker_id: Option<Uuid>,
 }
 
@@ -44,6 +46,7 @@ pub async fn list_job_all_task_runs(req: Request<State>) -> highnoon::Result<imp
             started_datetime,
             finish_datetime,
             state,
+            priority,
             worker_id
         FROM task_run tr
         JOIN task t ON t.id = tr.task_id
@@ -68,7 +71,8 @@ struct ListTaskRuns {
     queued_datetime: Option<DateTime<Utc>>,
     started_datetime: Option<DateTime<Utc>>,
     finish_datetime: Option<DateTime<Utc>>,
-    state: String,
+    state: TokenState,
+    priority: TaskPriority,
     worker_id: Option<Uuid>,
 }
 
@@ -89,6 +93,7 @@ pub async fn list_task_runs(req: Request<State>) -> highnoon::Result<impl Respon
             started_datetime,
             finish_datetime,
             state,
+            priority,
             worker_id
         FROM task_run tr
         JOIN task t ON t.id = tr.task_id

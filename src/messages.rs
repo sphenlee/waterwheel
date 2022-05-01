@@ -78,7 +78,6 @@ pub struct TaskRequest {
     pub task_run_id: Uuid,
     pub task_id: Uuid,
     pub trigger_datetime: DateTime<Utc>,
-    pub priority: TaskPriority,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, sqlx::FromRow)]
@@ -103,7 +102,6 @@ pub struct TaskProgress {
     pub finished_datetime: Option<DateTime<Utc>>,
     pub result: TokenState,
     pub worker_id: Uuid,
-    pub priority: TaskPriority,
 }
 
 // impl TaskProgress {
@@ -115,9 +113,10 @@ pub struct TaskProgress {
 //     }
 // }
 
-#[repr(u8)]
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Serialize, Deserialize, sqlx::Type)]
 #[serde(rename_all = "lowercase")]
+#[sqlx(rename_all = "lowercase")]
+#[sqlx(type_name = "VARCHAR")]
 pub enum TaskPriority {
     BackFill = 0,
     Low = 1,

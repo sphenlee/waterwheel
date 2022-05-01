@@ -70,7 +70,7 @@ class Tokens extends Component<TokensProps, TokensState> {
             render: (text, record) => <Button
                 icon={<EllipsisOutlined/>}
                 onClick={() => {
-                    this.drawOpen(record);
+                    this.drawerOpen(record);
                 }}/>,
           }
         ];
@@ -134,7 +134,7 @@ class Tokens extends Component<TokensProps, TokensState> {
         });
     }
 
-    drawOpen(record: Token) {
+    drawerOpen(record: Token) {
         console.log(record);
         this.setState({
             drawer_task_id: record.task_id
@@ -183,7 +183,12 @@ class Tokens extends Component<TokensProps, TokensState> {
                 <Row>
                     <Col span={12}>
                         <Table key="1" columns={this.columns} dataSource={tokens}
-                            pagination={{position: ['bottomLeft']}}
+                            pagination={false} size={'small'}
+                            onRow={(record, index) => ({
+                                onClick: event => {
+                                    this.drawerOpen(record);
+                                }
+                            })}
                             />
                     </Col>
                     <Col span={12}>
