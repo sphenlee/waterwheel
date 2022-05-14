@@ -74,9 +74,9 @@ pub async fn create_trigger(
     .bind(&job.uuid)
     .bind(&trigger.start)
     .bind(&trigger.end)
-    .bind(period_from_string(&trigger.period)?)
+    .bind(period_from_string(trigger.period.as_deref())?)
     .bind(&trigger.cron)
-    .bind(period_from_string(&trigger.offset)?)
+    .bind(period_from_string(trigger.offset.as_deref())?)
     .bind(trigger.catchup.unwrap_or_default())
     .fetch_one(&mut *txn)
     .await?;
@@ -96,7 +96,7 @@ pub struct GetTriggerByJob {
     pub latest_trigger_datetime: Option<DateTime<Utc>>,
     pub period: Option<i64>, // seconds
     pub cron: Option<String>,
-    pub trigger_offset: Option<String>,
+    pub trigger_offset: Option<i64>,
     pub catchup: Option<String>,
 }
 

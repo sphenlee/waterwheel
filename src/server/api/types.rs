@@ -4,10 +4,18 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-pub fn period_from_string(period: &Option<String>) -> anyhow::Result<Option<u32>> {
+pub fn period_from_string(period: Option<&str>) -> anyhow::Result<Option<i32>> {
     match period {
-        Some(ref s) => {
-            let secs = humantime::parse_duration(s)?.as_secs() as u32;
+        Some(mut s) => {
+            let mut neg = false;
+            if s.starts_with('-') {
+                neg = true;
+                s = s.trim_start_matches("-");
+            }
+            let mut secs = humantime::parse_duration(s)?.as_secs() as i32;
+            if neg {
+                secs = -secs;
+            }
             Ok(Some(secs))
         }
         None => Ok(None),
