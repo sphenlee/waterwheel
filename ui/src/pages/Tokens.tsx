@@ -54,7 +54,7 @@ class Tokens extends Component<TokensProps, TokensState> {
             title: 'State',
             dataIndex: 'state',
             render: text => <State state={text} />,
-          },{
+          },/*{
             title: '',
             dataIndex: 'task_id',
             key: 'task_id',
@@ -72,7 +72,7 @@ class Tokens extends Component<TokensProps, TokensState> {
                 onClick={() => {
                     this.drawerOpen(record);
                 }}/>,
-          }
+          }*/
         ];
     }
 
@@ -135,7 +135,6 @@ class Tokens extends Component<TokensProps, TokensState> {
     }
 
     drawerOpen(record: Token) {
-        console.log(record);
         this.setState({
             drawer_task_id: record.task_id
         });
@@ -158,6 +157,7 @@ class Tokens extends Component<TokensProps, TokensState> {
         const { history, match } = this.props;
         const {id, trigger_datetime} = match.params;
         const { job, tokens, drawer_task_id } = this.state;
+
 
         const content = job ? (
             <>
@@ -211,11 +211,16 @@ class Tokens extends Component<TokensProps, TokensState> {
                     <Body>{content}</Body>
                 </Content>
 
-                <TokenRuns
-                        task_id={drawer_task_id}
-                        trigger_datetime={trigger_datetime}
+                <Drawer
+                        placement="bottom"
+                        // size="large"
+                        height={736} // todo - remove after upgrading
                         onClose={() => this.drawerClose()}
-                        visible={drawer_task_id !== null} />
+                        visible={drawer_task_id !== null}>
+                    <TokenRuns
+                        task_id={drawer_task_id}
+                        trigger_datetime={trigger_datetime} />
+                </Drawer>
             </Layout>
         );
     }

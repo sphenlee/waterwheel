@@ -34,7 +34,8 @@ class ActivateToken extends Component<ActivateTokenProps, ActivateTokenState> {
             message: 'Task Activated',
             description: 'The task has been activated and will run shortly.',
             placement: 'bottomLeft',
-        })
+        });
+
     }
 
     render() {
