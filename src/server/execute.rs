@@ -96,12 +96,10 @@ pub async fn process_executions(server: Arc<Server>) -> Result<!> {
         )
         .await?;
 
-        // TODO - check if the logic here is correct
-        // used to set count = count - (SELECT threshold FROM task WHERE id = task_id)
         sqlx::query(
             "UPDATE token
             SET state = 'active',
-                count = 0
+                count = count - (SELECT threshold FROM task WHERE id = $1)
             WHERE task_id = $1
             AND trigger_datetime = $2",
         )
