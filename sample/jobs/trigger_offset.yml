@@ -1,0 +1,32 @@
+uuid: '5fe36011-7e82-414e-9a51-cd377ebcdbf8'
+project: test_project
+name: trigger_offset_job
+description: a job to test trigger offsets
+paused: false
+
+triggers:
+  - name: no_offset
+    start: '2022-05-14T00:00:00Z'
+    period: 10m
+    catchup: none
+  - name: pos_offset
+    start: '2022-05-14T00:00:00Z'
+    period: 10m
+    catchup: none
+    offset: 1m
+  - name: neg_offset
+    start: '2022-05-14T00:00:00Z'
+    period: 10m
+    catchup: none
+    offset: "-3m"
+
+tasks:
+  - name: no_offset
+    depends:
+    - trigger/no_offset
+  - name: pos_offset
+    depends:
+    - trigger/pos_offset
+  - name: neg_offset
+    depends:
+    - trigger/neg_offset
