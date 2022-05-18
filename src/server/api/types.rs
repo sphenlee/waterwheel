@@ -76,3 +76,44 @@ pub struct Task {
     pub depends_failure: Option<Vec<String>>, // TODO - better name for this?
     pub threshold: Option<u32>,
 }
+
+#[cfg(test)]
+mod test {
+    use chrono::Duration;
+    use super::period_from_string;
+
+    #[test]
+    fn test_period_from_string() -> anyhow::Result<()> {
+        assert_eq!(period_from_string(None)?, None);
+
+        assert_eq!(period_from_string(Some("1m"))?, Some(60));
+        assert_eq!(period_from_string(Some("10m"))?, Some(600));
+        assert_eq!(period_from_string(Some("1h"))?, Some(3600));
+
+        assert_eq!(period_from_string(Some("-1m"))?, Some(-60));
+        assert_eq!(period_from_string(Some("-10m"))?, Some(-600));
+        assert_eq!(period_from_string(Some("-1h"))?, Some(-3600));
+
+        assert_eq!(period_from_string(Some("- 1m"))?, Some(-60));
+        Ok(())
+    }
+
+    #[test]
+    fn test_period_from_string_errors() -> anyhow::Result<()> {
+        let res = period_from_string(Some("1"));
+        assert_eq!(res.unwrap_err().to_string().as_str(), "time unit needed, for example 1sec or 1ms");
+
+        let res = period_from_string(Some("1x"));
+        assert_eq!(res.unwrap_err().to_string().as_str(), "unknown time unit \"x\", \
+            supported units: ns, us, ms, sec, min, hours, days, weeks, months, years (and few variations)");
+
+        let res = period_from_string(Some(""));
+        assert_eq!(res.unwrap_err().to_string().as_str(), "value was empty");
+
+        // TODO - we should probably accept this by trimming whitespace
+        let res = period_from_string(Some(" -1m"));
+        assert_eq!(res.unwrap_err().to_string().as_str(), "expected number at 0");
+
+        Ok(())
+    }
+}
