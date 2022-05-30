@@ -2,22 +2,26 @@
 help:
     @cat README.md
 
+# create the waterwheel namespace
+mknamespace:
+    kubectl apply -f kube/ww-namespace.yaml
+
 # refresh the config maps from the local files
-config: config-sealproxy config-opa
+config: mknamespace config-sealproxy config-opa
 
 config-sealproxy:
-    kubectl delete configmap sealproxy-config --ignore-not-found
-    kubectl create configmap sealproxy-config \
+    kubectl delete -n waterwheel configmap sealproxy-config --ignore-not-found
+    kubectl create -n waterwheel configmap sealproxy-config \
         --from-file=./authn/sealproxy.yml
 
 config-opa:
-    kubectl delete configmap opa-policy --ignore-not-found
-    kubectl create configmap opa-policy \
+    kubectl delete -n waterwheel configmap opa-policy --ignore-not-found
+    kubectl create -n waterwheel configmap opa-policy \
         --from-file=./policy/policy.rego
 
 # apply all the kubernetes yaml
 apply: config
-	kubectl apply -f kube/
+    kubectl apply -n waterwheel -f kube/
 
 # create the keypair used for signing sessions
 gen-keypair:

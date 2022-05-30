@@ -1,9 +1,9 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
-import { Table, Select, notification, Popconfirm, Row, Button, DatePicker, Space } from 'antd';
+import { Table, Select, notification, Popconfirm, Row, Button, DatePicker, Space, Col } from 'antd';
 import { geekblue, lime, red, grey, orange } from '@ant-design/colors';
 import axios from 'axios';
-import styled from 'styled-components';
+import styled, { CSSProperties } from 'styled-components';
 
 import {
   CheckCircleOutlined,
@@ -17,9 +17,10 @@ import {
   DoubleRightOutlined,
 } from '@ant-design/icons';
 import { Token, TokenOverview, TokensRow, TokenState } from "../../types/Token";
-import { datetime } from "../../types/common";
+import { datetime, uuid } from "../../types/common";
 import { Moment } from "moment";
 import { Task } from "../../types/Task";
+import TokenRuns from "../TokenRuns";
 
 
 const HeaderCell = styled.td`
@@ -36,15 +37,16 @@ const TRow = styled.tr`
     transition: background 0.3s;
     &:hover {
         > td {
-            background-color: #f8f8f8;
+            background-color: ${geekblue[1]};
         }
     }
 `;
 
+console.log(grey);
 
 function iconForState(task: TokenState) {
     if (task === undefined) {
-        return <MinusOutlined style={{color: grey[0]}} />;
+        return <MinusOutlined style={{color: grey[5]}} />;
     }
 
     let state = task.state;
@@ -75,66 +77,18 @@ async function activateToken(trigger_datetime: string, task_id: string) {
     })
 }
 
-function makeCell(task: string, tok: TokensRow) {
-    let this_task = tok.task_states[task];
-
-    return (
-        <TCell key={task}>
-            <Popconfirm
-                key="1"
-                title={'Activate this task?'}
-                okText={'Confirm'}
-                cancelText={'Cancel'}
-                okButtonProps={{size: 'middle'}}
-                cancelButtonProps={{size: 'middle'}}
-                onConfirm={() => activateToken(tok.trigger_datetime, this_task.task_id)}
-                icon={<QuestionCircleOutlined style={{ color: geekblue[5] }}/>}
-            >
-                {iconForState(this_task)}    
-            </Popconfirm>
-        </TCell>
-    );
-}
-
-function parseData(job_id: string, data: TokenOverview) {
-    let {tasks, tokens} = data;
-
-
-    let columns = <tr>{
-        [
-            <td key="trigger_datetime">Trigger Datetime</td>
-        ].concat(tasks.map(t => (
-            <HeaderCell key={t}>{t}</HeaderCell>
-        )))
-    }</tr>;
-
-
-    let rows = tokens.map(tok => (
-        <TRow key={tok.trigger_datetime}>{
-            [
-                <TCell key="trigger_datetime">
-                    <Link to={`/jobs/${job_id}/tokens/${tok.trigger_datetime}`}>
-                        {tok.trigger_datetime}
-                    </Link>
-                </TCell>
-            ].concat(tasks.map(task => (
-                makeCell(task, tok)
-            )))
-        }</TRow>
-    ));
-
-
-    return { columns, rows };
-}
 
 type TaskGridProps = {
     id: string;
 };
+
 type TaskGridState = {
     data: TokenOverview | null;
     limit: number;
     before: datetime | null;
     last?: datetime;
+    drawer_task_id: string | null;
+    drawer_trigger_datetime: datetime | null;
 }
 
 class TaskGrid extends Component<TaskGridProps, TaskGridState> {
@@ -147,8 +101,57 @@ class TaskGrid extends Component<TaskGridProps, TaskGridState> {
             data: null,
             limit: 25,
             before: null,
+            drawer_task_id: null,
+            drawer_trigger_datetime: null,
         }
     }
+
+    parseData(job_id: string, data: TokenOverview) {
+        let {tasks, tokens} = data;
+
+        let columns = <tr>{
+            [
+                <td key="trigger_datetime">Trigger Datetime</td>
+            ].concat(tasks.map(t => (
+                <HeaderCell key={t}>{t}</HeaderCell>
+            )))
+        }</tr>;
+
+        let rows = tokens.map(tok => {
+            let is_selected = (tok.trigger_datetime === this.state.drawer_trigger_datetime);
+
+            let style: CSSProperties;
+            if (is_selected) {
+                style = { backgroundColor: geekblue[1] };
+            } else {
+                style = {};
+            }
+
+            return <TRow key={tok.trigger_datetime} style={style}>{
+                [
+                    <TCell key="trigger_datetime">
+                        <Link to={`/jobs/${job_id}/tokens/${tok.trigger_datetime}`}>
+                            {tok.trigger_datetime}
+                        </Link>
+                    </TCell>
+                ].concat(tasks.map(task => {
+                    let this_task = tok.task_states[task];
+
+                    return (
+                        <TCell key={task}>
+                            <a onClick={() => this.drawerOpen(this_task.task_id, tok.trigger_datetime)}>
+                                {iconForState(this_task)}    
+                            </a>
+                        </TCell>
+                    );
+                }))
+            }</TRow>;
+        });
+
+
+        return { columns, rows };
+    }
+
 
     gotoCurrent() {
         this.setState({
@@ -159,6 +162,13 @@ class TaskGrid extends Component<TaskGridProps, TaskGridState> {
     onDatePicked(date: Moment | null) {
         this.setState({
             before: date && date.toISOString()
+        });
+    }
+
+    drawerOpen(task_id: uuid, trigger_datetime: datetime) {
+        this.setState({
+            drawer_task_id: task_id,
+            drawer_trigger_datetime: trigger_datetime,
         });
     }
 
@@ -197,13 +207,13 @@ class TaskGrid extends Component<TaskGridProps, TaskGridState> {
 
     render() {
         const { id }  = this.props;
-        const { data } = this.state;
+        const { data, drawer_task_id, drawer_trigger_datetime } = this.state;
 
         if(!data) {
             return null;
         }
 
-        const {rows, columns} = parseData(id, data);
+        const {rows, columns} = this.parseData(id, data);
 
         return (
             <Fragment>
@@ -215,15 +225,24 @@ class TaskGrid extends Component<TaskGridProps, TaskGridState> {
                     </Button>
                 </Row>
                 <Row>
-                    <table>
-                        <thead>
-                            {columns}
-                        </thead>
-                        <tbody>
-                            {rows}
-                        </tbody>
-                    </table>
+                    <Col span={12}>
+                        <table>
+                            <thead>
+                                {columns}
+                            </thead>
+                            <tbody>
+                                {rows}
+                            </tbody>
+                        </table>
+                    </Col>
+                    <Col span={12}>
+                        <TokenRuns
+                            task_id={drawer_task_id}
+                            trigger_datetime={drawer_trigger_datetime} />
+                    </Col>
                 </Row>
+
+
             </Fragment>
         );
     }

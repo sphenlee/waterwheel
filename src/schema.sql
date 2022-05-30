@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS task_run (
     finish_datetime TIMESTAMP WITH TIME ZONE,
     worker_id UUID REFERENCES worker(id),
     state VARCHAR,
-    priority VARCHAR
+    priority VARCHAR NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS task_run_by_state

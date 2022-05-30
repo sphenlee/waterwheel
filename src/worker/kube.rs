@@ -117,12 +117,12 @@ pub async fn run_kube(worker: &Worker, task_req: TaskRequest, task_def: TaskDef)
 fn make_grist() -> String {
     let mut rng = rand::thread_rng();
     std::iter::from_fn(move || {
-        let byte = b"GHJKLMNPQRSTUVWXYZ"
+        let byte = b"ghjklmnpqrstuvwxyz"
             .choose(&mut rng)
             .expect("slice is not empty");
         Some(char::from(*byte))
     })
-    .take(5)
+    .take(6)
     .join("")
 }
 

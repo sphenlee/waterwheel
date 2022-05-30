@@ -4,8 +4,10 @@ import { Table, Layout, Breadcrumb, PageHeader, Button, notification, Popconfirm
         Row, Col, Drawer, Descriptions, Skeleton } from 'antd';
 
 import { ExclamationCircleOutlined, EllipsisOutlined } from '@ant-design/icons';
+import { RightOutlined, DownOutlined } from "@ant-design/icons";
 
 import axios from 'axios';
+import Moment from 'react-moment';
 
 import State from '../components/State';
 import Priority from '../components/Priority';
@@ -13,6 +15,7 @@ import ActivateToken from '../components/ActivateToken';
 import { ColumnsType } from "antd/lib/table";
 import { datetime } from "../types/common";
 import { Task, TaskRun } from "../types/Task";
+import RelDate from '../components/Date';
 
 const { Content } = Layout;
 
@@ -26,14 +29,56 @@ function Json({json}: {json: any}) {
 
 type TokenRunsProps = {
     task_id: string | null;
-    trigger_datetime: datetime;
-    visible: boolean;
-    onClose: React.EventHandler<React.MouseEvent | React.KeyboardEvent>;
+    trigger_datetime: datetime | null;
 };
 type TokenRunsState = {
     runs: TaskRun[];
     task?: Task;
 };
+
+function expandedRowRender(record: TaskRun) {
+    return (
+        <Descriptions
+                size="small"
+                bordered
+                column={2}
+                labelStyle={{
+                    fontWeight: "bold"
+                }}
+                contentStyle={{
+                    background: "#fff"
+                }}>
+            <Descriptions.Item label="Run Id" span={2}>
+                {record.task_run_id}
+            </Descriptions.Item>
+            <Descriptions.Item label="Queued Time" span={2}>
+                <RelDate>{record.queued_datetime ?? ''}</RelDate>
+            </Descriptions.Item>
+            <Descriptions.Item label="Start Time">
+                <RelDate>{record.started_datetime}</RelDate>
+            </Descriptions.Item>
+            <Descriptions.Item label="Start Delay">
+                <Moment duration={record.queued_datetime} date={record.started_datetime} />
+            </Descriptions.Item>
+            <Descriptions.Item label="Finished Time">
+                {record.finish_datetime &&
+                    <RelDate>{record.finish_datetime}</RelDate>
+                }
+            </Descriptions.Item>
+            <Descriptions.Item label="Running Duration">
+                {record.finish_datetime &&
+                    <Moment duration={record.started_datetime} date={record.finish_datetime} />
+                }
+            </Descriptions.Item>
+            <Descriptions.Item label="Worker">
+                <Link to={`/workers/${record.worker_id}`}>
+                    {record.worker_id}
+                </Link>
+            </Descriptions.Item>
+        </Descriptions>
+    );
+}
+
 
 class TokenRuns extends Component<TokenRunsProps, TokenRunsState> {
     columns: ColumnsType<TaskRun>;
@@ -50,11 +95,11 @@ class TokenRuns extends Component<TokenRunsProps, TokenRunsState> {
 
     makeColumns(): ColumnsType<TaskRun> {
         return [
-          {
+          /*{
             title: 'Id',
             dataIndex: 'task_run_id',
             key: 'task_run_id',
-          },{
+          },*/{
             title: 'Attempt',
             dataIndex: 'attempt',
             key: 'attempt',
@@ -66,23 +111,6 @@ class TokenRuns extends Component<TokenRunsProps, TokenRunsState> {
             title: 'Priority',
             dataIndex: 'priority',
             render: text => <Priority priority={text} />,
-            },{
-            title: 'Queued',
-            dataIndex: 'queued_datetime',
-          },{
-            title: 'Started',
-            dataIndex: 'started_datetime',
-          },{
-            title: 'Finished',
-            dataIndex: 'finish_datetime',
-          },{
-            title: 'Worker Id',
-            dataIndex: 'worker_id',
-            render: text => (
-                <Link to={`/workers/${text}`}>
-                    {text}
-                </Link>
-              )
           }
         ];
     }
@@ -104,34 +132,31 @@ class TokenRuns extends Component<TokenRunsProps, TokenRunsState> {
     componentDidMount() {
         const {task_id, trigger_datetime} = this.props;
 
-        if (task_id !== null) {
+        if (task_id !== null && trigger_datetime !== null) {
             this.fetchRuns(task_id, trigger_datetime);
         }
     }
 
     componentDidUpdate(prevProps: TokenRunsProps) {
-        if (this.props.task_id !== prevProps.task_id) {
+        if (this.props.task_id !== prevProps.task_id
+            || this.props.trigger_datetime !== prevProps.trigger_datetime)
+        {
             this.componentDidMount()
         }
     }
 
     render() {
-        const { task_id, trigger_datetime, visible, onClose } = this.props;
+        const { task_id, trigger_datetime, } = this.props;
         const { runs, task } = this.state;
 
-        return (
-            <Drawer title={`Task Runs for ${task?.task_name ?? '...'}`}
-                    placement="bottom"
-                    // size="large"
-                    height={736} // todo - remove after upgrading
-                    onClose={onClose}
-                    visible={visible}>
+        return (<Fragment>
+                <h2>{`Task Runs for ${task?.task_name ?? '...'}`}</h2>
 
                 <ActivateToken
                     type="primary"
                     size="middle"
                     task_id={task_id ?? ''}
-                    trigger_datetime={trigger_datetime} />
+                    trigger_datetime={trigger_datetime ?? ''} />
 
 
                 <Descriptions
@@ -143,23 +168,35 @@ class TokenRuns extends Component<TokenRunsProps, TokenRunsState> {
                         contentStyle={{
                             background: "#fff"
                         }}>
-                    <Descriptions.Item label="Image">
+                    <Descriptions.Item label="Image" span={3}>
                         <Json json={task?.image} />
                     </Descriptions.Item>
-                    <Descriptions.Item label="Args">
+                    <Descriptions.Item label="Args" span={3}>
                         <Json json={task?.args} />
                     </Descriptions.Item>
-                    <Descriptions.Item label="Env">
+                    <Descriptions.Item label="Env" span={3}>
                         <Json json={task?.env} />
                     </Descriptions.Item>
                 </Descriptions>
 
 
+
                 <Table columns={this.columns}
+                    rowKey="task_run_id"
                     dataSource={runs}
                     pagination={{position: ['bottomLeft']}}
+                    expandable={{
+                        expandedRowRender: record => expandedRowRender(record),
+                        expandRowByClick: true,
+                        expandIcon: ({ expanded, onExpand, record }) =>
+                            expanded ? (
+                                <DownOutlined onClick={e => onExpand(record, e)} />
+                            ) : (
+                                <RightOutlined onClick={e => onExpand(record, e)} />
+                            )
+                    }}
                     />
-            </Drawer>
+            </Fragment>
         );
     }
 }

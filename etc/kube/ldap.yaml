@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: ldap
+  name: ldap
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ldap
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: ldap
+    spec:
+      containers:
+        - image: rroemhild/test-openldap
+          name: ldap
+          ports:
+            - containerPort: 10389
+            - containerPort: 10636
+      restartPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: ldap
+  name: ldap
+spec:
+  ports:
+    - name: "10389"
+      port: 10389
+      targetPort: 10389
+    - name: "10636"
+      port: 10636
+      targetPort: 10636
+  selector:
+    app: ldap

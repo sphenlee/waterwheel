@@ -66,8 +66,17 @@ impl Trigger {
         })
     }
 
+    fn offset_duration(&self) -> Duration {
+        if let Some(offset) = self.trigger_offset {
+            Duration::seconds(offset)
+        } else {
+            Duration::zero()
+        }
+    }
+
     fn at(&self, datetime: DateTime<Utc>) -> TriggerTime {
         TriggerTime {
+            scheduled_datetime: datetime + self.offset_duration(),
             trigger_datetime: datetime,
             trigger_id: self.id,
         }
@@ -123,7 +132,8 @@ pub async fn process_triggers(server: Arc<Server>) -> Result<!> {
             );
             for trigger in queue_copy.into_iter_sorted().take(10) {
                 trace!(
-                    "    {}: {}",
+                    "    {}: {} {}",
+                    trigger.scheduled_datetime.to_rfc3339(),
                     trigger.trigger_datetime.to_rfc3339(),
                     trigger.trigger_id
                 );
@@ -132,7 +142,7 @@ pub async fn process_triggers(server: Arc<Server>) -> Result<!> {
 
         let next_triggertime = queue.pop().expect("queue shouldn't be empty now");
 
-        let delay = next_triggertime.trigger_datetime - Utc::now();
+        let delay = next_triggertime.scheduled_datetime - Utc::now();
         if delay > Duration::zero() {
             info!(trigger_id=?next_triggertime.trigger_id,
                 "sleeping {} until next trigger", format_duration_approx(delay));
@@ -451,7 +461,7 @@ async fn requeue_next_triggertime(
         let requeue = trigger.at(next_datetime);
 
         trace!(trigger_id=?requeue.trigger_id,
-            "queueing next time: {}", requeue.trigger_datetime);
+            "queueing next time: {}", requeue.trigger_datetime.to_rfc3339());
 
         queue.push(requeue);
     }

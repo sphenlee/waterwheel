@@ -58,7 +58,6 @@ pub async fn test_worker() -> highnoon::Result<()> {
             "task_run_id": NULL_UUID,
             "task_id": NULL_UUID,
             "trigger_datetime": "2000-01-01T00:00:00Z",
-            "priority": "normal",
         }))?;
 
         amqp_chan
@@ -119,7 +118,6 @@ pub async fn test_worker() -> highnoon::Result<()> {
                     "finished_datetime": "<removed>",
                     "result": "success",
                     "worker_id": "<removed>",
-                    "priority": "normal"
             })
         );
 

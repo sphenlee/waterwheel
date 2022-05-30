@@ -1,8 +1,5 @@
 server:
   bind: 0.0.0.0:8081
-  x-tls:
-    cert_file: /etc/sealproxy/tls/tls.crt
-    key_file: /etc/sealproxy/tls/tls.key
 
 filters:
   - anonymous:
@@ -13,11 +10,11 @@ filters:
 
   - form_login:
       path: /login
+      failure_redirect: /login
       user_base:
-        user_pass:
-          users:
-            - ["admin", "password"]
-            - ["user", "123456"]
+        ldap:
+          url: "ldap://ldap:10389/"
+          base_dn: "ou=people,dc=planetexpress,dc=com"
 
   - cookie_session:
 

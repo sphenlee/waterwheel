@@ -28,9 +28,9 @@ export type TaskRun = {
     name: string;
     trigger_datetime: datetime;
     attempt: number;
-    queued_datetime: datetime | null;
-    started_datetime: datetime | null;
-    finish_datetime: datetime | null;
+    queued_datetime: datetime;
+    started_datetime: datetime;
+    finish_datetime: datetime;
     state: string;
     worker_id: uuid | null;
 };
