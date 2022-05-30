@@ -25,8 +25,8 @@ spec:
               value: postgres://postgres:supersecret@db/
             - name: WATERWHEEL_HMAC_SECRET
               value: wwsharedsecret
-            - name: WATERWHEEL_NO_AUTHZ
-              value: "true"
+            - name: WATERWHEEL_OPA_SIDECAR_ADDR
+              value: http://opa:8181/
             - name: WATERWHEEL_SERVER_ADDR
               value: http://ww-api/
             - name: WATERWHEEL_SERVER_BIND
@@ -54,8 +54,6 @@ spec:
               subPath: sealproxy.yml
             - mountPath: /etc/sealproxy/pubkey
               name: sealproxy-pubkey
-            - mountPath: /etc/sealproxy/tls
-              name: sealproxy-tls
 
         - name: telegraf
           image: telegraf:1.18
@@ -79,9 +77,6 @@ spec:
         - name: sealproxy-pubkey
           secret:
             secretName: sealproxy-pubkey
-        - name: sealproxy-tls
-          secret:
-            secretName: sealproxy-tls
         - name: telegraf-conf
           configMap:
             name: telegraf-conf
