@@ -146,7 +146,7 @@ async fn update_task_progress(
     .execute(&mut *txn)
     .await?;
 
-    let (priority,) = sqlx::query_as(
+    let maybe_priority: Option<(TaskPriority,)> = sqlx::query_as(
         "UPDATE task_run
             SET state = $1,
                 started_datetime = $2,
@@ -160,8 +160,19 @@ async fn update_task_progress(
     .bind(&task_progress.finished_datetime)
     .bind(&task_progress.worker_id)
     .bind(&task_progress.task_run_id)
-    .fetch_one(&mut *txn)
+    .fetch_optional(&mut *txn)
     .await?;
 
+    // there are cases when the database doesn't record a task run for this UUID
+    // (the message is sent to AMQP before the DB commits so we don't lose any events)
+    // in that case we just keep going
+    let priority = maybe_priority.map(first).unwrap_or_default();
+
     Ok(priority)
+}
+
+/// Tiny helper function to make some places look nicer.
+/// Extracts the first element from a 1-tuple
+fn first<T>(tuple: (T,)) -> T {
+    tuple.0
 }
