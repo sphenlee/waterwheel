@@ -37,7 +37,7 @@ pub static TOTAL_TASKS: Counter = Counter::new();
 pub struct Worker {
     pub amqp_conn: Connection,
     //pub post_office: PostOffice,
-    pub statsd: StatsdClient,
+    pub statsd: Arc<StatsdClient>,
     pub config: Config,
     pub proj_config_cache: Mutex<LruCache<Uuid, JsonValue>>,
     pub task_def_cache: Mutex<LruCache<Uuid, Option<TaskDef>>>,

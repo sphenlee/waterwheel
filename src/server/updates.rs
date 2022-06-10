@@ -40,8 +40,8 @@ pub async fn process_updates(server: Arc<Server>) -> Result<!> {
         )
         .await?;
 
-    while let Some((chan, msg)) = consumer.try_next().await? {
-        let update: SchedulerUpdate = serde_json::from_slice(&msg.data)?;
+    while let Some(delivery) = consumer.try_next().await? {
+        let update: SchedulerUpdate = serde_json::from_slice(&delivery.data)?;
 
         trace!(?update, "received scheduler update message");
 
@@ -50,8 +50,7 @@ pub async fn process_updates(server: Arc<Server>) -> Result<!> {
             SchedulerUpdate::ProcessToken(pt) => token_tx.send(pt).await?,
         }
 
-        chan.basic_ack(msg.delivery_tag, BasicAckOptions::default())
-            .await?;
+        delivery.ack(BasicAckOptions::default()).await?;
 
         trace!("forwarded scheduler update");
     }

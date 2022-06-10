@@ -180,8 +180,8 @@ pub async fn process_updates(worker: Arc<Worker>) -> Result<!> {
         )
         .await?;
 
-    while let Some((chan, msg)) = consumer.try_next().await? {
-        let update: ConfigUpdate = serde_json::from_slice(&msg.data)?;
+    while let Some(delivery) = consumer.try_next().await? {
+        let update: ConfigUpdate = serde_json::from_slice(&delivery.data)?;
 
         trace!("received config update message: {:?}", update);
 
@@ -190,8 +190,7 @@ pub async fn process_updates(worker: Arc<Worker>) -> Result<!> {
             ConfigUpdate::TaskDef(task_id) => drop_task_def(&worker, task_id).await,
         };
 
-        chan.basic_ack(msg.delivery_tag, BasicAckOptions::default())
-            .await?;
+        delivery.ack(BasicAckOptions::default()).await?;
 
         trace!("updated config");
     }

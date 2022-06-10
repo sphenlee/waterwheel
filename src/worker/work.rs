@@ -100,8 +100,8 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
     let mut consumer = create_consumer(&chan).await?;
 
     debug!("worker consuming messages");
-    while let Some((chan, msg)) = consumer.try_next().await? {
-        let task_req: TaskRequest = serde_json::from_slice(&msg.data)?;
+    while let Some(delivery) = consumer.try_next().await? {
+        let task_req: TaskRequest = serde_json::from_slice(&delivery.data)?;
 
         info!(task_run_id=?task_req.task_run_id,
             task_id=?task_req.task_id,
@@ -128,7 +128,7 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
                     RESULT_EXCHANGE,
                     "",
                     BasicPublishOptions::default(),
-                    task_progress_payload(&task_req, started_datetime, None, TokenState::Running)?,
+                    &task_progress_payload(&task_req, started_datetime, None, TokenState::Running)?,
                     BasicProperties::default(),
                 )
                 .await?;
@@ -187,14 +187,13 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
             RESULT_EXCHANGE,
             "",
             BasicPublishOptions::default(),
-            task_progress_payload(&task_req, started_datetime, Some(finished_datetime), result)?,
+            &task_progress_payload(&task_req, started_datetime, Some(finished_datetime), result)?,
             BasicProperties::default(),
         )
         .await?;
         debug!(task_run_id=?task_req.task_run_id, "task result published");
 
-        chan.basic_ack(msg.delivery_tag, BasicAckOptions::default())
-            .await?;
+        delivery.ack(BasicAckOptions::default()).await?;
         debug!(task_run_id=?task_req.task_run_id, "task acked");
     }
 

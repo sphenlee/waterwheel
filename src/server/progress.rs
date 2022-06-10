@@ -50,8 +50,8 @@ pub async fn process_progress(server: Arc<Server>) -> Result<!> {
         )
         .await?;
 
-    while let Some((chan, msg)) = consumer.try_next().await? {
-        let task_progress: TaskProgress = serde_json::from_slice(&msg.data)?;
+    while let Some(delivery) = consumer.try_next().await? {
+        let task_progress: TaskProgress = serde_json::from_slice(&delivery.data)?;
 
         debug!(result=task_progress.result.as_ref(),
             task_id=?task_progress.task_id,
@@ -71,8 +71,7 @@ pub async fn process_progress(server: Arc<Server>) -> Result<!> {
 
         txn.commit().await?;
 
-        chan.basic_ack(msg.delivery_tag, BasicAckOptions::default())
-            .await?;
+        delivery.ack(BasicAckOptions::default()).await?;
 
         debug!("finished processing task results");
 

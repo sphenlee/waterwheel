@@ -44,7 +44,7 @@ pub async fn process_executions(server: Arc<Server>) -> Result<!> {
     .await?;
 
     let mut args = FieldTable::default();
-    args.insert("x-max-priority".into(), 3.into());
+    args.insert("x-max-priority".into(), 3i8.into());
 
     chan.queue_declare(
         TASK_QUEUE,
@@ -91,7 +91,7 @@ pub async fn process_executions(server: Arc<Server>) -> Result<!> {
             TASK_EXCHANGE,
             "",
             BasicPublishOptions::default(),
-            serde_json::to_vec(&task_req)?,
+            &serde_json::to_vec(&task_req)?,
             props,
         )
         .await?;

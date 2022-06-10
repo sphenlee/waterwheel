@@ -49,7 +49,7 @@ pub async fn send(chan: &Channel, update: SchedulerUpdate) -> Result<()> {
         UPDATES_EXCHANGE,
         "",
         BasicPublishOptions::default(),
-        serde_json::to_vec(&update)?,
+        &serde_json::to_vec(&update)?,
         BasicProperties::default(),
     )
     .await?;

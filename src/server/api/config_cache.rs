@@ -29,7 +29,7 @@ pub async fn send(chan: &Channel, update: ConfigUpdate) -> Result<()> {
         CONFIG_EXCHANGE,
         "",
         BasicPublishOptions::default(),
-        serde_json::to_vec(&update)?,
+        &serde_json::to_vec(&update)?,
         BasicProperties::default(),
     )
     .await?;

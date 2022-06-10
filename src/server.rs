@@ -22,7 +22,7 @@ pub struct Server {
     pub db_pool: PgPool,
     pub amqp_conn: Connection,
     pub post_office: PostOffice,
-    pub statsd: StatsdClient,
+    pub statsd: Arc<StatsdClient>,
     pub config: Config,
     pub jwt_keys: JwtKeys,
 }
