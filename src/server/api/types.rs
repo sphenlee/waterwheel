@@ -79,7 +79,6 @@ pub struct Task {
 
 #[cfg(test)]
 mod test {
-    use chrono::Duration;
     use super::period_from_string;
 
     #[test]

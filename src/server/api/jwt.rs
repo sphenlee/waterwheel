@@ -24,7 +24,7 @@ pub struct Claims {
 
 pub struct JwtKeys {
     algorithm: Algorithm,
-    decoding: DecodingKey<'static>,
+    decoding: DecodingKey,
     encoding: EncodingKey,
 }
 
@@ -62,7 +62,7 @@ fn load_rsa_keys(pub_key_file: &str, priv_key_file: &str) -> Result<JwtKeys> {
 
     Ok(JwtKeys {
         algorithm: Algorithm::RS256,
-        decoding: DecodingKey::from_rsa_pem(&pub_key)?.into_static(),
+        decoding: DecodingKey::from_rsa_pem(&pub_key)?,
         encoding: EncodingKey::from_rsa_pem(&priv_key)?,
     })
 }
@@ -73,7 +73,7 @@ fn load_hmac_secret(secret: &str) -> Result<JwtKeys> {
 
     Ok(JwtKeys {
         algorithm: Algorithm::HS256,
-        decoding: DecodingKey::from_secret(secret.as_bytes()).into_static(),
+        decoding: DecodingKey::from_secret(secret.as_bytes()),
         encoding: EncodingKey::from_secret(secret.as_bytes()),
     })
 }
@@ -128,7 +128,7 @@ pub fn validate_config_jwt(req: &Request<State>, id: Uuid) -> highnoon::Result<S
 fn validate_jwt(keys: &JwtKeys, jwt: &str, aud: &str) -> Result<String> {
     let mut validation = Validation::new(keys.algorithm);
     validation.set_audience(&[aud]);
-    validation.iss = Some(WATERWHEEL_ISSUER.to_owned());
+    validation.set_issuer(&[WATERWHEEL_ISSUER]);
 
     let token: TokenData<Claims> = jsonwebtoken::decode(jwt, &keys.decoding, &validation)?;
 

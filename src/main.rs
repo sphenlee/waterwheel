@@ -8,12 +8,13 @@ async fn main() -> Result<()> {
     let config = config::load()?;
     logging::setup(&config)?;
 
-    let app = clap::App::new("waterwheel")
+    let app = clap::Command::new("waterwheel")
         .author("Steve Lee <sphen.lee@gmail.com>")
         .version(waterwheel::GIT_VERSION)
-        .setting(clap::AppSettings::SubcommandRequiredElseHelp)
+        .subcommand_required(true)
+        .arg_required_else_help(true)
         .subcommand(
-            clap::App::new("scheduler")
+            clap::Command::new("scheduler")
                 .alias("server")
                 .about("launch the scheduler process")
                 .after_help(
@@ -22,24 +23,24 @@ async fn main() -> Result<()> {
                 ),
         )
         .subcommand(
-            clap::App::new("api")
+            clap::Command::new("api")
                 .about("launch the API server process")
                 .after_help("The API server may be launched many times for load balancing and HA"),
         )
-        .subcommand(clap::App::new("worker").about("launch the worker process"));
+        .subcommand(clap::Command::new("worker").about("launch the worker process"));
 
     let args = app.get_matches();
 
-    match args.subcommand() {
-        ("scheduler", Some(_args)) => {
+    match args.subcommand().expect("subcommand is required") {
+        ("scheduler", _args) => {
             let server = Server::new(config).await?;
             server.run_scheduler().await?;
         }
-        ("api", Some(_args)) => {
+        ("api", _args) => {
             let server = Server::new(config).await?;
             server.run_api().await?;
         }
-        ("worker", Some(_args)) => {
+        ("worker", _args) => {
             let worker = Worker::new(config).await?;
             worker.run_worker().await?;
         }

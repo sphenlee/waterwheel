@@ -65,7 +65,7 @@ pub async fn test_worker() -> highnoon::Result<()> {
                 "",
                 "waterwheel.tasks",
                 BasicPublishOptions::default(),
-                payload,
+                &payload,
                 BasicProperties::default(),
             )
             .await?;
@@ -81,12 +81,12 @@ pub async fn test_worker() -> highnoon::Result<()> {
                 FieldTable::default(),
             )
             .await?;
-        let (_, msg) = consumer
+        let delivery = consumer
             .try_next()
             .await?
             .expect("no task result published");
 
-        let mut data: Value = serde_json::from_slice(&msg.data)?;
+        let mut data: Value = serde_json::from_slice(&delivery.data)?;
 
         let started: DateTime<Utc> = data["started_datetime"]
             .as_str()
@@ -154,7 +154,7 @@ pub async fn test_worker_missing_taskid() -> highnoon::Result<()> {
                 "",
                 "waterwheel.tasks",
                 BasicPublishOptions::default(),
-                payload,
+                &payload,
                 BasicProperties::default(),
             )
             .await?;
@@ -169,11 +169,11 @@ pub async fn test_worker_missing_taskid() -> highnoon::Result<()> {
             )
             .await?;
 
-        let (_, msg) = timeout(Duration::from_secs(30), consumer.try_next())
+        let delivery = timeout(Duration::from_secs(30), consumer.try_next())
             .await??
             .expect("no task result published");
 
-        let data: Value = serde_json::from_slice(&msg.data)?;
+        let data: Value = serde_json::from_slice(&delivery.data)?;
 
         assert_eq!(data["result"].as_str(), Some("error"));
 
