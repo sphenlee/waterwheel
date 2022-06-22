@@ -1,42 +1,21 @@
 use crate::messages::SchedulerUpdate;
 use anyhow::Result;
 use lapin::{
-    options::{BasicPublishOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions},
+    options::{BasicPublishOptions, ExchangeDeclareOptions},
     types::FieldTable,
     BasicProperties, Channel, ExchangeKind,
 };
-
-const UPDATES_EXCHANGE: &str = "waterwheel.updates";
-const UPDATES_QUEUE: &str = "waterwheel.updates";
+use crate::server::updates::UPDATES_EXCHANGE;
 
 pub async fn setup(chan: &Channel) -> Result<()> {
     // declare outgoing exchange and queue for scheduler updates
     chan.exchange_declare(
         UPDATES_EXCHANGE,
-        ExchangeKind::Direct,
+        ExchangeKind::Fanout,
         ExchangeDeclareOptions {
             durable: true,
             ..ExchangeDeclareOptions::default()
         },
-        FieldTable::default(),
-    )
-    .await?;
-
-    chan.queue_declare(
-        UPDATES_QUEUE,
-        QueueDeclareOptions {
-            durable: true,
-            ..QueueDeclareOptions::default()
-        },
-        FieldTable::default(),
-    )
-    .await?;
-
-    chan.queue_bind(
-        UPDATES_QUEUE,
-        UPDATES_EXCHANGE,
-        "",
-        QueueBindOptions::default(),
         FieldTable::default(),
     )
     .await?;

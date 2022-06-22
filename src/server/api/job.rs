@@ -2,8 +2,7 @@ use crate::{
     messages::{ConfigUpdate, SchedulerUpdate},
     server::{
         api::{auth, config_cache, request_ext::RequestExt, types::Job, updates, State},
-        body_parser::read_from_body,
-        triggers::TriggerUpdate,
+        body_parser::read_from_body
     },
     util::{is_pg_integrity_error, pg_error},
 };
@@ -31,6 +30,7 @@ pub use self::{
     triggers::{get_trigger, get_triggers_by_job},
 };
 pub use task_runs::{list_job_all_task_runs, list_task_runs};
+use crate::messages::TriggerUpdate;
 use crate::server::tokens::ProcessToken;
 
 pub async fn get_job_project_id(pool: &PgPool, job_id: Uuid) -> highnoon::Result<Uuid> {
@@ -133,13 +133,11 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
 
     txn.commit().await?;
 
-    for id in triggers_to_tx {
-        updates::send(
-            req.get_channel(),
-            SchedulerUpdate::TriggerUpdate(TriggerUpdate(id)),
-        )
-        .await?;
-    }
+    updates::send(
+        req.get_channel(),
+        SchedulerUpdate::TriggerUpdate(TriggerUpdate(triggers_to_tx)),
+    )
+    .await?;
 
     for id in tasks_to_tx {
         config_cache::send(req.get_channel(), ConfigUpdate::TaskDef(id)).await?;
@@ -349,7 +347,7 @@ pub async fn set_paused(mut req: Request<State>) -> impl Responder {
     for (id,) in triggers_to_tx {
         updates::send(
             req.get_channel(),
-            SchedulerUpdate::TriggerUpdate(TriggerUpdate(id)),
+            SchedulerUpdate::TriggerUpdate(TriggerUpdate(vec![id])),
         )
         .await?;
     }

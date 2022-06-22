@@ -26,7 +26,10 @@ use uuid::Uuid;
 type Queue = BinaryHeap<TriggerTime, MinComparator>;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct TriggerUpdate(pub Uuid);
+pub enum TriggerChange {
+    Add(Vec<Uuid>),
+    Remove(Vec<Uuid>),
+}
 
 #[derive(sqlx::FromRow, Debug)]
 struct Trigger {
@@ -84,20 +87,20 @@ impl Trigger {
 }
 
 pub async fn process_triggers(server: Arc<Server>) -> Result<!> {
-    let mut trigger_rx = server.post_office.receive_mail::<TriggerUpdate>().await?;
+    let mut trigger_rx = server.post_office.receive_mail::<TriggerChange>().await?;
     let mut queue = Queue::new_min();
 
     let statsd = server.statsd.clone();
 
-    restore_triggers(&server, &mut queue).await?;
+    //restore_triggers(&server, &mut queue).await?;
 
     loop {
         trace!("checking for pending trigger updates");
         loop {
             match trigger_rx.try_recv() {
-                Ok(TriggerUpdate(uuid)) => {
+                Ok(trigger_change) => {
                     // TODO - batch the updates to avoid multiple heap recreations
-                    update_trigger(&server, &uuid, &mut queue).await?;
+                    update_trigger(&server, trigger_change, &mut queue).await?;
                 }
                 Err(TryRecvError::Pending) => break,
                 Err(TryRecvError::Closed) => panic!("TriggerUpdated channel was closed!"),
@@ -115,11 +118,11 @@ pub async fn process_triggers(server: Arc<Server>) -> Result<!> {
 
         if queue.is_empty() {
             debug!("no triggers queued, waiting for a trigger update");
-            let TriggerUpdate(uuid) = trigger_rx
+            let trigger_update = trigger_rx
                 .recv()
                 .await
                 .expect("TriggerUpdate channel was closed!");
-            update_trigger(&server, &uuid, &mut queue).await?;
+            update_trigger(&server, trigger_update, &mut queue).await?;
             continue;
         }
 
@@ -148,14 +151,14 @@ pub async fn process_triggers(server: Arc<Server>) -> Result<!> {
                 "sleeping {} until next trigger", format_duration_approx(delay));
 
             tokio::select! {
-                Some(TriggerUpdate(uuid)) = trigger_rx.recv() => {
+                Some(trigger_update) = trigger_rx.recv() => {
                     trace!("received a trigger update while sleeping");
 
                     // put the trigger we slept on back in the queue
                     // update trigger might delete it, or we might select it as the next trigger
                     queue.push(next_triggertime);
 
-                    update_trigger(&server, &uuid, &mut queue).await?;
+                    update_trigger(&server, trigger_update, &mut queue).await?;
                 }
                 _ = time::sleep(delay.to_std()?) => {
                     trace!("sleep completed, no updates");
@@ -350,19 +353,43 @@ async fn send_to_token_processor(
     Ok(())
 }
 
-async fn update_trigger(server: &Server, uuid: &Uuid, queue: &mut Queue) -> Result<()> {
-    let pool = server.db_pool.clone();
+async fn update_trigger(server: &Server, trigger_update: TriggerChange, queue: &mut Queue) -> Result<()> {
+    match trigger_update {
+        TriggerChange::Add(uuids) => {
+            for uuid in uuids {
+                update_one_trigger(server, uuid, queue).await?;
+            }
+        },
+        TriggerChange::Remove(uuids) => {
+            for uuid in uuids {
+                remove_trigger(uuid, queue);
+            }
+        }
+    }
 
-    debug!(trigger_id=?uuid, "updating trigger");
+    Ok(())
+}
 
+fn remove_trigger(uuid: Uuid, queue: &mut Queue) {
     // de-heapify the triggers and delete the one we are updating
     let mut triggers = queue
         .drain()
-        .filter(|t| t.trigger_id != *uuid)
+        .filter(|t| t.trigger_id != uuid)
         .collect::<Vec<_>>();
 
     // now heapify them again
     queue.extend(triggers.drain(..));
+}
+
+// TODO - we receive the updates in a batch now so make use of that to avoid
+// multiple heap rebuilds and queries
+async fn update_one_trigger(server: &Server, uuid: Uuid, queue: &mut Queue) -> Result<()> {
+
+    let pool = server.db_pool.clone();
+
+    debug!(trigger_id=?uuid, "updating trigger");
+
+    remove_trigger(uuid, queue);
 
     // get the trigger's new info from the DB
     let maybe_trigger: Option<Trigger> = sqlx::query_as(
@@ -397,7 +424,7 @@ async fn update_trigger(server: &Server, uuid: &Uuid, queue: &mut Queue) -> Resu
     Ok(())
 }
 
-async fn restore_triggers(server: &Server, queue: &mut Queue) -> Result<()> {
+/*async fn restore_triggers(server: &Server, queue: &mut Queue) -> Result<()> {
     let pool = server.db_pool.clone();
 
     info!("restoring triggers from database...");
@@ -428,7 +455,7 @@ async fn restore_triggers(server: &Server, queue: &mut Queue) -> Result<()> {
     info!("done restoring {} triggers from database", queue.len());
 
     Ok(())
-}
+}*/
 
 async fn requeue_next_triggertime(
     server: &Server,

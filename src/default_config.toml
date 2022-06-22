@@ -1,8 +1,12 @@
 amqp_addr = "amqp://127.0.0.1:5672/%2f"
 server_bind = "127.0.0.1:8080"
+server_addr = "127.0.0.1:8080"
 worker_bind = "127.0.0.1:0"
 max_tasks = 8
 task_engine = "docker"
-kube_namespace = "default"
 json_log = false
+no_authz = false
 log = "warn,waterwheel=info,lapin=off"
+cluster_gossip_bind = "127.0.0.1:7111"
+cluster_gossip_addr = "127.0.0.1:7111"
+cluster_seed_nodes = []

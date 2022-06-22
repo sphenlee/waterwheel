@@ -1,6 +1,6 @@
 use crate::{
     messages::SchedulerUpdate,
-    server::{tokens::ProcessToken, triggers::TriggerUpdate, Server},
+    server::{tokens::ProcessToken, Server},
 };
 use anyhow::Result;
 use futures::TryStreamExt;
@@ -10,9 +10,11 @@ use lapin::{
 };
 use postage::prelude::*;
 use std::sync::Arc;
+use lapin::options::QueueBindOptions;
 use tracing::trace;
+use crate::messages::TriggerUpdate;
 
-const UPDATE_QUEUE: &str = "waterwheel.updates";
+pub const UPDATES_EXCHANGE: &str = "waterwheel.updates";
 
 pub async fn process_updates(server: Arc<Server>) -> Result<!> {
     let chan = server.amqp_conn.create_channel().await?;
@@ -21,19 +23,29 @@ pub async fn process_updates(server: Arc<Server>) -> Result<!> {
     let mut token_tx = server.post_office.post_mail::<ProcessToken>().await?;
 
     // declare queue for consuming incoming messages
-    chan.queue_declare(
-        UPDATE_QUEUE,
+    let queue = chan.queue_declare(
+        "", // autogenerate
         QueueDeclareOptions {
             durable: true,
+            exclusive: true, // implies auto-delete
             ..QueueDeclareOptions::default()
         },
         FieldTable::default(),
     )
     .await?;
 
+    chan.queue_bind(
+        queue.name().as_str(),
+        UPDATES_EXCHANGE,
+        "",
+        QueueBindOptions::default(),
+        FieldTable::default(),
+    )
+    .await?;
+
     let mut consumer = chan
         .basic_consume(
-            UPDATE_QUEUE,
+            queue.name().as_str(),
             "server",
             BasicConsumeOptions::default(),
             FieldTable::default(),

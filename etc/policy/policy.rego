@@ -7,7 +7,7 @@ authorize {
 }
 
 authorize {
-    input.http.headers['X-Seal-Mechanism'] == "seal/formlogin"
+    input.http.headers["X-Seal-Mechanism"] == "seal/formlogin"
 }
 
 is_readonly {

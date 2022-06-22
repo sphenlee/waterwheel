@@ -18,6 +18,7 @@ use std::sync::Arc;
 use tracing::debug;
 use uuid::Uuid;
 use crate::messages::TaskPriority;
+use crate::util::first;
 
 const RESULT_QUEUE: &str = "waterwheel.results";
 
@@ -168,10 +169,4 @@ async fn update_task_progress(
     let priority = maybe_priority.map(first).unwrap_or_default();
 
     Ok(priority)
-}
-
-/// Tiny helper function to make some places look nicer.
-/// Extracts the first element from a 1-tuple
-fn first<T>(tuple: (T,)) -> T {
-    tuple.0
 }

@@ -75,3 +75,13 @@ where
         std::process::exit(1);
     });
 }
+
+/// Extracts the first element from a 1-tuple
+pub fn first<T>(tuple: (T,)) -> T {
+    tuple.0
+}
+
+/// Dereference a copy value
+pub fn deref<T: Copy>(reference: &T) -> T {
+    *reference
+}

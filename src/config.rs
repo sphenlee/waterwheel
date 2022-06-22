@@ -19,11 +19,14 @@ pub struct Config {
     pub public_key: Option<String>,
     pub private_key: Option<String>,
     pub opa_sidecar_addr: Option<Url>,
-    #[serde(default)]
     pub no_authz: bool,
     pub statsd_server: Option<String>,
     pub json_log: bool,
     pub log: String,
+    pub cluster_id: Option<String>,
+    pub cluster_gossip_bind: String,
+    pub cluster_gossip_addr: String,
+    pub cluster_seed_nodes: Vec<String>,
 }
 
 pub fn loader() -> ConfigBuilder<DefaultState> {
@@ -35,7 +38,10 @@ pub fn loader() -> ConfigBuilder<DefaultState> {
             FileFormat::Toml,
         ))
         .add_source(File::with_name("waterwheel").required(false))
-        .add_source(Environment::with_prefix("WATERWHEEL"))
+        .add_source(Environment::with_prefix("WATERWHEEL")
+            .list_separator(",")
+            .try_parsing(true)
+            .with_list_parse_key("cluster_seed_nodes"))
 }
 
 pub fn load() -> Result<Config> {

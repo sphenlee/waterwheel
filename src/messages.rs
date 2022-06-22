@@ -1,5 +1,5 @@
 use std::str::FromStr;
-use crate::server::{tokens::ProcessToken, triggers::TriggerUpdate};
+use crate::server::{tokens::ProcessToken};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -150,6 +150,9 @@ pub struct WorkerHeartbeat {
     pub total_tasks: i32,
     pub version: String,
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct TriggerUpdate(pub Vec<Uuid>);
 
 /// message sent from the API to the scheduler
 #[derive(Serialize, Deserialize, Debug)]
