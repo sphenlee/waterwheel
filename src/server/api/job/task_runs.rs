@@ -7,7 +7,7 @@ use crate::messages::{TaskPriority, TokenState};
 
 #[derive(Deserialize)]
 struct ListTaskRunsQuery {
-    limit: Option<u32>,
+    limit: Option<i32>,
 }
 
 #[derive(Serialize, sqlx::FromRow)]
@@ -24,7 +24,6 @@ struct ListJobAllTaskRuns {
     priority: TaskPriority,
     worker_id: Option<Uuid>,
 }
-
 pub async fn list_job_all_task_runs(req: Request<State>) -> highnoon::Result<impl Responder> {
     let job_id: Uuid = req.param("id")?.parse()?;
     let trigger_datetime: DateTime<Utc> = req.param("trigger_datetime")?.parse()?;

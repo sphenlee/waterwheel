@@ -15,7 +15,7 @@ use uuid::Uuid;
 struct QueryToken {
     state: Option<String>,
     before: Option<DateTime<Utc>>,
-    limit: Option<u32>,
+    limit: Option<i32>,
 }
 
 #[derive(Serialize, sqlx::FromRow)]

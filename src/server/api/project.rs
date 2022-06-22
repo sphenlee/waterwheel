@@ -259,7 +259,7 @@ pub async fn delete(req: Request<State>) -> highnoon::Result<StatusCode> {
 
 #[derive(Deserialize)]
 struct ListJobQuery {
-    limit: Option<u32>,
+    limit: Option<i32>,
     after: Option<String>,
     name: Option<String>,
 }

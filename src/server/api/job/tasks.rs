@@ -21,7 +21,7 @@ pub async fn create_task(
 ) -> highnoon::Result<Uuid> {
     let threshold = task.threshold.unwrap_or({
         if let Some(dep) = &task.depends {
-            dep.len() as u32
+            dep.len() as i32
         } else {
             1
         }

@@ -1,10 +1,7 @@
 use highnoon::Result;
 use std::future::Future;
 use std::sync::Once;
-use testcontainers::Docker;
 use waterwheel::config::{self, Config};
-
-pub mod rabbitmq;
 
 const DEFAULT_LOG: &str = "warn,waterwheel=trace,highnoon=info,testcontainers=info,lapin=off";
 static LOGGING_SETUP: Once = Once::new();
@@ -16,7 +13,7 @@ where
 {
     let mut config: Config = config::loader()
         .set_default("db_url", "")?
-        .set_default("server_addr", "")?
+        //.set_default("server_addr", "")?
         .set_override("log", DEFAULT_LOG)?
         .build()?
         .try_deserialize()?;
@@ -30,17 +27,13 @@ where
     // start database
     let postgres = client.run(testcontainers::images::postgres::Postgres::default());
 
-    let port = postgres
-        .get_host_port(5432)
-        .expect("postgres port not exposed");
+    let port = postgres.get_host_port_ipv4(5432);
     config.db_url = format!("postgres://postgres@localhost:{}/", port);
 
     // start AMQP
-    let rabbit = client.run(rabbitmq::RabbitMq);
+    let rabbit = client.run(testcontainers::images::rabbitmq::RabbitMq);
 
-    let port = rabbit
-        .get_host_port(5672)
-        .expect("rabbitmq port not exposed");
+    let port = rabbit.get_host_port_ipv4(5672);
     config.amqp_addr = format!("amqp://localhost:{}//", port);
 
     // other config setup

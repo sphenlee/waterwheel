@@ -74,7 +74,7 @@ pub struct Task {
     pub docker: Option<Docker>,
     pub depends: Option<Vec<String>>,
     pub depends_failure: Option<Vec<String>>, // TODO - better name for this?
-    pub threshold: Option<u32>,
+    pub threshold: Option<i32>,
 }
 
 #[cfg(test)]
