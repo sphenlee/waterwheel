@@ -1,6 +1,6 @@
 use crate::{
-    messages::SchedulerUpdate,
-    server::{tokens::ProcessToken, Server},
+    messages::ProcessToken,
+    server::Server,
 };
 use anyhow::Result;
 use futures::TryStreamExt;
@@ -14,13 +14,61 @@ use lapin::options::QueueBindOptions;
 use tracing::trace;
 use crate::messages::TriggerUpdate;
 
-pub const UPDATES_EXCHANGE: &str = "waterwheel.updates";
+pub const TRIGGER_UPDATES_EXCHANGE: &str = "waterwheel.updates.triggers";
+pub const TOKEN_UPDATES_EXCHANGE: &str = "waterwheel.updates.tokens";
+pub const TOKEN_UPDATES_QUEUE: &str = "waterwheel.updates.tokens";
 
-pub async fn process_updates(server: Arc<Server>) -> Result<!> {
+pub async fn process_token_updates(server: Arc<Server>) -> Result<!> {
+    let chan = server.amqp_conn.create_channel().await?;
+
+    let mut token_tx = server.post_office.post_mail::<ProcessToken>().await?;
+
+    // declare queue for consuming incoming messages
+    chan.queue_declare(
+        TOKEN_UPDATES_QUEUE,
+        QueueDeclareOptions {
+            durable: true,
+            ..QueueDeclareOptions::default()
+        },
+        FieldTable::default(),
+    )
+    .await?;
+
+    chan.queue_bind(
+        TOKEN_UPDATES_QUEUE,
+        TOKEN_UPDATES_EXCHANGE,
+        "",
+        QueueBindOptions::default(),
+        FieldTable::default(),
+    )
+    .await?;
+
+    let mut consumer = chan
+        .basic_consume(
+            TOKEN_UPDATES_QUEUE,
+            "scheduler",
+            BasicConsumeOptions::default(),
+            FieldTable::default(),
+        )
+        .await?;
+
+    while let Some(delivery) = consumer.try_next().await? {
+        let update: ProcessToken = serde_json::from_slice(&delivery.data)?;
+        trace!(?update, "received token update message");
+
+        token_tx.send(update).await?;
+        delivery.ack(BasicAckOptions::default()).await?;
+        trace!("forwarded token update");
+    }
+
+    unreachable!("consumer stopped consuming")
+}
+
+
+pub async fn process_trigger_updates(server: Arc<Server>) -> Result<!> {
     let chan = server.amqp_conn.create_channel().await?;
 
     let mut trigger_tx = server.post_office.post_mail::<TriggerUpdate>().await?;
-    let mut token_tx = server.post_office.post_mail::<ProcessToken>().await?;
 
     // declare queue for consuming incoming messages
     let queue = chan.queue_declare(
@@ -36,7 +84,7 @@ pub async fn process_updates(server: Arc<Server>) -> Result<!> {
 
     chan.queue_bind(
         queue.name().as_str(),
-        UPDATES_EXCHANGE,
+        TRIGGER_UPDATES_EXCHANGE,
         "",
         QueueBindOptions::default(),
         FieldTable::default(),
@@ -46,24 +94,18 @@ pub async fn process_updates(server: Arc<Server>) -> Result<!> {
     let mut consumer = chan
         .basic_consume(
             queue.name().as_str(),
-            "server",
+            "scheduler",
             BasicConsumeOptions::default(),
             FieldTable::default(),
         )
         .await?;
 
     while let Some(delivery) = consumer.try_next().await? {
-        let update: SchedulerUpdate = serde_json::from_slice(&delivery.data)?;
+        let update: TriggerUpdate = serde_json::from_slice(&delivery.data)?;
+        trace!(?update, "received trigger update message");
 
-        trace!(?update, "received scheduler update message");
-
-        match update {
-            SchedulerUpdate::TriggerUpdate(tu) => trigger_tx.send(tu).await?,
-            SchedulerUpdate::ProcessToken(pt) => token_tx.send(pt).await?,
-        }
-
+        trigger_tx.send(update).await?;
         delivery.ack(BasicAckOptions::default()).await?;
-
         trace!("forwarded scheduler update");
     }
 

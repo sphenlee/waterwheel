@@ -1,7 +1,7 @@
 use crate::{
-    messages::{TaskProgress, Token},
+    messages::{TaskProgress, Token, ProcessToken},
     server::{
-        tokens::{increment_token, ProcessToken},
+        tokens::{increment_token},
         Server,
     },
 };

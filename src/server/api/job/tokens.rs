@@ -1,8 +1,7 @@
 use crate::{
-    messages::{SchedulerUpdate, Token, TokenState},
+    messages::{Token, TokenState, ProcessToken},
     server::{
         api::{auth, request_ext::RequestExt, updates, State},
-        tokens::ProcessToken,
     },
 };
 use chrono::{DateTime, Utc};
@@ -210,9 +209,9 @@ pub async fn clear_tokens_trigger_datetime(
             task_id: id,
             trigger_datetime,
         };
-        updates::send(
+        updates::send_token_update(
             req.get_channel(),
-            SchedulerUpdate::ProcessToken(ProcessToken::Clear(token)),
+            ProcessToken::Clear(token),
         )
         .await?;
     }

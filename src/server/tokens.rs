@@ -1,23 +1,14 @@
 use crate::{
-    messages::{TaskPriority, Token},
+    messages::{TaskPriority, Token, ProcessToken},
     server::{execute::ExecuteToken, Server},
 };
 use anyhow::Result;
 use futures::TryStreamExt;
 use postage::prelude::*;
-use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Postgres, Transaction};
 use std::{fmt, sync::Arc};
 use tracing::{debug, trace};
 use uuid::Uuid;
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum ProcessToken {
-    Increment(Token, TaskPriority),
-    Activate(Token, TaskPriority),
-    Clear(Token),
-    UnpauseJob(Uuid),
-}
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

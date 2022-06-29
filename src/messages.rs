@@ -1,5 +1,4 @@
 use std::str::FromStr;
-use crate::server::{tokens::ProcessToken};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -151,14 +150,23 @@ pub struct WorkerHeartbeat {
     pub version: String,
 }
 
+/// Message sent from API to scheduler to notify of a trigger being updated.
+/// The changes made have already been committed to the database.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TriggerUpdate(pub Vec<Uuid>);
 
-/// message sent from the API to the scheduler
-#[derive(Serialize, Deserialize, Debug)]
-pub enum SchedulerUpdate {
-    TriggerUpdate(TriggerUpdate),
-    ProcessToken(ProcessToken),
+/// Message sent from API to scheduler to perform token operations.
+/// This message is also sent within the scheduler from other tokio tasks.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum ProcessToken {
+    /// Add a token to a task
+    Increment(Token, TaskPriority),
+    /// Add N to a task, where N is the task's threshold (ie. causes it to activate right now)
+    Activate(Token, TaskPriority),
+    /// Remove all tokens from a task
+    Clear(Token),
+    /// Unpause a job, check if any tasks are ready to activate
+    UnpauseJob(Uuid),
 }
 
 /// message sent from the API to the workers to update config items

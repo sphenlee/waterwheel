@@ -1,5 +1,5 @@
 use crate::{
-    messages::{ConfigUpdate, SchedulerUpdate},
+    messages::{ConfigUpdate},
     server::{
         api::{auth, config_cache, request_ext::RequestExt, types::Job, updates, State},
         body_parser::read_from_body
@@ -30,8 +30,8 @@ pub use self::{
     triggers::{get_trigger, get_triggers_by_job},
 };
 pub use task_runs::{list_job_all_task_runs, list_task_runs};
-use crate::messages::TriggerUpdate;
-use crate::server::tokens::ProcessToken;
+use crate::messages::{TriggerUpdate, ProcessToken};
+use crate::util::first;
 
 pub async fn get_job_project_id(pool: &PgPool, job_id: Uuid) -> highnoon::Result<Uuid> {
     let row: Option<(Uuid,)> = sqlx::query_as(
@@ -133,9 +133,9 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
 
     txn.commit().await?;
 
-    updates::send(
+    updates::send_trigger_update(
         req.get_channel(),
-        SchedulerUpdate::TriggerUpdate(TriggerUpdate(triggers_to_tx)),
+        TriggerUpdate(triggers_to_tx),
     )
     .await?;
 
@@ -144,12 +144,6 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
     }
 
     StatusCode::CREATED.into_response()
-}
-
-#[derive(Deserialize)]
-struct QueryJob {
-    pub project: String,
-    pub name: String,
 }
 
 #[derive(Serialize, sqlx::FromRow)]
@@ -335,7 +329,7 @@ pub async fn set_paused(mut req: Request<State>) -> impl Responder {
     }
 
     // send trigger updates for the whole job to notify the scheduler
-    let triggers_to_tx = sqlx::query_as(
+    let triggers_to_tx: Vec<(Uuid,)> = sqlx::query_as(
         "SELECT id
         FROM trigger
         WHERE job_id = $1",
@@ -344,20 +338,19 @@ pub async fn set_paused(mut req: Request<State>) -> impl Responder {
     .fetch_all(&req.get_pool())
     .await?;
 
-    for (id,) in triggers_to_tx {
-        updates::send(
-            req.get_channel(),
-            SchedulerUpdate::TriggerUpdate(TriggerUpdate(vec![id])),
-        )
-        .await?;
-    }
+    let triggers_to_tx = triggers_to_tx.into_iter().map(first).collect();
+    updates::send_trigger_update(
+        req.get_channel(),
+        TriggerUpdate(triggers_to_tx),
+    )
+    .await?;
 
     if !paused {
-        updates::send(
+        updates::send_token_update(
             req.get_channel(),
-            SchedulerUpdate::ProcessToken(ProcessToken::UnpauseJob(job_id))
+            ProcessToken::UnpauseJob(job_id)
         )
-            .await?;
+        .await?;
     }
 
     Ok(StatusCode::NO_CONTENT)

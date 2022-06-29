@@ -52,7 +52,8 @@ impl Server {
         spawn_or_crash("tokens", self.clone(), tokens::process_tokens);
         spawn_or_crash("executions", self.clone(), execute::process_executions);
         spawn_or_crash("progress", self.clone(), progress::process_progress);
-        spawn_or_crash("updates", self.clone(), updates::process_updates);
+        spawn_or_crash("trigger_updates", self.clone(), updates::process_trigger_updates);
+        spawn_or_crash("token_updates", self.clone(), updates::process_token_updates);
 
         self.run_api().await
     }

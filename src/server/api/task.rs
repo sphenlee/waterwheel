@@ -1,8 +1,7 @@
 use crate::{
-    messages::{SchedulerUpdate, TaskDef, TaskPriority, Token},
+    messages::{TaskDef, TaskPriority, Token, ProcessToken},
     server::{
         api::{auth, jwt, request_ext::RequestExt, updates, State},
-        tokens::ProcessToken,
     },
 };
 use chrono::{DateTime, Utc};
@@ -46,9 +45,9 @@ pub async fn activate_token(mut req: Request<State>) -> highnoon::Result<impl Re
 
     let priority = params.priority.unwrap_or(TaskPriority::High);
 
-    updates::send(
+    updates::send_token_update(
         req.get_channel(),
-        SchedulerUpdate::ProcessToken(ProcessToken::Activate(token, priority)),
+        ProcessToken::Activate(token, priority),
     )
     .await?;
 
@@ -114,9 +113,9 @@ pub async fn activate_multiple_tokens(mut req: Request<State>) -> highnoon::Resu
             trigger_datetime,
         };
 
-        updates::send(
+        updates::send_token_update(
             req.get_channel(),
-            SchedulerUpdate::ProcessToken(ProcessToken::Activate(token, priority)),
+            ProcessToken::Activate(token, priority),
         )
         .await?;
     }

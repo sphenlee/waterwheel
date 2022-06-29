@@ -1,8 +1,8 @@
 use crate::{
-    messages::{TaskPriority, Token},
+    messages::{TaskPriority, Token, ProcessToken},
     server::{
         api::types::Catchup,
-        tokens::{increment_token, ProcessToken},
+        tokens::increment_token,
         trigger_time::TriggerTime,
         Server,
     },
