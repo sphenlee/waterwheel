@@ -29,7 +29,9 @@ const HeaderCell = styled.td`
 
 const TCell = styled.td`
     border-bottom: 1px solid #ddd;
-    padding-right: 15px;
+    transition: background 0.3s;
+    padding-right: 7px;
+    padding-left: 7px;
 `;
 
 const TRow = styled.tr`
@@ -37,7 +39,8 @@ const TRow = styled.tr`
     transition: background 0.3s;
     &:hover {
         > td {
-            background-color: ${geekblue[1]};
+            border-top: 1px solid ${geekblue[2]};
+            border-bottom: 1px solid ${geekblue[2]};
         }
     }
 `;
@@ -118,16 +121,17 @@ class TaskGrid extends Component<TaskGridProps, TaskGridState> {
         }</tr>;
 
         let rows = tokens.map(tok => {
-            let is_selected = (tok.trigger_datetime === this.state.drawer_trigger_datetime);
 
-            let style: CSSProperties;
-            if (is_selected) {
-                style = { backgroundColor: geekblue[1] };
+            let row_style: CSSProperties;
+            if (tok.trigger_datetime === this.state.drawer_trigger_datetime) {
+                row_style = {
+                    backgroundColor: geekblue[0],
+                };
             } else {
-                style = {};
+                row_style = {};
             }
 
-            return <TRow key={tok.trigger_datetime} style={style}>{
+            return <TRow key={tok.trigger_datetime} style={row_style}>{
                 [
                     <TCell key="trigger_datetime">
                         <Link to={`/jobs/${job_id}/tokens/${tok.trigger_datetime}`}>
@@ -137,8 +141,17 @@ class TaskGrid extends Component<TaskGridProps, TaskGridState> {
                 ].concat(tasks.map(task => {
                     let this_task = tok.task_states[task];
 
+                    let col_style: CSSProperties;
+                    if (this_task && this_task.task_id === this.state.drawer_task_id) {
+                        col_style = {
+                            backgroundColor: geekblue[0]
+                        };
+                    } else {
+                        col_style = {};
+                    }
+
                     return (
-                        <TCell key={task}>
+                        <TCell key={task} style={col_style}>
                             <a onClick={() => this.drawerOpen(this_task.task_id, tok.trigger_datetime)}>
                                 {iconForState(this_task)}    
                             </a>
@@ -196,9 +209,8 @@ class TaskGrid extends Component<TaskGridProps, TaskGridState> {
     componentDidMount() {
         this.fetchTokens()
 
-        // TODO - change back to 5s!
         // TODO - use a websocket to poll for token status changes
-        this.interval = setInterval(() => this.fetchTokens(), 500);
+        this.interval = setInterval(() => this.fetchTokens(), 1000);
     }
 
     componentWillUnmount() {

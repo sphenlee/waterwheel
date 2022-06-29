@@ -1,7 +1,7 @@
-import React, { Component, Fragment } from "react";
+import React, { Component } from "react";
 import { Link } from "react-router-dom";
 import { Table, Layout, Breadcrumb, PageHeader, Button, notification, Popconfirm,
-        Row, Col, Drawer, Descriptions, Skeleton } from 'antd';
+        Row, Col, Drawer, Descriptions, Skeleton, Space } from 'antd';
 
 import { ExclamationCircleOutlined, EllipsisOutlined } from '@ant-design/icons';
 import { RightOutlined, DownOutlined } from "@ant-design/icons";
@@ -82,6 +82,7 @@ function expandedRowRender(record: TaskRun) {
 
 class TokenRuns extends Component<TokenRunsProps, TokenRunsState> {
     columns: ColumnsType<TaskRun>;
+    interval: NodeJS.Timeout;
 
     constructor(props: TokenRunsProps) {
         super(props);
@@ -133,6 +134,7 @@ class TokenRuns extends Component<TokenRunsProps, TokenRunsState> {
         const {task_id, trigger_datetime} = this.props;
 
         if (task_id !== null && trigger_datetime !== null) {
+            this.interval = setInterval(() => this.fetchRuns(task_id, trigger_datetime), 2000);
             this.fetchRuns(task_id, trigger_datetime);
         }
     }
@@ -141,16 +143,26 @@ class TokenRuns extends Component<TokenRunsProps, TokenRunsState> {
         if (this.props.task_id !== prevProps.task_id
             || this.props.trigger_datetime !== prevProps.trigger_datetime)
         {
-            this.componentDidMount()
+            this.componentWillUnmount();
+            this.componentDidMount();
         }
+    }
+
+    componentWillUnmount() {
+        clearInterval(this.interval);
     }
 
     render() {
         const { task_id, trigger_datetime, } = this.props;
         const { runs, task } = this.state;
 
-        return (<Fragment>
-                <h2>{`Task Runs for ${task?.task_name ?? '...'}`}</h2>
+        if (!task) {
+            return '';
+        }
+
+        return (
+            <Space direction="vertical">
+                <h2>{`${task.task_name} @ ${trigger_datetime}`}</h2>
 
                 <ActivateToken
                     type="primary"
@@ -169,17 +181,15 @@ class TokenRuns extends Component<TokenRunsProps, TokenRunsState> {
                             background: "#fff"
                         }}>
                     <Descriptions.Item label="Image" span={3}>
-                        <Json json={task?.image} />
+                        <pre>{task?.image}</pre>
                     </Descriptions.Item>
                     <Descriptions.Item label="Args" span={3}>
                         <Json json={task?.args} />
                     </Descriptions.Item>
                     <Descriptions.Item label="Env" span={3}>
-                        <Json json={task?.env} />
+                        <Json json={task?.env ?? {}} />
                     </Descriptions.Item>
                 </Descriptions>
-
-
 
                 <Table columns={this.columns}
                     rowKey="task_run_id"
@@ -196,7 +206,7 @@ class TokenRuns extends Component<TokenRunsProps, TokenRunsState> {
                             )
                     }}
                     />
-            </Fragment>
+            </Space>
         );
     }
 }

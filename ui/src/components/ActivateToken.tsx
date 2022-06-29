@@ -47,7 +47,7 @@ class ActivateToken extends Component<ActivateTokenProps, ActivateTokenState> {
                 type={type}
                 size={size}
                 onClick={() => this.createToken()}
-            >activate</Button>
+            >Activate</Button>
         );
     }
 }
