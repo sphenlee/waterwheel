@@ -155,6 +155,34 @@ struct GetJob {
     pub paused: bool,
 }
 
+pub async fn get_by_name(req: Request<State>) -> highnoon::Result<impl Responder> {
+    let q = req.query::<QueryJob>()?;
+
+    let maybe_job: Option<GetJob> = sqlx::query_as(
+        "SELECT
+            j.id AS id,
+            j.name AS name,
+            j.project_id AS project_id,
+            j.description AS description,
+            j.paused AS paused
+        FROM job j
+        JOIN project p ON j.project_id = p.id
+        WHERE j.name = $1
+        AND p.name = $2",
+    )
+    .bind(&q.name)
+    .bind(&q.project)
+    .fetch_optional(&req.get_pool())
+    .await?;
+
+    if let Some(job) = maybe_job {
+        auth::get().job(job.id, job.project_id).check(&req).await?;
+        Json(job).into_response()
+    } else {
+        StatusCode::NOT_FOUND.into_response()
+    }
+}
+
 #[derive(Serialize, sqlx::FromRow)]
 struct GetJobExtra {
     pub id: Uuid, // TODO - consistency in naming ids
