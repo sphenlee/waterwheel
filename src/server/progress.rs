@@ -68,7 +68,7 @@ pub async fn process_progress(server: Arc<Server>) -> Result<!> {
             Vec::<Token>::new()
         };
 
-        let priority = update_task_progress(&mut txn, &task_progress).await?;
+        let priority = update_task_progress(&server, &mut txn, &task_progress).await?;
 
         txn.commit().await?;
 
@@ -131,6 +131,7 @@ pub async fn advance_tokens(
 }
 
 async fn update_task_progress(
+    server: &Server,
     txn: &mut Transaction<'_, Postgres>,
     task_progress: &TaskProgress,
 ) -> Result<TaskPriority> {
@@ -145,6 +146,28 @@ async fn update_task_progress(
     .bind(&task_progress.trigger_datetime)
     .execute(&mut *txn)
     .await?;
+
+    sqlx::query(
+        "INSERT INTO task_run_history(
+            task_run_id,
+            change_datetime,
+            worker_id,
+            scheduler_id,
+            state
+        ) VALUES (
+            $1,
+            CURRENT_TIMESTAMP,
+            $2,
+            $3,
+            $4
+        )",
+    )
+        .bind(&task_progress.task_run_id)
+        .bind(&task_progress.worker_id)
+        .bind(server.scheduler_id)
+        .bind(&task_progress.result)
+        .execute(&mut *txn)
+        .await?;
 
     let maybe_priority: Option<(TaskPriority,)> = sqlx::query_as(
         "UPDATE task_run

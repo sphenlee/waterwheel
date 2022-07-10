@@ -13,6 +13,7 @@ use std::sync::Arc;
 use lapin::options::QueueBindOptions;
 use tracing::trace;
 use crate::messages::TriggerUpdate;
+use crate::server::cluster::trigger_update;
 
 pub const TRIGGER_UPDATES_EXCHANGE: &str = "waterwheel.updates.triggers";
 pub const TOKEN_UPDATES_EXCHANGE: &str = "waterwheel.updates.tokens";
@@ -68,8 +69,6 @@ pub async fn process_token_updates(server: Arc<Server>) -> Result<!> {
 pub async fn process_trigger_updates(server: Arc<Server>) -> Result<!> {
     let chan = server.amqp_conn.create_channel().await?;
 
-    let mut trigger_tx = server.post_office.post_mail::<TriggerUpdate>().await?;
-
     // declare queue for consuming incoming messages
     let queue = chan.queue_declare(
         "", // autogenerate
@@ -104,7 +103,8 @@ pub async fn process_trigger_updates(server: Arc<Server>) -> Result<!> {
         let update: TriggerUpdate = serde_json::from_slice(&delivery.data)?;
         trace!(?update, "received trigger update message");
 
-        trigger_tx.send(update).await?;
+        trigger_update(server.clone(), update).await?;
+
         delivery.ack(BasicAckOptions::default()).await?;
         trace!("forwarded scheduler update");
     }

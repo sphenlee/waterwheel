@@ -7,7 +7,10 @@ use cadence::StatsdClient;
 use lapin::Connection;
 use sqlx::PgPool;
 use std::sync::Arc;
+use chitchat::{Chitchat, ChitchatHandle};
+use tokio::sync::Mutex;
 use tracing::warn;
+use uuid::Uuid;
 
 pub mod api;
 pub mod body_parser;
@@ -20,12 +23,14 @@ mod updates;
 mod cluster;
 
 pub struct Server {
+    pub scheduler_id: Uuid,
     pub db_pool: PgPool,
     pub amqp_conn: Connection,
     pub post_office: PostOffice,
     pub statsd: Arc<StatsdClient>,
     pub config: Config,
     pub jwt_keys: JwtKeys,
+    pub cluster: Option<ChitchatHandle>,
 }
 
 impl Server {
@@ -36,17 +41,19 @@ impl Server {
         let jwt_keys = jwt::load_keys(&config)?;
 
         Ok(Arc::new(Server {
+            scheduler_id: Uuid::new_v4(),
             db_pool,
             amqp_conn,
             post_office: PostOffice::open(),
             statsd,
             config,
             jwt_keys,
+            cluster: None,
         }))
     }
 
-    pub async fn run_scheduler(self: Arc<Self>) -> Result<!> {
-        cluster::start_cluster(self.clone()).await?;
+    pub async fn run_scheduler(mut self: Arc<Self>) -> Result<!> {
+        cluster::start_cluster(&mut self).await?;
 
         spawn_or_crash("triggers", self.clone(), triggers::process_triggers);
         spawn_or_crash("tokens", self.clone(), tokens::process_tokens);
@@ -66,5 +73,9 @@ impl Server {
         api::serve(self).await?;
 
         unreachable!("server stop serving");
+    }
+
+    pub async fn get_chitchat(self: &Arc<Self>) -> Arc<Mutex<Chitchat>> {
+        self.cluster.as_ref().expect("cluster is not created!").chitchat()
     }
 }

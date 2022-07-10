@@ -6,20 +6,19 @@
 use anyhow::{Context, Result};
 use std::sync::Arc;
 use std::collections::HashSet;
-use chitchat::{Chitchat, ChitchatConfig, ChitchatHandle, NodeId};
+use chitchat::{ChitchatConfig, NodeId};
 use chitchat::transport::UdpTransport;
 use chrono::Utc;
-use futures::{Stream, StreamExt as _};
-use postage::prelude::{*, Stream as _};
+use futures::StreamExt as _;
+use postage::prelude::*;
 use sqlx::PgPool;
-use tokio::sync::Mutex;
 use tracing::{debug, info, trace};
 use uuid::Uuid;
 use crate::config::Config;
 use crate::messages::TriggerUpdate;
 use crate::server::Server;
 use crate::server::triggers::TriggerChange;
-use crate::util::{deref, first};
+use crate::util::{deref, first, spawn_or_crash};
 
 fn get_node_id(config: &Config) -> Result<NodeId> {
     let hostname = gethostname::gethostname().to_string_lossy().into_owned();
@@ -32,7 +31,7 @@ fn get_node_id(config: &Config) -> Result<NodeId> {
     Ok(NodeId::new(name, gossip_addr))
 }
 
-pub async fn start_cluster(server: Arc<Server>) -> Result<()> {
+pub async fn start_cluster(server: &mut Arc<Server>) -> Result<()> {
     let node_id = get_node_id(&server.config)?;
     debug!("node id is {:?}", node_id);
 
@@ -49,20 +48,25 @@ pub async fn start_cluster(server: Arc<Server>) -> Result<()> {
             config,
             vec![], &UdpTransport).await?;
 
-    let watcher = chitchat_handle
-        .with_chitchat(|cc| {
-            cc.live_nodes_watcher()
-        }).await;
+    {
+        let server = Arc::get_mut(server)
+            .expect("someone else has a reference to the server!");
 
-    tokio::spawn(trigger_updates(server.clone(), chitchat_handle.chitchat()));
-    tokio::spawn(watch_live_nodes(server.clone(), chitchat_handle, watcher));
+        server.cluster = Some(chitchat_handle);
+    }
+
+    spawn_or_crash("watch_live_nodes", server.clone(), watch_live_nodes);
 
     Ok(())
 }
 
-async fn watch_live_nodes<W>(server: Arc<Server>, chitchat_handle: ChitchatHandle, mut watcher: W) -> Result<!>
-    where W: Stream<Item=HashSet<NodeId>> + Unpin
+async fn watch_live_nodes(server: Arc<Server>) -> Result<!>
 {
+    let chitchat = server.get_chitchat().await;
+
+    let me = chitchat.lock().await.self_node_id().id.clone();
+    let mut watcher = chitchat.lock().await.live_nodes_watcher();
+
     let mut change_tx = server.post_office.post_mail::<TriggerChange>().await?;
     let mut current_triggers = HashSet::new();
 
@@ -73,8 +77,7 @@ async fn watch_live_nodes<W>(server: Arc<Server>, chitchat_handle: ChitchatHandl
         let h = std::hash::BuildHasherDefault::<std::collections::hash_map::DefaultHasher>::default();
         let mut rendezvous = hash_rings::rendezvous::Client::with_hasher(h);
 
-        let me = &chitchat_handle.node_id().id;
-        rendezvous.insert_node(me, 1);
+        rendezvous.insert_node(&me, 1);
         for item in &live_nodes {
             rendezvous.insert_node(&item.id, 1);
         }
@@ -83,7 +86,7 @@ async fn watch_live_nodes<W>(server: Arc<Server>, chitchat_handle: ChitchatHandl
             rendezvous.insert_point(trigger);
         }
 
-        let new_triggers: HashSet<_> = rendezvous.get_points(me)
+        let new_triggers: HashSet<_> = rendezvous.get_points(&me)
             .into_iter()
             .map(deref)
             .collect();
@@ -104,33 +107,33 @@ async fn watch_live_nodes<W>(server: Arc<Server>, chitchat_handle: ChitchatHandl
     unreachable!("chitchat watcher was closed!");
 }
 
-async fn trigger_updates(server: Arc<Server>, chitchat: Arc<Mutex<Chitchat>>) -> Result<!> {
-    let mut trigger_rx = server.post_office.receive_mail::<TriggerUpdate>().await?;
-
+pub async fn trigger_update(server: Arc<Server>, update: TriggerUpdate) -> Result<()> {
     let mut change_tx = server.post_office.post_mail::<TriggerChange>().await?;
 
-    while let Some(TriggerUpdate(uuids)) = trigger_rx.recv().await {
-        trace!(?uuids, "got trigger update");
+    let TriggerUpdate(uuids) = update;
+    trace!(?uuids, "got trigger update");
 
-        let h = std::hash::BuildHasherDefault::<std::collections::hash_map::DefaultHasher>::default();
-        let mut rendezvous = hash_rings::rendezvous::Client::with_hasher(h);
+    let h = std::hash::BuildHasherDefault::<std::collections::hash_map::DefaultHasher>::default();
+    let mut rendezvous = hash_rings::rendezvous::Client::with_hasher(h);
 
-        let chitchat = chitchat.lock().await;
-        let me = &chitchat.self_node_id().id;
-        rendezvous.insert_node(me, 1);
-        for item in chitchat.live_nodes() {
-            rendezvous.insert_node(&item.id, 1);
-        }
+    let chitchat = server.get_chitchat().await;
+    let chitchat = chitchat.lock().await;
 
-        let to_add = uuids.iter().filter(|trigger| {
-            rendezvous.get_node(trigger) == &chitchat.self_node_id().id
-        }).map(deref).collect();
-        trace!(?to_add, "filtered triggers by rendezvous hash");
+    let me = &chitchat.self_node_id().id;
+    rendezvous.insert_node(me, 1);
 
-        change_tx.send(TriggerChange::Add(to_add)).await?;
+    for item in chitchat.live_nodes() {
+        rendezvous.insert_node(&item.id, 1);
     }
 
-    unreachable!("trigger update channel closed!")
+    let to_add = uuids.iter().filter(|trigger| {
+        rendezvous.get_node(trigger) == &chitchat.self_node_id().id
+    }).map(deref).collect();
+    trace!(?to_add, "filtered triggers by rendezvous hash");
+
+    change_tx.send(TriggerChange::Add(to_add)).await?;
+
+    Ok(())
 }
 
 async fn get_all_triggers(db: &PgPool) -> Result<HashSet<Uuid>> {

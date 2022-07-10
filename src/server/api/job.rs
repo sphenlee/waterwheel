@@ -146,6 +146,12 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
     StatusCode::CREATED.into_response()
 }
 
+#[derive(Deserialize)]
+struct QueryJob {
+    pub project: String,
+    pub name: String,
+}
+
 #[derive(Serialize, sqlx::FromRow)]
 struct GetJob {
     pub id: Uuid,
