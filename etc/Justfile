@@ -28,8 +28,8 @@ gen-keypair:
     openssl genrsa -out private.pem 2048
     openssl rsa -in private.pem -outform PEM -pubout -out public.pem
 
-    kubectl delete secret sealproxy-pubkey --ignore-not-found
-    kubectl create secret generic sealproxy-pubkey \
+    kubectl delete -n waterwheel secret sealproxy-pubkey --ignore-not-found
+    kubectl create -n waterwheel  secret generic sealproxy-pubkey \
         --from-file=public.pem \
         --from-file=private.pem
 
