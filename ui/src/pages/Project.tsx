@@ -1,6 +1,7 @@
 import React, { Component, Fragment } from "react";
 import { Link, RouteComponentProps } from "react-router-dom";
-import { List, Avatar, Layout, Breadcrumb, PageHeader, Row, Col, Statistic, Badge, Tag, Spin  } from 'antd';
+import { Avatar, Layout, Breadcrumb, PageHeader, Row, Col, Statistic, Badge, Tag, Spin, Table,
+  Typography } from 'antd';
 import { geekblue, lime, red, grey, yellow, orange } from '@ant-design/colors';
 import { PauseOutlined, PartitionOutlined } from '@ant-design/icons';
 import axios from 'axios';
@@ -8,6 +9,7 @@ import axios from 'axios';
 import Body from '../components/Body';
 import { ProjectExtra, ProjectJob } from "../types/Project";
 import { Job, JobExtra } from "../types/Job";
+import { ColumnsType } from "antd/lib/table";
 
 const { Content } = Layout;
 
@@ -20,13 +22,72 @@ type ProjectState = {
     jobs?: ProjectJob[];
 };
 
+function makeBadges(job: ProjectJob): React.ReactNode {
+    return (<Fragment>
+       <Badge count={job.waiting}
+           style={{background: grey[7]}}
+           overflowCount={999}
+           title="Waiting"/>
+       <Badge count={job.running}
+           style={{background: geekblue[7]}}
+           overflowCount={999}
+           title="Running"/>
+       <Badge count={job.success}
+           style={{background: lime[7]}}
+           overflowCount={999}
+           title="Success"/>
+       <Badge count={job.failure}
+           style={{background: red[7]}}
+           overflowCount={999}
+           title="Failure"/>
+       <Badge count={job.error}
+           style={{background: orange[5]}}
+           overflowCount={999}
+           title="Error"/>
+   </Fragment>);
+}
+
+function makeColumns(): ColumnsType<ProjectJob> {
+    return [
+        {
+            title: 'Paused',
+            dataIndex: 'paused',
+            render: paused => (paused && <Tag color="warning" icon={<PauseOutlined />}>paused</Tag>),
+        },{
+             title: 'Status',
+             dataIndex: 'job_id',
+             render: (_, job) => makeBadges(job)
+         },{
+            title: '',
+            dataIndex: 'job_id',
+            render: _ => <Avatar icon={<PartitionOutlined />} shape="square"></Avatar>
+        },{
+            title: 'Name',
+            dataIndex: 'name',
+            render: (_, record) => (
+                <Link to={`/jobs/${record.job_id}`} component={Typography.Link}>
+                    {record.name}
+                </Link>)
+        },{
+            title: 'Description',
+            dataIndex: 'description',
+        },{
+             title: 'Job ID',
+             dataIndex: 'job_id',
+             render: text => <Typography.Text type="secondary">{text}</Typography.Text>
+         }
+    ];
+}
+
 class Project extends Component<ProjectProps, ProjectState> {
     interval: NodeJS.Timeout;
+    columns: ColumnsType<ProjectJob>;
 
     constructor(props: ProjectProps) {
         super(props);
 
         this.state = {};
+        this.columns = makeColumns();
     }
 
     async fetchProject() {
@@ -60,7 +121,7 @@ class Project extends Component<ProjectProps, ProjectState> {
 
     render() {
         const { history } = this.props;
-        const { proj } = this.state;
+        const { proj, jobs } = this.state;
 
         const content = proj ? (
             <>
@@ -99,57 +160,15 @@ class Project extends Component<ProjectProps, ProjectState> {
                             value={proj.error_tasks_last_hour} />
                     </Col>
                     <Col span={4} />
-                    <Col span={24} />
                 </Row>
                 <Row>
-                    <Col span={12}>
-                        <List
-                            size="large"
-                            bordered={true}
-                            itemLayout="vertical"
-                            dataSource={this.state.jobs ?? []}
-                            loading={this.state.jobs === null}
-                            renderItem={(item: ProjectJob) => (
-                                <List.Item
-                                    key={item.job_id}
-                                    actions={[
-                                        <Fragment>
-                                            <Badge count={item.waiting}
-                                                style={{background: grey[7]}}
-                                                overflowCount={999}
-                                                title="Waiting"/>
-                                            <Badge count={item.running}
-                                                style={{background: geekblue[7]}}
-                                                overflowCount={999}
-                                                title="Running"/>
-                                            <Badge count={item.success}
-                                                style={{background: lime[7]}}
-                                                overflowCount={999}
-                                                title="Success"/>
-                                            <Badge count={item.failure}
-                                                style={{background: red[7]}}
-                                                overflowCount={999}
-                                                title="Failure"/>
-                                            <Badge count={item.error}
-                                                style={{background: orange[5]}}
-                                                overflowCount={999}
-                                                title="Error"/>
-                                        </Fragment>,
-                                        (item.paused &&
-                                            <Tag color="warning" icon={<PauseOutlined />}>paused</Tag>)
-                                    ]}
-                                >
-                                    <List.Item.Meta
-                                        avatar={<Avatar icon={<PartitionOutlined />} shape="square"></Avatar>}
-                                        title={<Link to={`/jobs/${item.job_id}`}>
-                                                {item.name}
-                                            </Link>}
-                                        description={item.description}
-                                    />
-
-                                </List.Item>
-                            )}
-                        />
+                    <Col span={24}>
+                        <Table rowKey="job_id"
+                            columns={this.columns}
+                            dataSource={jobs ?? []}
+                            loading={jobs === null}
+                            pagination={{position: ['bottomLeft']}}
+                            />
                     </Col>
                 </Row>
             </>
