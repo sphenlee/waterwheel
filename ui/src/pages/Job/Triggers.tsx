@@ -25,6 +25,13 @@ function makeColumns(job: Job): ColumnsType<JobTrigger> {
             key: 'period',
             render: (text, record) => record.period ? <Period period={record.period} /> : <Cron cron={record.cron ?? ''} />,
         },{
+            title: 'Offset',
+            dataIndex: 'trigger_offset',
+            render: text => text ? <Period period={text} /> : ""
+        },{
+            title: 'Catchup',
+            dataIndex: 'catchup',
+        },{
             title: 'Start',
             dataIndex: 'start_datetime',
         },{
@@ -33,13 +40,15 @@ function makeColumns(job: Job): ColumnsType<JobTrigger> {
         },{
             title: 'Latest',
             dataIndex: 'latest_trigger_datetime',
-            render: text => (
+            render: text => (text ?
                 <Space>
-                    <Text>{text}</Text>
+                    {text}
                     <Text type="secondary">
                         <Moment fromNow>{text}</Moment>
                     </Text>
-                </Space>)
+                </Space>
+                :  <Text type="secondary">never</Text>
+                )
         },{
             title: 'End',
             dataIndex: 'end_datetime',
