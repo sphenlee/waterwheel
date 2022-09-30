@@ -5,7 +5,7 @@ version: '3.1'
 
 services:
   amqp:
-    image: rabbitmq:management-alpine
+    image: rabbitmq:3.10.6-management-alpine
     ports:
       - "5672:5672"
       - "8055:15672"

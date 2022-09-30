@@ -58,6 +58,14 @@ CREATE TABLE IF NOT EXISTS worker (
     version VARCHAR
 );
 
+CREATE TABLE IF NOT EXISTS scheduler (
+    id UUID PRIMARY KEY,
+    last_seen_datetime TIMESTAMP WITH TIME ZONE NOT NULL,
+    queued_triggers INT,
+    waiting_for_trigger_id UUID REFERENCES trigger(id),
+    version VARCHAR
+);
+
 CREATE TABLE IF NOT EXISTS task_run (
     id UUID PRIMARY KEY,
     task_id UUID NOT NULL REFERENCES task(id),

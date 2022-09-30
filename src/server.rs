@@ -7,6 +7,7 @@ use cadence::StatsdClient;
 use lapin::Connection;
 use sqlx::PgPool;
 use std::sync::Arc;
+use std::sync::atomic::AtomicUsize;
 use chitchat::{Chitchat, ChitchatHandle};
 use tokio::sync::Mutex;
 use tracing::warn;
@@ -21,6 +22,7 @@ mod trigger_time;
 pub mod triggers;
 mod updates;
 mod cluster;
+mod heartbeat;
 
 pub struct Server {
     pub scheduler_id: Uuid,
@@ -31,6 +33,8 @@ pub struct Server {
     pub config: Config,
     pub jwt_keys: JwtKeys,
     pub cluster: Option<ChitchatHandle>,
+    pub queued_triggers: AtomicUsize,
+    pub waiting_for_trigger_id: Mutex<Option<Uuid>>,
 }
 
 impl Server {
@@ -49,12 +53,15 @@ impl Server {
             config,
             jwt_keys,
             cluster: None,
+            queued_triggers: AtomicUsize::new(0),
+            waiting_for_trigger_id: Mutex::default(),
         }))
     }
 
     pub async fn run_scheduler(mut self: Arc<Self>) -> Result<!> {
         cluster::start_cluster(&mut self).await?;
 
+        spawn_or_crash("heartbeat", self.clone(), heartbeat::heartbeat);
         spawn_or_crash("triggers", self.clone(), triggers::process_triggers);
         spawn_or_crash("tokens", self.clone(), tokens::process_tokens);
         spawn_or_crash("executions", self.clone(), execute::process_executions);

@@ -65,7 +65,7 @@ function makeColumns(): ColumnsType<ProjectJob> {
             title: 'Name',
             dataIndex: 'name',
             render: (_, record) => (
-                <Link to={`/jobs/${record.job_id}`} component={Typography.Link}>
+                <Link to={`/jobs/${record.job_id}`}>
                     {record.name}
                 </Link>)
         },{

@@ -17,6 +17,7 @@ mod task_logs;
 pub mod types;
 mod updates;
 mod workers;
+mod schedulers;
 
 pub struct State {
     amqp_channel: Channel,
@@ -146,6 +147,9 @@ pub async fn make_app(server: Arc<Server>) -> Result<highnoon::App<State>> {
     // workers
     app.at("/api/workers").get(workers::list);
     app.at("/api/workers/:id").get(workers::tasks);
+
+    // schedulers
+    app.at("/api/schedulers").get(schedulers::list);
 
     // stash
     app.at("/api/stash").get(stash::global::list);

@@ -17,6 +17,11 @@ class TopMenu extends Component<RouteComponentProps> {
               Projects
             </Link>
           </Menu.Item>
+          <Menu.Item key="schedulers">
+            <Link to="/schedulers">
+              Schedulers
+            </Link>
+          </Menu.Item>
           <Menu.Item key="workers">
             <Link to="/workers">
               Workers

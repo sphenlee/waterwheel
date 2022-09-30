@@ -45,14 +45,24 @@ where
     let name = name.into();
 
     let _ = tokio::spawn(async move {
-        let mut cb = CircuitBreaker::new(5, Duration::minutes(1));
-        while cb.retry() {
-            match func(ctx.clone()).await {
-                Ok(_) => unreachable!("func never returns"),
-                Err(err) => error!("task {} failed: {:?}", name, err),
+        let handle = tokio::spawn({
+            let name = name.clone();
+
+            async move {
+                let mut cb = CircuitBreaker::new(5, Duration::minutes(1));
+                while cb.retry() {
+                    match func(ctx.clone()).await {
+                        Ok(_) => unreachable!("func never returns"),
+                        Err(err) => error!("task {} failed: {:?}", name, err),
+                    }
+                }
+                error!("task {} failed too many times, aborting!", name);
+                std::process::exit(1);
             }
-        }
-        error!("task {} failed too many times, aborting!", name);
+        });
+
+        let result = handle.await.unwrap_err(); // inner task will never succeed
+        error!("panic in task {}: {:?}", name, result);
         std::process::exit(1);
     });
 }

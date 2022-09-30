@@ -19,6 +19,7 @@ use rand::{seq::SliceRandom, thread_rng};
 use serde::{Deserialize, Serialize};
 use sqlx::{Connection, PgPool, Postgres, Transaction};
 use std::{str::FromStr, sync::Arc};
+use std::sync::atomic::Ordering;
 use tokio::time;
 use tracing::{debug, info, trace, warn};
 use uuid::Uuid;
@@ -110,14 +111,16 @@ pub async fn process_triggers(server: Arc<Server>) -> Result<!> {
 
         // rather than update this every place we edit the queue just do it
         // once per loop - it's for monitoring purposes anyway
-        // TODO - how can we get this value to the API?
-        //SERVER_STATUS.lock().await.queued_triggers = queue.len();
+        server.queued_triggers.store(queue.len(), Ordering::SeqCst);
         statsd
             .gauge_with_tags("triggers.queued", queue.len() as u64)
             .send();
 
         if queue.is_empty() {
             debug!("no triggers queued, waiting for a trigger update");
+
+            *server.waiting_for_trigger_id.lock().await = None;
+
             let trigger_update = trigger_rx
                 .recv()
                 .await
@@ -149,6 +152,8 @@ pub async fn process_triggers(server: Arc<Server>) -> Result<!> {
         if delay > Duration::zero() {
             info!(trigger_id=?next_triggertime.trigger_id,
                 "sleeping {} until next trigger", format_duration_approx(delay));
+
+            *server.waiting_for_trigger_id.lock().await = Some(next_triggertime.trigger_id);
 
             tokio::select! {
                 Some(trigger_update) = trigger_rx.recv() => {
