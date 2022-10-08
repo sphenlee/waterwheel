@@ -1,7 +1,7 @@
 import React, { Component, Fragment } from "react";
 import { Row, Col, Button, DatePicker, Space } from 'antd';
 import axios from 'axios';
-import { Line } from '@ant-design/charts';
+import { Column } from '@ant-design/charts';
 
 import {
   DoubleRightOutlined,
@@ -10,6 +10,7 @@ import { TaskDuration, TaskDurationList } from "../../types/Task";
 import { Moment } from "moment";
 
 const config = {
+    isStack: true,
     xField: 'trigger_datetime',
     yField: 'duration',
     seriesField: 'task_name',
@@ -92,7 +93,7 @@ class Duration extends Component<DurationProps, DurationState> {
                 </Row>
                 <Row>
                     <Col span={24}>
-                        <Line loading={data === null} data={data?.duration ?? []} {...config} />
+                        <Column loading={data === null} data={data?.duration ?? []} {...config} />
                     </Col>
                 </Row>
             </Fragment>
