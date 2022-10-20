@@ -43,7 +43,7 @@ pub async fn run_kubejob(
 
     // Create the pod
     let job = jobs.create(&PostParams::default(), &job).await?;
-    let name = job.name();
+    let name = job.name_any();
 
     let mut watcher = kube_runtime::watcher::watch_object(jobs.clone(), &name).boxed();
 

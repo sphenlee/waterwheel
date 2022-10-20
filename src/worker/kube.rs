@@ -40,7 +40,7 @@ pub async fn run_kube(worker: &Worker, task_req: TaskRequest, task_def: TaskDef)
     let pods: Api<Pod> = Api::default_namespaced(client);
 
     let pod = make_pod(worker, task_req, task_def).await?;
-    let name = pod.name();
+    let name = pod.name_any();
 
     // Create the pod
     trace!(pod_name=%name, "creating pod");
@@ -62,7 +62,7 @@ pub async fn run_kube(worker: &Worker, task_req: TaskRequest, task_def: TaskDef)
             Some(pod) => {
                 let status = pod.status.as_ref().expect("status exists on pod");
                 let phase = status.phase.clone().unwrap_or_default();
-                trace!(pod_name=%pod.name(), "pod modified, phase is '{}'", phase);
+                trace!(pod_name=%pod.name_any(), "pod modified, phase is '{}'", phase);
 
                 if phase == "Succeeded" {
                     result = true;
