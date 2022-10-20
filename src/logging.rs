@@ -15,6 +15,7 @@ use tracing_subscriber::{
     registry::LookupSpan,
     EnvFilter,
 };
+use tracing_subscriber::fmt::FormattedFields;
 
 fn level_color(level: Level, msg: String) -> impl std::fmt::Display {
     match level {
@@ -69,7 +70,16 @@ where
 
         writeln!(writer, "{}", level_color(*meta.level(), header))?;
 
-        ctx.field_format().format_fields(writer, event)?;
+        ctx.field_format().format_fields(writer.by_ref(), event)?;
+
+        ctx.visit_spans(|span| {
+            //write!(writer, "    -> {}\n", span.name().bold())?;
+            let ext = span.extensions();
+            let data = ext
+                .get::<FormattedFields<SemiCompact>>()
+                .unwrap();
+            write!(writer, "{}", data)
+        })?;
 
         Ok(())
     }
