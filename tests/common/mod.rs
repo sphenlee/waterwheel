@@ -11,7 +11,7 @@ where
     F: FnOnce(Config) -> Fut,
     Fut: Future<Output = Result<()>>,
 {
-    let mut config: Config = config::loader()
+    let mut config: Config = config::loader(None)
         .set_default("db_url", "")?
         //.set_default("server_addr", "")?
         .set_override("log", DEFAULT_LOG)?

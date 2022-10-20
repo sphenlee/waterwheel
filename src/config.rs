@@ -2,6 +2,7 @@ use crate::worker::engine::TaskEngine;
 use anyhow::{Context, Result};
 use config::{builder::DefaultState, ConfigBuilder, Environment, File, FileFormat};
 use reqwest::Url;
+use std::path::Path;
 
 /// config for Waterwheel
 /// note that the default values are loaded from default_config.toml,
@@ -29,23 +30,26 @@ pub struct Config {
     pub cluster_seed_nodes: Vec<String>,
 }
 
-pub fn loader() -> ConfigBuilder<DefaultState> {
-    let builder = config::Config::builder();
+pub fn loader(file: Option<&Path>) -> ConfigBuilder<DefaultState> {
+    let mut builder = config::Config::builder();
 
-    builder
-        .add_source(File::from_str(
-            include_str!("default_config.toml"),
-            FileFormat::Toml,
-        ))
-        .add_source(File::with_name("waterwheel").required(false))
-        .add_source(Environment::with_prefix("WATERWHEEL")
-            .list_separator(",")
-            .try_parsing(true)
-            .with_list_parse_key("cluster_seed_nodes"))
+    builder = builder.add_source(File::from_str(
+        include_str!("default_config.toml"),
+        FileFormat::Toml,
+    ));
+
+    if let Some(file) = file {
+        builder = builder.add_source(File::from(file));
+    }
+
+    builder.add_source(Environment::with_prefix("WATERWHEEL")
+        .list_separator(",")
+        .try_parsing(true)
+        .with_list_parse_key("cluster_seed_nodes"))
 }
 
-pub fn load() -> Result<Config> {
-    let config = loader()
+pub fn load(file: Option<&Path>) -> Result<Config> {
+    let config = loader(file)
         .build()?
         .try_deserialize()
         .context("mandatory configuration value not set")?;

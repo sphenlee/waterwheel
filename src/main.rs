@@ -5,21 +5,23 @@ use waterwheel::{config, logging, server::Server, worker::Worker};
 async fn main() -> Result<()> {
     dotenv::dotenv().ok();
 
-    let config = config::load()?;
-    logging::setup(&config)?;
-
     let app = clap::Command::new("waterwheel")
         .author("Steve Lee <sphen.lee@gmail.com>")
         .version(waterwheel::GIT_VERSION)
         .subcommand_required(true)
         .arg_required_else_help(true)
+        .arg(clap::Arg::new("config_path")
+            .long("config")
+            .short('c')
+            .takes_value(true)
+            .help("Provide a specific config file")
+        )
         .subcommand(
             clap::Command::new("scheduler")
                 .alias("server")
                 .about("launch the scheduler process")
                 .after_help(
-                    "There should only be one scheduler active at a time.
-                         The scheduler has an API server embedded.",
+                    "The scheduler has an API server embedded.",
                 ),
         )
         .subcommand(
@@ -30,6 +32,11 @@ async fn main() -> Result<()> {
         .subcommand(clap::Command::new("worker").about("launch the worker process"));
 
     let args = app.get_matches();
+
+    let config_path = args.value_of("config_path").map(AsRef::as_ref);
+
+    let config = config::load(config_path)?;
+    logging::setup(&config)?;
 
     match args.subcommand().expect("subcommand is required") {
         ("scheduler", _args) => {
