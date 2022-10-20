@@ -2,11 +2,12 @@ use super::{RUNNING_TASKS, TOTAL_TASKS, WORKER_ID};
 use crate::{
     messages::{TaskProgress, TaskRequest, TokenState},
     worker::{config_cache, Worker},
+    instrumented
 };
 use anyhow::Result;
 use cadence::{CountedExt, Gauged};
 use chrono::{DateTime, Utc};
-use futures::TryStreamExt;
+use futures::{FutureExt, TryStreamExt};
 use lapin::{
     options::{
         BasicAckOptions, BasicConsumeOptions, BasicPublishOptions, BasicQosOptions,
@@ -16,7 +17,7 @@ use lapin::{
     BasicProperties, Channel, Consumer, ExchangeKind,
 };
 use std::{sync::Arc, time::Duration};
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, info_span};
 
 // TODO - queues should be configurable for task routing
 const TASK_QUEUE: &str = "waterwheel.tasks";
@@ -25,6 +26,7 @@ const RESULT_EXCHANGE: &str = "waterwheel.results";
 const RESULT_QUEUE: &str = "waterwheel.results";
 
 const DEFAULT_TASK_TIMEOUT: Duration = Duration::from_secs(29 * 60); // 29 minutes
+const DEFAULT_TASK_HEARTBEAT: Duration = Duration::from_secs(60);
 
 pub async fn setup_queues(chan: &Channel) -> Result<()> {
     // declare queue for consuming incoming messages
@@ -103,101 +105,127 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
     while let Some(delivery) = consumer.try_next().await? {
         let task_req: TaskRequest = serde_json::from_slice(&delivery.data)?;
 
-        info!(task_run_id=?task_req.task_run_id,
-            task_id=?task_req.task_id,
-            trigger_datetime=?task_req.trigger_datetime.to_rfc3339(),
-            "received task");
-
-        let maybe_task_def = config_cache::get_task_def(&worker, task_req.task_id).await?;
-
-        let running_task_guard = RUNNING_TASKS.boost();
-        statsd
-            .gauge_with_tags("tasks.running", RUNNING_TASKS.get() as u64)
-            .with_tag("worker_id", &WORKER_ID.to_string())
-            .send();
-        statsd
-            .incr_with_tags("tasks.received")
-            .with_tag("worker_id", &WORKER_ID.to_string())
-            .send();
-
-        let started_datetime = Utc::now();
-
-        let result = if let Some(task_def) = maybe_task_def {
-            if task_def.image.is_some() {
-                chan.basic_publish(
-                    RESULT_EXCHANGE,
-                    "",
-                    BasicPublishOptions::default(),
-                    &task_progress_payload(&task_req, started_datetime, None, TokenState::Running)?,
-                    BasicProperties::default(),
-                )
-                .await?;
-
-                let res = engine.run_task(&worker, task_req.clone(), task_def);
-
-                match tokio::time::timeout(DEFAULT_TASK_TIMEOUT, res).await {
-                    Ok(Ok(true)) => TokenState::Success,
-                    Ok(Ok(false)) => TokenState::Failure,
-                    Ok(Err(err)) => {
-                        error!(task_run_id=?task_req.task_run_id,
-                        task_id=?task_req.task_id,
-                        trigger_datetime=?task_req.trigger_datetime.to_rfc3339(),
-                        "failed to run task: {:#}", err);
-                        TokenState::Error
-                    }
-                    Err(_) => {
-                        error!(task_run_id=?task_req.task_run_id,
-                        task_id=?task_req.task_id,
-                        trigger_datetime=?task_req.trigger_datetime.to_rfc3339(),
-                        "timeout running task");
-                        TokenState::Error
-                    }
-                }
-            } else {
-                // task has no image, mark success immediately
-                TokenState::Success
-            }
-        } else {
-            TokenState::Error
-        };
-
-        let finished_datetime = Utc::now();
-
-        TOTAL_TASKS.inc();
-        drop(running_task_guard);
-
-        statsd
-            .gauge_with_tags("tasks.running", RUNNING_TASKS.get() as u64)
-            .with_tag("worker_id", &WORKER_ID.to_string())
-            .send();
-        statsd
-            .incr_with_tags("tasks.total")
-            .with_tag("worker_id", &WORKER_ID.to_string())
-            .with_tag("result", result.as_ref())
-            .send();
-
-        info!(result=result.as_ref(),
+        let span = info_span!("running_task",
             task_run_id=?task_req.task_run_id,
             task_id=?task_req.task_id,
             trigger_datetime=?task_req.trigger_datetime.to_rfc3339(),
-            started_datetime=?started_datetime.to_rfc3339(),
-            "task completed");
+            );
 
-        chan.basic_publish(
-            RESULT_EXCHANGE,
-            "",
-            BasicPublishOptions::default(),
-            &task_progress_payload(&task_req, started_datetime, Some(finished_datetime), result)?,
-            BasicProperties::default(),
-        )
-        .await?;
-        debug!(task_run_id=?task_req.task_run_id, "task result published");
+        instrumented!(span, {
+            info!("received task");
 
-        delivery.ack(BasicAckOptions::default()).await?;
-        debug!(task_run_id=?task_req.task_run_id, "task acked");
+            let maybe_task_def = config_cache::get_task_def(&worker, task_req.task_id).await?;
+
+            let running_task_guard = RUNNING_TASKS.boost();
+            statsd
+                .gauge_with_tags("tasks.running", RUNNING_TASKS.get() as u64)
+                .with_tag("worker_id", &WORKER_ID.to_string())
+                .send();
+            statsd
+                .incr_with_tags("tasks.received")
+                .with_tag("worker_id", &WORKER_ID.to_string())
+                .send();
+
+            let started_datetime = Utc::now();
+
+            let result = if let Some(task_def) = maybe_task_def {
+                if task_def.image.is_some() {
+                    let mut task = engine.run_task(&worker, task_req.clone(), task_def).boxed();
+
+                    let mut ticker = tokio::time::interval(DEFAULT_TASK_HEARTBEAT);
+                    let mut timeout = tokio::time::sleep(DEFAULT_TASK_TIMEOUT).boxed();
+
+                    loop {
+                        tokio::select! {
+                            _ = &mut timeout => {
+                                error!("timeout running task");
+                                break TokenState::Error;
+                            }
+                            _ = ticker.tick() => {
+                                publish_progress(
+                                    &chan,
+                                    &task_req,
+                                    started_datetime,
+                                    None,
+                                    TokenState::Running,
+                                ).await?;
+                            }
+                            result = &mut task => {
+                                break match result {
+                                    Ok(true) => TokenState::Success,
+                                    Ok(false) => TokenState::Failure,
+                                    Err(err) => {
+                                        error!("failed to run task: {:#}", err);
+                                        TokenState::Error
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // task has no image, mark success immediately
+                    TokenState::Success
+                }
+            } else {
+                TokenState::Error
+            };
+
+            let finished_datetime = Utc::now();
+
+            TOTAL_TASKS.inc();
+            drop(running_task_guard);
+
+            statsd
+                .gauge_with_tags("tasks.running", RUNNING_TASKS.get() as u64)
+                .with_tag("worker_id", &WORKER_ID.to_string())
+                .send();
+            statsd
+                .incr_with_tags("tasks.total")
+                .with_tag("worker_id", &WORKER_ID.to_string())
+                .with_tag("result", result.as_ref())
+                .send();
+
+            info!(result=result.as_ref(),
+                started_datetime=?started_datetime.to_rfc3339(),
+                "task completed");
+
+            publish_progress(
+                &chan,
+                &task_req,
+                started_datetime,
+                Some(finished_datetime),
+                result
+            ).await?;
+
+            delivery.ack(BasicAckOptions::default()).await?;
+            debug!("task acked");
+
+            Ok::<(), anyhow::Error>(())
+        })?;
     }
 
     unreachable!("consumer stopped consuming")
+}
+
+async fn publish_progress(
+    chan: &Channel,
+    task_req: &TaskRequest,
+    started_datetime: DateTime<Utc>,
+    finished_datetime: Option<DateTime<Utc>>,
+    token_state: TokenState
+) -> Result<()> {
+    chan.basic_publish(
+        RESULT_EXCHANGE,
+        "",
+        BasicPublishOptions::default(),
+        &task_progress_payload(task_req, started_datetime, finished_datetime, token_state)?,
+        BasicProperties::default(),
+    )
+    .await?;
+
+    debug!(state=?token_state, "task result published");
+
+    Ok(())
 }
 
 fn task_progress_payload(

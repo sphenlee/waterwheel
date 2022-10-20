@@ -95,3 +95,14 @@ pub fn first<T>(tuple: (T,)) -> T {
 pub fn deref<T: Copy>(reference: &T) -> T {
     *reference
 }
+
+/// Macro for instrumenting spans
+#[macro_export]
+macro_rules! instrumented {
+    ($span:expr, $block:tt) => {
+        {
+            use tracing::Instrument;
+            async { $block }.instrument($span).await
+        }
+    }
+}

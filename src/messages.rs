@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 /// state of a token
 // TODO - strings are still hardcoded, use the enum!
-#[derive(Serialize, Deserialize, Debug, sqlx::Type)]
+#[derive(Copy, Clone, Serialize, Deserialize, Debug, sqlx::Type)]
 #[serde(rename_all = "lowercase")]
 #[sqlx(rename_all = "lowercase")]
 #[sqlx(type_name = "VARCHAR")]
