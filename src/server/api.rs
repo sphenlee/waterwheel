@@ -2,6 +2,7 @@ use crate::server::Server;
 use anyhow::Result;
 use lapin::Channel;
 use std::sync::Arc;
+use tracing::debug;
 
 pub mod auth;
 mod config_cache;
@@ -189,6 +190,7 @@ pub async fn make_app(server: Arc<Server>) -> Result<highnoon::App<State>> {
 
 pub async fn serve(server: Arc<Server>) -> Result<()> {
     let app = make_app(server.clone()).await?;
+    debug!("server binding to {}", server.config.server_bind);
     app.listen(&server.config.server_bind).await?;
     Ok(())
 }
