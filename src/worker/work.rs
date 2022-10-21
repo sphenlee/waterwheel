@@ -25,7 +25,6 @@ const TASK_QUEUE: &str = "waterwheel.tasks";
 const RESULT_EXCHANGE: &str = "waterwheel.results";
 const RESULT_QUEUE: &str = "waterwheel.results";
 
-const DEFAULT_TASK_TIMEOUT: Duration = Duration::from_secs(29 * 60); // 29 minutes
 const DEFAULT_TASK_HEARTBEAT: Duration = Duration::from_secs(60);
 
 pub async fn setup_queues(chan: &Channel) -> Result<()> {
@@ -96,6 +95,7 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
     let statsd = worker.statsd.clone();
 
     let engine = worker.config.task_engine.get_impl()?;
+    let task_timeout = Duration::from_secs(worker.config.default_task_timeout);
 
     let chan = worker.amqp_conn.create_channel().await?;
     setup_queues(&chan).await?;
@@ -143,7 +143,7 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
                     let mut task = engine.run_task(&worker, task_req.clone(), task_def).boxed();
 
                     let mut ticker = tokio::time::interval(DEFAULT_TASK_HEARTBEAT);
-                    let mut timeout = tokio::time::sleep(DEFAULT_TASK_TIMEOUT).boxed();
+                    let mut timeout = tokio::time::sleep(task_timeout).boxed();
 
                     loop {
                         tokio::select! {

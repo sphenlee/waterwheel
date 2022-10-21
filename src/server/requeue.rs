@@ -25,7 +25,7 @@ pub async fn process_requeue(server: Arc<Server>) -> Result<!> {
     let mut ticker = tokio::time::interval(Duration::from_secs(server.config.requeue_interval_secs));
 
     loop {
-        ticker.tick().await?;
+        ticker.tick().await;
         debug!("checking for tasks to requeue");
 
         let mut cursor = sqlx::query_as::<_, Requeue>("
