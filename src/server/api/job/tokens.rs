@@ -51,6 +51,7 @@ async fn get_tokens_common(req: Request<State>) -> highnoon::Result<Vec<GetToken
             FROM task t
             JOIN token k ON k.task_id = t.id
             WHERE t.job_id = $1
+            AND ($4 IS NULL OR state = ANY($4))
         ),
         these_datetimes AS (
             SELECT DISTINCT
@@ -67,7 +68,6 @@ async fn get_tokens_common(req: Request<State>) -> highnoon::Result<Vec<GetToken
             state
         FROM these_tokens tt
         JOIN these_datetimes td ON td.trigger_datetime = tt.trigger_datetime
-        WHERE ($4 IS NULL OR state = ANY($4))
         ORDER BY trigger_datetime DESC
         ",
     )

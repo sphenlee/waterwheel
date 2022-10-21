@@ -111,9 +111,11 @@ pub async fn process_executions(server: Arc<Server>) -> Result<!> {
         sqlx::query(
             "INSERT INTO task_run(id, task_id, trigger_datetime,
                 queued_datetime, started_datetime, finish_datetime,
+                updated_datetime,
                 worker_id, state, priority)
             VALUES ($1, $2, $3,
                 $4, NULL, NULL,
+                NULL,
                 NULL, 'active', $5)",
         )
         .bind(&task_req.task_run_id)

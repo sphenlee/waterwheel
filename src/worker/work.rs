@@ -127,6 +127,16 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
                 .send();
 
             let started_datetime = Utc::now();
+            publish_progress(
+                &chan,
+                &task_req,
+                started_datetime,
+                None,
+                TokenState::Running,
+            ).await?;
+
+            delivery.ack(BasicAckOptions::default()).await?;
+            debug!("task acked");
 
             let result = if let Some(task_def) = maybe_task_def {
                 if task_def.image.is_some() {
@@ -197,9 +207,6 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
                 result
             ).await?;
 
-            delivery.ack(BasicAckOptions::default()).await?;
-            debug!("task acked");
-
             Ok::<(), anyhow::Error>(())
         })?;
     }
@@ -212,28 +219,8 @@ async fn publish_progress(
     task_req: &TaskRequest,
     started_datetime: DateTime<Utc>,
     finished_datetime: Option<DateTime<Utc>>,
-    token_state: TokenState
+    result: TokenState
 ) -> Result<()> {
-    chan.basic_publish(
-        RESULT_EXCHANGE,
-        "",
-        BasicPublishOptions::default(),
-        &task_progress_payload(task_req, started_datetime, finished_datetime, token_state)?,
-        BasicProperties::default(),
-    )
-    .await?;
-
-    debug!(state=?token_state, "task result published");
-
-    Ok(())
-}
-
-fn task_progress_payload(
-    task_req: &TaskRequest,
-    started_datetime: DateTime<Utc>,
-    finished_datetime: Option<DateTime<Utc>>,
-    result: TokenState,
-) -> Result<Vec<u8>> {
     let payload = serde_json::to_vec(&TaskProgress {
         task_run_id: task_req.task_run_id,
         task_id: task_req.task_id,
@@ -244,5 +231,16 @@ fn task_progress_payload(
         result,
     })?;
 
-    Ok(payload)
+    chan.basic_publish(
+        RESULT_EXCHANGE,
+        "",
+        BasicPublishOptions::default(),
+        &payload,
+        BasicProperties::default(),
+    )
+    .await?;
+
+    debug!(result=?result, "task result published");
+
+    Ok(())
 }

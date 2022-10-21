@@ -147,33 +147,12 @@ async fn update_task_progress(
     .execute(&mut *txn)
     .await?;
 
-    sqlx::query(
-        "INSERT INTO task_run_history(
-            task_run_id,
-            change_datetime,
-            worker_id,
-            scheduler_id,
-            state
-        ) VALUES (
-            $1,
-            CURRENT_TIMESTAMP,
-            $2,
-            $3,
-            $4
-        )",
-    )
-        .bind(&task_progress.task_run_id)
-        .bind(&task_progress.worker_id)
-        .bind(server.scheduler_id)
-        .bind(&task_progress.result)
-        .execute(&mut *txn)
-        .await?;
-
     let maybe_priority: Option<(TaskPriority,)> = sqlx::query_as(
         "UPDATE task_run
             SET state = $1,
                 started_datetime = $2,
                 finish_datetime = $3,
+                updated_datetime = CURRENT_TIMESTAMP,
                 worker_id = $4
         WHERE id = $5
         RETURNING priority",

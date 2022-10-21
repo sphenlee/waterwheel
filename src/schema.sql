@@ -73,18 +73,10 @@ CREATE TABLE IF NOT EXISTS task_run (
     queued_datetime TIMESTAMP WITH TIME ZONE NOT NULL,
     started_datetime TIMESTAMP WITH TIME ZONE,
     finish_datetime TIMESTAMP WITH TIME ZONE,
+    updated_datetime TIMESTAMP WITH TIME ZONE,
     worker_id UUID REFERENCES worker(id),
     state VARCHAR,
     priority VARCHAR NOT NULL
-);
-
--- this may not be needed long term, but useful for tracking down a weird bug
-CREATE TABLE IF NOT EXISTS task_run_history (
-    task_run_id UUID NOT NULL REFERENCES task_run(id),
-    change_datetime TIMESTAMP WITH TIME ZONE NOT NULL,
-    worker_id UUID REFERENCES worker(id),
-    scheduler_id UUID NOT NULL,
-    state VARCHAR
 );
 
 CREATE INDEX IF NOT EXISTS task_run_by_state

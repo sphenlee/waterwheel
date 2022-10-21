@@ -28,6 +28,7 @@ pub struct Config {
     pub cluster_gossip_bind: String,
     pub cluster_gossip_addr: String,
     pub cluster_seed_nodes: Vec<String>,
+    pub requeue_interval_secs: u64,
 }
 
 pub fn loader(file: Option<&Path>) -> ConfigBuilder<DefaultState> {

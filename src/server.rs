@@ -23,6 +23,7 @@ pub mod triggers;
 mod updates;
 mod cluster;
 mod heartbeat;
+mod requeue;
 
 pub struct Server {
     pub scheduler_id: Uuid,
@@ -68,6 +69,7 @@ impl Server {
         spawn_or_crash("progress", self.clone(), progress::process_progress);
         spawn_or_crash("trigger_updates", self.clone(), updates::process_trigger_updates);
         spawn_or_crash("token_updates", self.clone(), updates::process_token_updates);
+        spawn_or_crash("process_requeue", self.clone(), requeue::process_requeue);
 
         self.run_api().await
     }
