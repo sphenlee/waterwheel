@@ -1,8 +1,8 @@
 use super::{RUNNING_TASKS, TOTAL_TASKS, WORKER_ID};
 use crate::{
+    instrumented,
     messages::{TaskProgress, TaskRequest, TokenState},
     worker::{config_cache, Worker},
-    instrumented
 };
 use anyhow::Result;
 use cadence::{CountedExt, Gauged};
@@ -106,10 +106,10 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
         let task_req: TaskRequest = serde_json::from_slice(&delivery.data)?;
 
         let span = info_span!("running_task",
-            task_run_id=?task_req.task_run_id,
-            task_id=?task_req.task_id,
-            trigger_datetime=?task_req.trigger_datetime.to_rfc3339(),
-            );
+        task_run_id=?task_req.task_run_id,
+        task_id=?task_req.task_id,
+        trigger_datetime=?task_req.trigger_datetime.to_rfc3339(),
+        );
 
         instrumented!(span, {
             info!("received task");
@@ -133,7 +133,8 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
                 started_datetime,
                 None,
                 TokenState::Running,
-            ).await?;
+            )
+            .await?;
 
             delivery.ack(BasicAckOptions::default()).await?;
             debug!("task acked");
@@ -204,8 +205,9 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
                 &task_req,
                 started_datetime,
                 Some(finished_datetime),
-                result
-            ).await?;
+                result,
+            )
+            .await?;
         })?;
     }
 
@@ -217,7 +219,7 @@ async fn publish_progress(
     task_req: &TaskRequest,
     started_datetime: DateTime<Utc>,
     finished_datetime: Option<DateTime<Utc>>,
-    result: TokenState
+    result: TokenState,
 ) -> Result<()> {
     let payload = serde_json::to_vec(&TaskProgress {
         task_run_id: task_req.task_run_id,

@@ -1,14 +1,14 @@
 use crate::{server::Server, GIT_VERSION};
 use anyhow::Result;
-use std::sync::Arc;
-use std::sync::atomic::Ordering;
-use tracing::trace;
 use sqlx::PgPool;
+use std::sync::{atomic::Ordering, Arc};
+use tracing::trace;
 
 pub async fn post_heartbeat(server: &Server, pool: &PgPool) -> Result<()> {
     let waiting_for_trigger_id = server.waiting_for_trigger_id.lock().await.clone();
 
-    sqlx::query("
+    sqlx::query(
+        "
         INSERT INTO scheduler(
             id,
             last_seen_datetime,
@@ -27,13 +27,14 @@ pub async fn post_heartbeat(server: &Server, pool: &PgPool) -> Result<()> {
         SET last_seen_datetime = CURRENT_TIMESTAMP,
             queued_triggers = $2,
             waiting_for_trigger_id = $3
-        ")
-        .bind(server.scheduler_id)
-        .bind(server.queued_triggers.load(Ordering::SeqCst) as i32)
-        .bind(waiting_for_trigger_id)
-        .bind(GIT_VERSION)
-        .execute(pool)
-        .await?;
+        ",
+    )
+    .bind(server.scheduler_id)
+    .bind(server.queued_triggers.load(Ordering::SeqCst) as i32)
+    .bind(waiting_for_trigger_id)
+    .bind(GIT_VERSION)
+    .execute(pool)
+    .await?;
 
     Ok(())
 }

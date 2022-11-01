@@ -1,7 +1,5 @@
 use highnoon::StatusCode;
-use waterwheel::{
-    server::{api::make_app, Server},
-};
+use waterwheel::server::{api::make_app, Server};
 
 mod common;
 

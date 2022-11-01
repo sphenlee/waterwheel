@@ -1,6 +1,5 @@
 use highnoon::Result;
-use std::future::Future;
-use std::sync::Once;
+use std::{future::Future, sync::Once};
 use waterwheel::config::{self, Config};
 
 const DEFAULT_LOG: &str = "warn,waterwheel=trace,highnoon=info,testcontainers=info,lapin=off";

@@ -1,11 +1,6 @@
 use crate::{
-    messages::{TaskPriority, Token, ProcessToken},
-    server::{
-        api::types::Catchup,
-        tokens::increment_token,
-        trigger_time::TriggerTime,
-        Server,
-    },
+    messages::{ProcessToken, TaskPriority, Token},
+    server::{api::types::Catchup, tokens::increment_token, trigger_time::TriggerTime, Server},
     util::format_duration_approx,
 };
 use anyhow::Result;
@@ -18,8 +13,10 @@ use postage::{prelude::*, stream::TryRecvError};
 use rand::{seq::SliceRandom, thread_rng};
 use serde::{Deserialize, Serialize};
 use sqlx::{Connection, PgPool, Postgres, Transaction};
-use std::{str::FromStr, sync::Arc};
-use std::sync::atomic::Ordering;
+use std::{
+    str::FromStr,
+    sync::{atomic::Ordering, Arc},
+};
 use tokio::time;
 use tracing::{debug, info, trace, warn};
 use uuid::Uuid;
@@ -358,13 +355,17 @@ async fn send_to_token_processor(
     Ok(())
 }
 
-async fn update_trigger(server: &Server, trigger_update: TriggerChange, queue: &mut Queue) -> Result<()> {
+async fn update_trigger(
+    server: &Server,
+    trigger_update: TriggerChange,
+    queue: &mut Queue,
+) -> Result<()> {
     match trigger_update {
         TriggerChange::Add(uuids) => {
             for uuid in uuids {
                 update_one_trigger(server, uuid, queue).await?;
             }
-        },
+        }
         TriggerChange::Remove(uuids) => {
             for uuid in uuids {
                 remove_trigger(uuid, queue);
@@ -389,7 +390,6 @@ fn remove_trigger(uuid: Uuid, queue: &mut Queue) {
 // TODO - we receive the updates in a batch now so make use of that to avoid
 // multiple heap rebuilds and queries
 async fn update_one_trigger(server: &Server, uuid: Uuid, queue: &mut Queue) -> Result<()> {
-
     let pool = server.db_pool.clone();
 
     debug!(trigger_id=?uuid, "updating trigger");

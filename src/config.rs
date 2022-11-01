@@ -44,10 +44,12 @@ pub fn loader(file: Option<&Path>) -> ConfigBuilder<DefaultState> {
         builder = builder.add_source(File::from(file));
     }
 
-    builder.add_source(Environment::with_prefix("WATERWHEEL")
-        .list_separator(",")
-        .try_parsing(true)
-        .with_list_parse_key("cluster_seed_nodes"))
+    builder.add_source(
+        Environment::with_prefix("WATERWHEEL")
+            .list_separator(",")
+            .try_parsing(true)
+            .with_list_parse_key("cluster_seed_nodes"),
+    )
 }
 
 pub fn load(file: Option<&Path>) -> Result<Config> {

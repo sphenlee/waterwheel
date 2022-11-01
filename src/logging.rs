@@ -10,12 +10,11 @@ use tracing::{
 use tracing_log::NormalizeEvent;
 use tracing_subscriber::{
     field::RecordFields,
-    fmt::{self, format::Writer, FmtContext, FormatEvent, FormatFields},
+    fmt::{self, format::Writer, FmtContext, FormatEvent, FormatFields, FormattedFields},
     prelude::*,
     registry::LookupSpan,
     EnvFilter,
 };
-use tracing_subscriber::fmt::FormattedFields;
 
 fn level_color(level: Level, msg: String) -> impl std::fmt::Display {
     match level {
@@ -75,9 +74,7 @@ where
         ctx.visit_spans(|span| {
             //write!(writer, "    -> {}\n", span.name().bold())?;
             let ext = span.extensions();
-            let data = ext
-                .get::<FormattedFields<SemiCompact>>()
-                .unwrap();
+            let data = ext.get::<FormattedFields<SemiCompact>>().unwrap();
             write!(writer, "{}", data)
         })?;
 
@@ -108,9 +105,7 @@ pub fn setup_raw(use_json: bool, filter: &str) -> Result<()> {
     if use_json {
         tracing_subscriber::registry()
             .with(filter_layer)
-            .with(fmt::layer().json()
-                .with_file(true)
-                .with_line_number(true))
+            .with(fmt::layer().json().with_file(true).with_line_number(true))
             .init();
     } else {
         let fmt_layer = fmt::layer()

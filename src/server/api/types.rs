@@ -100,7 +100,10 @@ mod test {
     #[test]
     fn test_period_from_string_errors() -> anyhow::Result<()> {
         let res = period_from_string(Some("1"));
-        assert_eq!(res.unwrap_err().to_string().as_str(), "time unit needed, for example 1sec or 1ms");
+        assert_eq!(
+            res.unwrap_err().to_string().as_str(),
+            "time unit needed, for example 1sec or 1ms"
+        );
 
         let res = period_from_string(Some("1x"));
         assert_eq!(res.unwrap_err().to_string().as_str(), "unknown time unit \"x\", \
@@ -111,7 +114,10 @@ mod test {
 
         // TODO - we should probably accept this by trimming whitespace
         let res = period_from_string(Some(" -1m"));
-        assert_eq!(res.unwrap_err().to_string().as_str(), "expected number at 0");
+        assert_eq!(
+            res.unwrap_err().to_string().as_str(),
+            "expected number at 0"
+        );
 
         Ok(())
     }

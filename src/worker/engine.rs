@@ -37,7 +37,9 @@ impl FromStr for TaskEngine {
 }
 
 impl TaskEngine {
-    pub fn get_impl(&self) -> Result<std::pin::Pin<Box<dyn TaskEngineImpl + Send + Sync + 'static>>> {
+    pub fn get_impl(
+        &self,
+    ) -> Result<std::pin::Pin<Box<dyn TaskEngineImpl + Send + Sync + 'static>>> {
         Ok(match self {
             #[cfg(debug_assertions)]
             TaskEngine::Null => Box::pin(null::NullEngine),

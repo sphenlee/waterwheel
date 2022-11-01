@@ -1,9 +1,7 @@
 use crate::{
-    messages::{TaskProgress, Token, ProcessToken},
-    server::{
-        tokens::{increment_token},
-        Server,
-    },
+    messages::{ProcessToken, TaskPriority, TaskProgress, Token},
+    server::{tokens::increment_token, Server},
+    util::first,
 };
 use anyhow::Result;
 use chrono::Duration;
@@ -17,8 +15,6 @@ use sqlx::{Connection, PgPool, Postgres, Transaction};
 use std::sync::Arc;
 use tracing::debug;
 use uuid::Uuid;
-use crate::messages::TaskPriority;
-use crate::util::first;
 
 const RESULT_QUEUE: &str = "waterwheel.results";
 

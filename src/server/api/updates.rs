@@ -1,11 +1,13 @@
+use crate::{
+    messages::{ProcessToken, TriggerUpdate},
+    server::updates::{TOKEN_UPDATES_EXCHANGE, TRIGGER_UPDATES_EXCHANGE},
+};
 use anyhow::Result;
 use lapin::{
     options::{BasicPublishOptions, ExchangeDeclareOptions},
     types::FieldTable,
     BasicProperties, Channel, ExchangeKind,
 };
-use crate::messages::{ProcessToken, TriggerUpdate};
-use crate::server::updates::{TOKEN_UPDATES_EXCHANGE, TRIGGER_UPDATES_EXCHANGE};
 
 pub async fn setup(chan: &Channel) -> Result<()> {
     // declare outgoing exchange and queue for trigger updates
@@ -56,7 +58,7 @@ pub async fn send_token_update(chan: &Channel, update: ProcessToken) -> Result<(
         &serde_json::to_vec(&update)?,
         BasicProperties::default(),
     )
-        .await?;
+    .await?;
 
     Ok(())
 }

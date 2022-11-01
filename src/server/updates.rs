@@ -1,19 +1,16 @@
 use crate::{
-    messages::ProcessToken,
-    server::Server,
+    messages::{ProcessToken, TriggerUpdate},
+    server::{cluster::trigger_update, Server},
 };
 use anyhow::Result;
 use futures::TryStreamExt;
 use lapin::{
-    options::{BasicAckOptions, BasicConsumeOptions, QueueDeclareOptions},
+    options::{BasicAckOptions, BasicConsumeOptions, QueueBindOptions, QueueDeclareOptions},
     types::FieldTable,
 };
 use postage::prelude::*;
 use std::sync::Arc;
-use lapin::options::QueueBindOptions;
 use tracing::trace;
-use crate::messages::TriggerUpdate;
-use crate::server::cluster::trigger_update;
 
 pub const TRIGGER_UPDATES_EXCHANGE: &str = "waterwheel.updates.triggers";
 pub const TOKEN_UPDATES_EXCHANGE: &str = "waterwheel.updates.tokens";
@@ -65,21 +62,21 @@ pub async fn process_token_updates(server: Arc<Server>) -> Result<!> {
     unreachable!("consumer stopped consuming")
 }
 
-
 pub async fn process_trigger_updates(server: Arc<Server>) -> Result<!> {
     let chan = server.amqp_conn.create_channel().await?;
 
     // declare queue for consuming incoming messages
-    let queue = chan.queue_declare(
-        "", // autogenerate
-        QueueDeclareOptions {
-            durable: true,
-            exclusive: true, // implies auto-delete
-            ..QueueDeclareOptions::default()
-        },
-        FieldTable::default(),
-    )
-    .await?;
+    let queue = chan
+        .queue_declare(
+            "", // autogenerate
+            QueueDeclareOptions {
+                durable: true,
+                exclusive: true, // implies auto-delete
+                ..QueueDeclareOptions::default()
+            },
+            FieldTable::default(),
+        )
+        .await?;
 
     chan.queue_bind(
         queue.name().as_str(),

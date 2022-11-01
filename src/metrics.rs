@@ -1,8 +1,7 @@
 use crate::config::Config;
 use anyhow::Result;
 use cadence::{BufferedUdpMetricSink, NopMetricSink, QueuingMetricSink, StatsdClient};
-use std::net::UdpSocket;
-use std::sync::Arc;
+use std::{net::UdpSocket, sync::Arc};
 use tracing::warn;
 
 const METRIC_PREFIX: &str = "waterwheel"; // TODO - customise this for multiple deployments

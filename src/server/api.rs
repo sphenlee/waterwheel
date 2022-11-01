@@ -11,6 +11,7 @@ mod job;
 pub mod jwt;
 mod project;
 mod request_ext;
+mod schedulers;
 mod stash;
 mod status;
 mod task;
@@ -18,7 +19,6 @@ mod task_logs;
 pub mod types;
 mod updates;
 mod workers;
-mod schedulers;
 
 pub struct State {
     amqp_channel: Channel,

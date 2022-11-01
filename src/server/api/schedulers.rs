@@ -1,7 +1,7 @@
 use crate::server::api::{auth, request_ext::RequestExt, State};
 use chrono::{DateTime, Utc};
 use highnoon::{Json, Request, Responder};
-use serde::{Serialize};
+use serde::Serialize;
 use uuid::Uuid;
 
 #[derive(Serialize, sqlx::FromRow)]

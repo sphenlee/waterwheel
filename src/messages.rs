@@ -1,6 +1,6 @@
-use std::str::FromStr;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use uuid::Uuid;
 
 /// state of a token
@@ -25,8 +25,6 @@ pub enum TokenState {
 }
 
 impl TokenState {
-
-
     pub fn is_final(&self) -> bool {
         matches!(
             self,
@@ -61,7 +59,10 @@ impl FromStr for TokenState {
             "success" => Ok(TokenState::Success),
             "failure" => Ok(TokenState::Failure),
             "error" => Ok(TokenState::Error),
-            _ => Err(TokenStateParseError(format!("invalid token state: '{}'", s))),
+            _ => Err(TokenStateParseError(format!(
+                "invalid token state: '{}'",
+                s
+            ))),
         }
     }
 }
@@ -112,7 +113,9 @@ pub struct TaskProgress {
 //     }
 // }
 
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Serialize, Deserialize, sqlx::Type)]
+#[derive(
+    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Serialize, Deserialize, sqlx::Type,
+)]
 #[serde(rename_all = "lowercase")]
 #[sqlx(rename_all = "lowercase")]
 #[sqlx(type_name = "VARCHAR")]

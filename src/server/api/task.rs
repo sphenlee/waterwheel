@@ -1,8 +1,6 @@
 use crate::{
-    messages::{TaskDef, TaskPriority, Token, ProcessToken},
-    server::{
-        api::{auth, jwt, request_ext::RequestExt, updates, State},
-    },
+    messages::{ProcessToken, TaskDef, TaskPriority, Token},
+    server::api::{auth, jwt, request_ext::RequestExt, updates, State},
 };
 use chrono::{DateTime, Utc};
 use futures::TryStreamExt;
@@ -45,11 +43,7 @@ pub async fn activate_token(mut req: Request<State>) -> highnoon::Result<impl Re
 
     let priority = params.priority.unwrap_or(TaskPriority::High);
 
-    updates::send_token_update(
-        req.get_channel(),
-        ProcessToken::Activate(token, priority),
-    )
-    .await?;
+    updates::send_token_update(req.get_channel(), ProcessToken::Activate(token, priority)).await?;
 
     txn.commit().await?;
 
@@ -113,11 +107,8 @@ pub async fn activate_multiple_tokens(mut req: Request<State>) -> highnoon::Resu
             trigger_datetime,
         };
 
-        updates::send_token_update(
-            req.get_channel(),
-            ProcessToken::Activate(token, priority),
-        )
-        .await?;
+        updates::send_token_update(req.get_channel(), ProcessToken::Activate(token, priority))
+            .await?;
     }
 
     drop(cursor);

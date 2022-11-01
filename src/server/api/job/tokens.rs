@@ -1,8 +1,6 @@
 use crate::{
-    messages::{Token, TokenState, ProcessToken},
-    server::{
-        api::{auth, request_ext::RequestExt, updates, State},
-    },
+    messages::{ProcessToken, Token, TokenState},
+    server::api::{auth, request_ext::RequestExt, updates, State},
 };
 use chrono::{DateTime, Utc};
 use highnoon::{Json, Request, Responder};
@@ -35,9 +33,9 @@ async fn get_tokens_common(req: Request<State>) -> highnoon::Result<Vec<GetToken
 
     if let Some(states) = &maybe_states {
         for state in states {
-            let _ = state.parse::<TokenState>().map_err(|err| {
-                highnoon::Error::bad_request(err.0)
-            })?;
+            let _ = state
+                .parse::<TokenState>()
+                .map_err(|err| highnoon::Error::bad_request(err.0))?;
         }
     }
 
@@ -209,11 +207,7 @@ pub async fn clear_tokens_trigger_datetime(
             task_id: id,
             trigger_datetime,
         };
-        updates::send_token_update(
-            req.get_channel(),
-            ProcessToken::Clear(token),
-        )
-        .await?;
+        updates::send_token_update(req.get_channel(), ProcessToken::Clear(token)).await?;
     }
 
     let body = ClearTokens {

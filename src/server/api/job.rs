@@ -1,8 +1,8 @@
 use crate::{
-    messages::{ConfigUpdate},
+    messages::ConfigUpdate,
     server::{
         api::{auth, config_cache, request_ext::RequestExt, types::Job, updates, State},
-        body_parser::read_from_body
+        body_parser::read_from_body,
     },
     util::{is_pg_integrity_error, pg_error},
 };
@@ -29,9 +29,11 @@ pub use self::{
     },
     triggers::{get_trigger, get_triggers_by_job},
 };
+use crate::{
+    messages::{ProcessToken, TriggerUpdate},
+    util::first,
+};
 pub use task_runs::{list_job_all_task_runs, list_task_runs};
-use crate::messages::{TriggerUpdate, ProcessToken};
-use crate::util::first;
 
 pub async fn get_job_project_id(pool: &PgPool, job_id: Uuid) -> highnoon::Result<Uuid> {
     let row: Option<(Uuid,)> = sqlx::query_as(
@@ -133,11 +135,7 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
 
     txn.commit().await?;
 
-    updates::send_trigger_update(
-        req.get_channel(),
-        TriggerUpdate(triggers_to_tx),
-    )
-    .await?;
+    updates::send_trigger_update(req.get_channel(), TriggerUpdate(triggers_to_tx)).await?;
 
     for id in tasks_to_tx {
         config_cache::send(req.get_channel(), ConfigUpdate::TaskDef(id)).await?;
@@ -373,18 +371,10 @@ pub async fn set_paused(mut req: Request<State>) -> impl Responder {
     .await?;
 
     let triggers_to_tx = triggers_to_tx.into_iter().map(first).collect();
-    updates::send_trigger_update(
-        req.get_channel(),
-        TriggerUpdate(triggers_to_tx),
-    )
-    .await?;
+    updates::send_trigger_update(req.get_channel(), TriggerUpdate(triggers_to_tx)).await?;
 
     if !paused {
-        updates::send_token_update(
-            req.get_channel(),
-            ProcessToken::UnpauseJob(job_id)
-        )
-        .await?;
+        updates::send_token_update(req.get_channel(), ProcessToken::UnpauseJob(job_id)).await?;
     }
 
     Ok(StatusCode::NO_CONTENT)

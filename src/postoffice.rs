@@ -40,8 +40,7 @@ impl PostOffice {
     }
 
     pub async fn receive_mail<T: Clone + Send + 'static>(&self) -> Result<Receiver<T>> {
-        self.with_mailbox(|mailbox| Ok(mailbox.rx.clone()))
-            .await
+        self.with_mailbox(|mailbox| Ok(mailbox.rx.clone())).await
     }
 
     pub async fn post_mail<T: Clone + Send + 'static>(&self) -> Result<Sender<T>> {

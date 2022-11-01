@@ -10,19 +10,18 @@ async fn main() -> Result<()> {
         .version(waterwheel::GIT_VERSION)
         .subcommand_required(true)
         .arg_required_else_help(true)
-        .arg(clap::Arg::new("config_path")
-            .long("config")
-            .short('c')
-            .takes_value(true)
-            .help("Provide a specific config file")
+        .arg(
+            clap::Arg::new("config_path")
+                .long("config")
+                .short('c')
+                .takes_value(true)
+                .help("Provide a specific config file"),
         )
         .subcommand(
             clap::Command::new("scheduler")
                 .alias("server")
                 .about("launch the scheduler process")
-                .after_help(
-                    "The scheduler has an API server embedded.",
-                ),
+                .after_help("The scheduler has an API server embedded."),
         )
         .subcommand(
             clap::Command::new("api")

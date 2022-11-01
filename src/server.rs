@@ -4,26 +4,25 @@ use crate::{
 use anyhow::Result;
 use api::{jwt, jwt::JwtKeys};
 use cadence::StatsdClient;
+use chitchat::{Chitchat, ChitchatHandle};
 use lapin::Connection;
 use sqlx::PgPool;
-use std::sync::Arc;
-use std::sync::atomic::AtomicUsize;
-use chitchat::{Chitchat, ChitchatHandle};
+use std::sync::{atomic::AtomicUsize, Arc};
 use tokio::sync::Mutex;
 use tracing::warn;
 use uuid::Uuid;
 
 pub mod api;
 pub mod body_parser;
+mod cluster;
 mod execute;
+mod heartbeat;
 mod progress;
+mod requeue;
 pub mod tokens;
 mod trigger_time;
 pub mod triggers;
 mod updates;
-mod cluster;
-mod heartbeat;
-mod requeue;
 
 pub struct Server {
     pub scheduler_id: Uuid,
@@ -67,8 +66,16 @@ impl Server {
         spawn_or_crash("tokens", self.clone(), tokens::process_tokens);
         spawn_or_crash("executions", self.clone(), execute::process_executions);
         spawn_or_crash("progress", self.clone(), progress::process_progress);
-        spawn_or_crash("trigger_updates", self.clone(), updates::process_trigger_updates);
-        spawn_or_crash("token_updates", self.clone(), updates::process_token_updates);
+        spawn_or_crash(
+            "trigger_updates",
+            self.clone(),
+            updates::process_trigger_updates,
+        );
+        spawn_or_crash(
+            "token_updates",
+            self.clone(),
+            updates::process_token_updates,
+        );
         spawn_or_crash("process_requeue", self.clone(), requeue::process_requeue);
 
         self.run_api().await
@@ -85,6 +92,9 @@ impl Server {
     }
 
     pub async fn get_chitchat(self: &Arc<Self>) -> Arc<Mutex<Chitchat>> {
-        self.cluster.as_ref().expect("cluster is not created!").chitchat()
+        self.cluster
+            .as_ref()
+            .expect("cluster is not created!")
+            .chitchat()
     }
 }

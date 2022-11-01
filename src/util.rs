@@ -99,15 +99,15 @@ pub fn deref<T: Copy>(reference: &T) -> T {
 /// Macro for instrumenting spans
 #[macro_export]
 macro_rules! instrumented {
-    ($span:expr, $block:tt) => {
-        {
-            use tracing::Instrument;
-            async {
-                {
-                    $block
-                };
-                Ok::<(), anyhow::Error>(())
-            }.instrument($span).await
+    ($span:expr, $block:tt) => {{
+        use tracing::Instrument;
+        async {
+            {
+                $block
+            };
+            Ok::<(), anyhow::Error>(())
         }
-    }
+        .instrument($span)
+        .await
+    }};
 }

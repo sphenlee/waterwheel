@@ -1,5 +1,5 @@
 use crate::{
-    messages::{TaskPriority, Token, ProcessToken},
+    messages::{ProcessToken, TaskPriority, Token},
     server::{execute::ExecuteToken, Server},
 };
 use anyhow::Result;
@@ -153,8 +153,7 @@ async fn restore_tokens(server: &Server, job_id: Option<Uuid>) -> Result<()> {
 
     debug!(
         ?job_id,
-        "done restoring {} tokens from database",
-        num_tokens_restored
+        "done restoring {} tokens from database", num_tokens_restored
     );
 
     Ok(())

@@ -1,9 +1,11 @@
-use crate::server::api::{auth, request_ext::RequestExt, State};
+use crate::{
+    messages::{TaskPriority, TokenState},
+    server::api::{auth, request_ext::RequestExt, State},
+};
 use chrono::{DateTime, Utc};
 use highnoon::{Json, Request, Responder};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use crate::messages::{TaskPriority, TokenState};
 
 #[derive(Deserialize)]
 struct ListTaskRunsQuery {
