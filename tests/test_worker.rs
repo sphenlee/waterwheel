@@ -72,7 +72,7 @@ pub async fn test_worker() -> highnoon::Result<()> {
 
         //tokio::time::sleep(Duration::from_secs(5)).await;
 
-        // WAIT FOR TASK PROGRESS
+        // WAIT FOR TASK STARTED
         let mut consumer = amqp_chan
             .basic_consume(
                 "waterwheel.results",
@@ -92,17 +92,54 @@ pub async fn test_worker() -> highnoon::Result<()> {
             .as_str()
             .expect("missing started_datetime")
             .parse()?;
+
+        let worker_id: Uuid = data["worker_id"]
+            .as_str()
+            .expect("missing worker_id")
+            .parse()?;
+
+        data["started_datetime"] = "<removed>".into();
+        data["worker_id"] = "<removed>".into();
+
+        assert_eq!(
+            data,
+            json!({
+                    "task_run_id": "00000000-0000-0000-0000-000000000000",
+                    "task_id": "00000000-0000-0000-0000-000000000000",
+                    "trigger_datetime": "2000-01-01T00:00:00Z",
+                    "started_datetime": "<removed>",
+                    "finished_datetime": null,
+                    "result": "running",
+                    "worker_id": "<removed>",
+            })
+        );
+
+        // WAIT FOR TASK SUCCESS
+        let delivery = consumer
+            .try_next()
+            .await?
+            .expect("no task result published");
+
+        let mut data: Value = serde_json::from_slice(&delivery.data)?;
+
+        let started2: DateTime<Utc> = data["started_datetime"]
+            .as_str()
+            .expect("missing started_datetime")
+            .parse()?;
         let finished: DateTime<Utc> = data["finished_datetime"]
             .as_str()
             .expect("missing finished_datetime")
             .parse()?;
 
-        assert!(started < finished);
+        assert_eq!(started, started2);
+        assert!(started2 < finished);
 
-        let _: Uuid = data["worker_id"]
+        let worker_id2: Uuid = data["worker_id"]
             .as_str()
             .expect("missing worker_id")
             .parse()?;
+
+        assert_eq!(worker_id, worker_id2);
 
         data["started_datetime"] = "<removed>".into();
         data["finished_datetime"] = "<removed>".into();
@@ -169,12 +206,18 @@ pub async fn test_worker_missing_taskid() -> highnoon::Result<()> {
             )
             .await?;
 
-        let delivery = timeout(Duration::from_secs(30), consumer.try_next())
+        let delivery1 = timeout(Duration::from_secs(30), consumer.try_next())
             .await??
             .expect("no task result published");
 
-        let data: Value = serde_json::from_slice(&delivery.data)?;
+        let data: Value = serde_json::from_slice(&delivery1.data)?;
+        assert_eq!(data["result"].as_str(), Some("running"));
 
+        let delivery2 = timeout(Duration::from_secs(30), consumer.try_next())
+            .await??
+            .expect("no task result published");
+
+        let data: Value = serde_json::from_slice(&delivery2.data)?;
         assert_eq!(data["result"].as_str(), Some("error"));
 
         Ok(())
