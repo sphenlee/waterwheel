@@ -12,6 +12,9 @@ use bollard::{
 };
 use futures::TryStreamExt;
 use std::collections::HashMap;
+use bollard::container::LogsOptions;
+use redis::AsyncCommands;
+use redis::streams::{StreamId, StreamMaxlen};
 use tracing::trace;
 
 pub struct DockerEngine;
@@ -96,33 +99,37 @@ async fn run_docker(worker: &Worker, task_req: TaskRequest, task_def: TaskDef) -
 
     trace!(id=?container.id, "started container");
 
-    // // ____________________________________________________
-    // // streams the logs back
-    // let mut logs = docker.logs(
-    //     &container.id,
-    //     Some(LogsOptions::<&str> {
-    //         follow: true,
-    //         stdout: true,
-    //         stderr: true,
-    //         ..LogsOptions::default()
-    //     }),
-    // );
-    //
-    // let log_meta = LogMeta {
-    //     project_id: &task_def.project_id.to_string(),
-    //     job_id: &task_def.job_id.to_string(),
-    //     task_id: &task_def.task_id.to_string(),
-    //     trigger_datetime: &task_req.trigger_datetime.to_rfc3339(),
-    // };
-    //
-    // while let Some(line) = logs.try_next().await? {
-    //     info!(target: "container_logs",
-    //         project_id=?log_meta.project_id,
-    //         job_id=?log_meta.job_id,
-    //         task_id=?log_meta.task_id,
-    //         trigger_datetime=?log_meta.trigger_datetime,
-    //         "{}", line);
-    // }
+    // ____________________________________________________
+    // streams the logs back
+    let mut logs = docker.logs(
+        &container.id,
+        Some(LogsOptions::<&str> {
+            follow: true,
+            stdout: true,
+            stderr: true,
+            ..LogsOptions::default()
+        }),
+    );
+
+    let key = format!("waterwheel-logs.{}", task_req.task_run_id);
+    let redis_client = redis::Client::open("redis://localhost")?;
+    let mut redis = redis_client.get_tokio_connection().await?;
+
+    trace!("sending docker logs to {}", key);
+    while let Some(line) = logs.try_next().await? {
+        let bytes = line.into_bytes();
+        trace!("got log line ({} bytes)", bytes.len());
+        redis.xadd_maxlen(&key, StreamMaxlen::Approx(1024),
+            "*",
+            &[
+                ("data", bytes.as_ref()),
+            ]
+        ).await?;
+        trace!("sent to redis");
+    }
+
+    let _: redis::Value = redis.expire(&key, worker.config.log_retention_secs).await?;
+    drop(redis);
 
     // ____________________________________________________
     // wait for it to terminate

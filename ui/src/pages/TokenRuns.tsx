@@ -1,4 +1,4 @@
-import React, { Component } from "react";
+import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
 import { Table, Layout, Breadcrumb, PageHeader, Button, notification, Popconfirm,
         Row, Col, Drawer, Descriptions, Skeleton, Space } from 'antd';
@@ -41,17 +41,16 @@ function expandedRowRender(record: TaskRun) {
         <Descriptions
                 size="small"
                 bordered
-                column={2}
                 labelStyle={{
                     fontWeight: "bold"
                 }}
                 contentStyle={{
                     background: "#fff"
                 }}>
-            <Descriptions.Item label="Run Id" span={2}>
+            <Descriptions.Item label="Task Run Id">
                 {record.task_run_id}
             </Descriptions.Item>
-            <Descriptions.Item label="Queued Time" span={2}>
+            <Descriptions.Item label="Queued Time">
                 <RelDate>{record.queued_datetime ?? ''}</RelDate>
             </Descriptions.Item>
             <Descriptions.Item label="Start Time">
@@ -112,6 +111,10 @@ class TokenRuns extends Component<TokenRunsProps, TokenRunsState> {
             title: 'Priority',
             dataIndex: 'priority',
             render: text => <Priority priority={text} />,
+          },{
+            title: 'Logs',
+            dataIndex: 'task_run_id',
+            render: text => <Link to={`/logs/${text}`}>logs</Link>,
           }
         ];
     }
@@ -161,7 +164,7 @@ class TokenRuns extends Component<TokenRunsProps, TokenRunsState> {
         }
 
         return (
-            <Space direction="vertical">
+            <Fragment>
                 <h2>{`${task.task_name} @ ${trigger_datetime}`}</h2>
 
                 <ActivateToken
@@ -206,7 +209,7 @@ class TokenRuns extends Component<TokenRunsProps, TokenRunsState> {
                             )
                     }}
                     />
-            </Space>
+            </Fragment>
         );
     }
 }

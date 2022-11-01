@@ -95,7 +95,7 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
     let statsd = worker.statsd.clone();
 
     let engine = worker.config.task_engine.get_impl()?;
-    let task_timeout = Duration::from_secs(worker.config.default_task_timeout);
+    let task_timeout = Duration::from_secs(worker.config.default_task_timeout_secs);
 
     let chan = worker.amqp_conn.create_channel().await?;
     setup_queues(&chan).await?;

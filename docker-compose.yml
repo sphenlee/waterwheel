@@ -26,3 +26,8 @@ services:
     volumes:
       - "$PWD/etc/policy:/policy"
     command: ["run", "--server", "-b", "/policy"]
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"

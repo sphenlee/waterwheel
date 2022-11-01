@@ -50,13 +50,20 @@ function expandedRowRender(record: WorkerTask) {
         <Descriptions
                 size="small"
                 bordered
-                column={2}
                 labelStyle={{
                     fontWeight: "bold"
                 }}
                 contentStyle={{
                     background: "#fff"
                 }}>
+            <Descriptions.Item label="Task Run Id">
+                {record.task_run_id}
+            </Descriptions.Item>
+            <Descriptions.Item label="Logs">
+                <Link to={`/logs/${record.task_run_id}`}>
+                    logs
+                </Link>
+            </Descriptions.Item>
             <Descriptions.Item label="Project">
                 <Link to={`/projects/${record.project_id}`}>
                     {record.project_name}
@@ -67,7 +74,7 @@ function expandedRowRender(record: WorkerTask) {
                     {record.job_name}
                 </Link>
             </Descriptions.Item>
-            <Descriptions.Item label="Queued Time" span={2}>
+            <Descriptions.Item label="Queued Time">
                 <RelDate>{record.queued_datetime}</RelDate>
             </Descriptions.Item>
             <Descriptions.Item label="Start Time">

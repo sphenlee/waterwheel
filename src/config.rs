@@ -29,7 +29,8 @@ pub struct Config {
     pub cluster_gossip_addr: String,
     pub cluster_seed_nodes: Vec<String>,
     pub requeue_interval_secs: u64, // TODO - deserialise both of these as duration strings
-    pub default_task_timeout: u64,
+    pub default_task_timeout_secs: u64,
+    pub log_retention_secs: usize,
 }
 
 pub fn loader(file: Option<&Path>) -> ConfigBuilder<DefaultState> {

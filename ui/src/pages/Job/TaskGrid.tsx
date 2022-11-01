@@ -28,7 +28,6 @@ const HeaderCell = styled.td`
 `;
 
 const TCell = styled.td`
-    border-bottom: 1px solid #ddd;
     transition: background 0.3s;
     padding-right: 7px;
     padding-left: 7px;
@@ -39,8 +38,7 @@ const TRow = styled.tr`
     transition: background 0.3s;
     &:hover {
         > td {
-            border-top: 1px solid ${geekblue[2]};
-            border-bottom: 1px solid ${geekblue[2]};
+            background-color: ${geekblue[0]};
         }
     }
 `;
@@ -121,17 +119,7 @@ class TaskGrid extends Component<TaskGridProps, TaskGridState> {
         }</tr>;
 
         let rows = tokens.map(tok => {
-
-            let row_style: CSSProperties;
-            if (tok.trigger_datetime === this.state.drawer_trigger_datetime) {
-                row_style = {
-                    backgroundColor: geekblue[0],
-                };
-            } else {
-                row_style = {};
-            }
-
-            return <TRow key={tok.trigger_datetime} style={row_style}>{
+            return <TRow key={tok.trigger_datetime}>{
                 [
                     <TCell key="trigger_datetime">
                         <Link to={`/jobs/${job_id}/tokens/${tok.trigger_datetime}`}>
@@ -142,9 +130,10 @@ class TaskGrid extends Component<TaskGridProps, TaskGridState> {
                     let this_task = tok.task_states[task];
 
                     let col_style: CSSProperties;
-                    if (this_task && this_task.task_id === this.state.drawer_task_id) {
+                    if (this_task && this_task.task_id === this.state.drawer_task_id
+                    && tok.trigger_datetime == this.state.drawer_trigger_datetime) {
                         col_style = {
-                            backgroundColor: geekblue[0]
+                            border: `solid 1px ${geekblue[7]}`,
                         };
                     } else {
                         col_style = {};

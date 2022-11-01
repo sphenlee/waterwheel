@@ -11,6 +11,7 @@ import Login from './pages/Login';
 import Project from './pages/Project';
 import Projects from './pages/Projects';
 import Schedulers from './pages/Schedulers';
+import TaskLogs from './pages/TaskLogs';
 import Tokens from './pages/Tokens';
 import TopMenu from './components/TopMenu'
 import Triggers from './pages/Triggers';
@@ -31,6 +32,7 @@ class App extends Component {
             <Route path="/jobs/:job_id/triggers/:trigger_id" component={Triggers} />
             <Route path="/jobs/:id/:tab" component={Job} />
             <Route path="/jobs/:id" component={Job} />
+            <Route path="/logs/:task_run_id" component={TaskLogs} />
             <Route path="/schedulers" component={Schedulers} />
             <Route path="/workers/:id" component={Worker} />
             <Route path="/workers" component={Workers} />

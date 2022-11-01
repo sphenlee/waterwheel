@@ -140,7 +140,7 @@ pub async fn make_app(server: Arc<Server>) -> Result<highnoon::App<State>> {
         .get(job::list_task_runs);
 
     // task logs - TODO unimplemented
-    //app.at("/api/tasks/:id/logs").ws(task_logs::logs);
+    app.at("/api/task_runs/:id/logs").ws(task_logs::logs);
 
     // trigger times
     app.at("/api/triggers/:id").get(job::get_trigger);
