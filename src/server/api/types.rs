@@ -10,7 +10,7 @@ pub fn period_from_string(period: Option<&str>) -> anyhow::Result<Option<i32>> {
             let mut neg = false;
             if s.starts_with('-') {
                 neg = true;
-                s = s.trim_start_matches("-");
+                s = s.trim_start_matches('-');
             }
             let mut secs = humantime::parse_duration(s)?.as_secs() as i32;
             if neg {

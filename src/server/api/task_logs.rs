@@ -6,7 +6,7 @@ use std::time::Duration;
 use tracing::info;
 
 // TODO - this is a placeholder and was never implemented!
-pub async fn logs(mut _rx: WebSocketReceiver, mut tx: WebSocketSender) -> highnoon::Result<()> {
+pub async fn _logs(mut _rx: WebSocketReceiver, mut tx: WebSocketSender) -> highnoon::Result<()> {
     loop {
         let msg = Message::text("Hello World!");
         info!("sending log line");

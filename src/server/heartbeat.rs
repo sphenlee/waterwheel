@@ -5,7 +5,7 @@ use std::sync::{atomic::Ordering, Arc};
 use tracing::trace;
 
 pub async fn post_heartbeat(server: &Server, pool: &PgPool) -> Result<()> {
-    let waiting_for_trigger_id = server.waiting_for_trigger_id.lock().await.clone();
+    let waiting_for_trigger_id = *server.waiting_for_trigger_id.lock().await;
 
     sqlx::query(
         "
