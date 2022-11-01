@@ -91,17 +91,17 @@ async fn watch_live_nodes(server: Arc<Server>) -> Result<!>
             .map(deref)
             .collect();
 
-        let to_remove = current_triggers.difference(&new_triggers).map(deref).collect();
-        info!("remove trigger {:?}", to_remove);
+        let to_remove: Vec<_> = current_triggers.difference(&new_triggers).map(deref).collect();
+        trace!("removing triggers: {:?}", to_remove);
+        info!("removing {} triggers", to_remove.len());
         change_tx.send(TriggerChange::Remove(to_remove)).await?;
 
-        let to_add = new_triggers.difference(&current_triggers).map(deref).collect();
-        info!("add trigger {:?}", to_add);
+        let to_add: Vec<_> = new_triggers.difference(&current_triggers).map(deref).collect();
+        trace!("adding triggers: {:?}", to_add);
+        info!("adding {} triggers", to_add.len());
         change_tx.send(TriggerChange::Add(to_add)).await?;
 
         current_triggers = new_triggers;
-
-        dbg!(&current_triggers);
     }
 
     unreachable!("chitchat watcher was closed!");
