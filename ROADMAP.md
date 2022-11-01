@@ -7,11 +7,11 @@ Not necessarily in order, or committed.
 Features
 --------
 
-* [ ] show task logs in the web UI
-    * need to decide if waterwheel is going to be opinionated about the logging server (currently Vector, but should be
-      compatible with FluentD too)
-    * [ ] display logs after job completion
-    * [ ] tail logs of a running job
+* [x] show task logs in the web UI
+    * logs are stored in Redis streams and sent to the UI over a websocket
+    * (currently only implemented for Docker workers)
+    * [x] display logs after job completion
+    * [x] tail logs of a running job
 * [x] overview interface to show recent job runs (like the box view of Airflow but less ugly)
     * plenty more improvements to be made here
 * [ ] APIs for activating tasks based on query criteria (eg. past/future)
@@ -24,10 +24,12 @@ Features
     * most likely needs to be an HTTP API exposed to each container
 * [ ] task routing - send tasks to specific workers to support workers running on "privileged" hardware
     * maybe just based on projects, or maybe fully custom (with separate ACLs to control it)
-* [ ] ACLs
-    * [ ] Web UI logins and edit/view permissions
-    * [ ] API permissions - CRUD operations
-    * considering using an ACL language like Rego or Casbin
+* [X] ACLs
+    *  ~~Web UI logins and edit/view permissions~~
+    * [x] API permissions - CRUD operations
+    * All authorization decisions are evaluated by an OPA server
+    * Authentication should be provided by a proxy (such as Oathkeeper or 
+      SealProxy)
 
 Operational
 -----------
@@ -37,9 +39,10 @@ Operational
 * [ ] High Availability
     * [x] separate the server from the web interface
         * update messages are sent from the api to the scheduler over AMQP
-    * [ ] scheduler is stateless, but has in-memory caches, verify and test
-    * [ ] HA mode for the scheduler
-        * initially active/passive mode, active/active in future?
+    * [x] scheduler is stateless, but has in-memory caches, verify and test
+    * [x] HA mode for the scheduler
+        * active/active - triggers are allocated to schedulers using 
+          Rendezvous hashing. Schedulers form a cluster using a gossip protocol.
         
 Bug Fixes / Paper Cuts
 ----------------------
