@@ -1,4 +1,4 @@
-FROM ubuntu:focal
+FROM ubuntu:jammy
 
 RUN apt-get update && apt-get install -y dumb-init
 RUN apt-get install -y openssl
