@@ -43,6 +43,7 @@ pub async fn get_task_def(worker: &Worker, task_id: Uuid) -> Result<Option<TaskD
         trace!(?task_id, "task def cache hit");
         Ok(def.clone())
     } else {
+        trace!("task def cache miss");
         let maybe_def =
             fetch_task_def(&worker.jwt_keys, &worker.config.server_addr, task_id).await?;
         cache.insert(task_id, maybe_def.clone());

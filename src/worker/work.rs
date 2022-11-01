@@ -206,8 +206,6 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
                 Some(finished_datetime),
                 result
             ).await?;
-
-            Ok::<(), anyhow::Error>(())
         })?;
     }
 

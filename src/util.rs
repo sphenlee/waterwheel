@@ -102,7 +102,12 @@ macro_rules! instrumented {
     ($span:expr, $block:tt) => {
         {
             use tracing::Instrument;
-            async { $block }.instrument($span).await
+            async {
+                {
+                    $block
+                };
+                Ok::<(), anyhow::Error>(())
+            }.instrument($span).await
         }
     }
 }

@@ -131,7 +131,7 @@ pub async fn advance_tokens(
 }
 
 async fn update_task_progress(
-    server: &Server,
+    _server: &Server,
     txn: &mut Transaction<'_, Postgres>,
     task_progress: &TaskProgress,
 ) -> Result<TaskPriority> {
