@@ -4,7 +4,6 @@ use crate::{
 };
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use futures::TryStreamExt;
 use postage::prelude::*;
 use std::{sync::Arc, time::Duration};
 use tracing::{debug, warn};
@@ -12,6 +11,7 @@ use uuid::Uuid;
 
 #[derive(sqlx::FromRow)]
 struct Requeue {
+    task_run_id: Uuid,
     task_id: Uuid,
     trigger_datetime: DateTime<Utc>,
     priority: TaskPriority,
@@ -27,24 +27,29 @@ pub async fn process_requeue(server: Arc<Server>) -> Result<!> {
         ticker.tick().await;
         debug!("checking for tasks to requeue");
 
-        let mut cursor = sqlx::query_as::<_, Requeue>(
-            "
-            UPDATE task_run
-            SET state = $1,
-                finish_datetime = CURRENT_TIMESTAMP
-            WHERE state = $2
-            AND updated_datetime < CURRENT_TIMESTAMP - INTERVAL '5 minutes'
-            RETURNING task_id,
-                      trigger_datetime,
-                      priority
-        ",
-        )
-        .bind(TokenState::Error)
-        .bind(TokenState::Running)
-        .fetch(&server.db_pool);
+        let mut txn = server.db_pool.begin().await?;
 
-        while let Some(requeue) = cursor.try_next().await? {
-            warn!(task_id=?requeue.task_id,
+        let requeues = sqlx::query_as::<_, Requeue>(
+            "SELECT
+                r.id AS task_run_id,
+                r.task_id,
+                r.trigger_datetime,
+                r.priority
+            FROM task_run r
+            JOIN task t ON r.task_id = t.id
+            JOIN job j ON t.job_id = j.id
+            WHERE r.state = $1
+            AND r.updated_datetime < CURRENT_TIMESTAMP - INTERVAL '5 minutes'
+            AND NOT j.paused
+            FOR UPDATE OF r",
+        )
+        .bind(TokenState::Running)
+        .fetch_all(&mut txn)
+        .await?;
+
+        for requeue in requeues {
+            warn!(task_run_id=?requeue.task_run_id,
+                task_id=?requeue.task_id,
                 trigger_datetime=?requeue.trigger_datetime.to_rfc3339(),
                 "requeueing task");
 
@@ -59,19 +64,30 @@ pub async fn process_requeue(server: Arc<Server>) -> Result<!> {
                 .await?;
 
             sqlx::query(
-                "
-                UPDATE token
+                "UPDATE task_run
+                SET state = $1,
+                    finish_datetime = CURRENT_TIMESTAMP
+                WHERE id = $2",
+            )
+            .bind(TokenState::Error)
+            .bind(&requeue.task_run_id)
+            .execute(&mut txn)
+            .await?;
+
+            sqlx::query(
+                "UPDATE token
                    SET state = $1
                  WHERE task_id = $2
-                   AND trigger_datetime = $3
-            ",
+                   AND trigger_datetime = $3",
             )
             .bind(TokenState::Running)
             .bind(requeue.task_id)
             .bind(requeue.trigger_datetime)
-            .execute(&server.db_pool)
+            .execute(&mut txn)
             .await?;
         }
+
+        txn.commit().await?;
 
         debug!("done checking for tasks to requeue");
     }
