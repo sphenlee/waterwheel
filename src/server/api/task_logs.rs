@@ -4,10 +4,9 @@ use highnoon::{
     Message,
     Request,
 };
-use std::time::Duration;
 use redis::AsyncCommands;
 use redis::streams::{StreamReadOptions, StreamReadReply};
-use tracing::{debug, info, trace};
+use tracing::{debug, trace};
 
 fn get_as_string(value: &redis::Value) -> highnoon::Result<String> {
     match value {
@@ -17,7 +16,7 @@ fn get_as_string(value: &redis::Value) -> highnoon::Result<String> {
 }
 
 // TODO - this is a placeholder and was never implemented!
-pub async fn logs(mut req: Request<State>, mut tx: WebSocketSender, mut _rx: WebSocketReceiver) -> highnoon::Result<()> {
+pub async fn logs(req: Request<State>, mut tx: WebSocketSender, mut _rx: WebSocketReceiver) -> highnoon::Result<()> {
     let redis_client = redis::Client::open("redis://localhost")?;
     let mut redis = redis_client.get_tokio_connection().await?;
 

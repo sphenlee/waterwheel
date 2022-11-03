@@ -14,7 +14,7 @@ use futures::TryStreamExt;
 use std::collections::HashMap;
 use bollard::container::LogsOptions;
 use redis::AsyncCommands;
-use redis::streams::{StreamId, StreamMaxlen};
+use redis::streams::StreamMaxlen;
 use tracing::trace;
 
 pub struct DockerEngine;
