@@ -11,6 +11,7 @@ use std::path::Path;
 pub struct Config {
     pub db_url: String, // mandatory
     pub amqp_addr: String,
+    pub redis_url: String,
     pub server_addr: String, // mandatory
     pub server_bind: String,
     pub worker_bind: String,

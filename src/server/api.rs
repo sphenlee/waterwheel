@@ -23,6 +23,7 @@ mod workers;
 pub struct State {
     amqp_channel: Channel,
     server: Arc<Server>,
+    redis_client: redis::Client,
 }
 
 impl highnoon::State for State {
@@ -46,9 +47,13 @@ macro_rules! get_file {
 }
 
 pub async fn make_app(server: Arc<Server>) -> Result<highnoon::App<State>> {
+    let amqp_channel = server.amqp_conn.create_channel().await?;
+    let redis_client = redis::Client::open(server.config.redis_url.as_ref())?;
+
     let state = State {
-        amqp_channel: server.amqp_conn.create_channel().await?,
+        amqp_channel,
         server,
+        redis_client,
     };
 
     updates::setup(&state.amqp_channel).await?;

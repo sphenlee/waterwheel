@@ -35,6 +35,8 @@ spec:
               value: kubernetes
             - name: WATERWHEEL_STATSD_SERVER
               value: localhost:8125
+            - name: WATERWHEEL_REDIS_URL
+              value: redis://redis/
           ports:
             - containerPort: 8080
 

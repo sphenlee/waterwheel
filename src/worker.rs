@@ -36,6 +36,7 @@ pub static TOTAL_TASKS: Counter = Counter::new();
 
 pub struct Worker {
     pub amqp_conn: Connection,
+    pub redis_client: redis::Client,
     //pub post_office: PostOffice,
     pub statsd: Arc<StatsdClient>,
     pub config: Config,
@@ -48,11 +49,13 @@ impl Worker {
     pub async fn new(config: Config) -> Result<Self> {
         let amqp_conn = amqp_connect(&config).await?;
         let statsd = metrics::new_client(&config)?;
+        let redis_client = redis::Client::open(config.redis_url.as_ref())?;
 
         let jwt_keys = jwt::load_keys(&config)?;
 
         Ok(Worker {
             amqp_conn,
+            redis_client,
             statsd,
             config,
             proj_config_cache: Mutex::new(LruCache::with_expiry_duration_and_capacity(

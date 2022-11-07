@@ -1,4 +1,5 @@
 amqp_addr = "amqp://127.0.0.1:5672/%2f"
+redis_url = "redis://localhost/"
 server_bind = "127.0.0.1:8080"
 server_addr = "http://127.0.0.1:8080/"
 worker_bind = "127.0.0.1:0"

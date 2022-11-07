@@ -17,8 +17,7 @@ fn get_as_string(value: &redis::Value) -> highnoon::Result<String> {
 
 // TODO - this is a placeholder and was never implemented!
 pub async fn logs(req: Request<State>, mut tx: WebSocketSender, mut _rx: WebSocketReceiver) -> highnoon::Result<()> {
-    let redis_client = redis::Client::open("redis://localhost")?;
-    let mut redis = redis_client.get_tokio_connection().await?;
+    let mut redis = req.state().redis_client.get_tokio_connection().await?;
 
     let task_run_id = req.param("id")?;
     let key = format!("waterwheel-logs.{}", task_run_id);
