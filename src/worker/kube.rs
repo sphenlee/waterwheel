@@ -12,6 +12,9 @@ use kube::{
 };
 use rand::seq::SliceRandom;
 use std::{convert::TryFrom, time::Duration};
+use kube::api::LogParams;
+use redis::AsyncCommands;
+use redis::streams::StreamMaxlen;
 use tracing::{trace, warn};
 
 const DELETE_POD_TIMEOUT: Duration = Duration::from_secs(5 * 60);
@@ -39,7 +42,7 @@ pub async fn run_kube(worker: &Worker, task_req: TaskRequest, task_def: TaskDef)
     trace!("connecting to kubernetes...");
     let pods: Api<Pod> = Api::default_namespaced(client);
 
-    let pod = make_pod(worker, task_req, task_def).await?;
+    let pod = make_pod(worker, &task_req, task_def).await?;
     let name = pod.name_any();
 
     // Create the pod
@@ -75,23 +78,33 @@ pub async fn run_kube(worker: &Worker, task_req: TaskRequest, task_def: TaskDef)
         }
     }
 
-    // let mut logs = pods
-    //     .log_stream(
-    //         &name,
-    //         &LogParams {
-    //             //previous: true,
-    //             follow: true,
-    //             ..LogParams::default()
-    //         },
-    //     )
-    //     .await?;
-    //
-    // while let Some(log) = logs.try_next().await? {
-    //     // TODO - kubernetes probably doesn't need this, logs can be shipped from the cluster
-    //     let line = String::from_utf8_lossy(&*log);
-    //     info!(target: "container_logs",
-    //         "{}", line.trim_end());
-    // }
+    let mut logs = pods
+        .log_stream(
+            &name,
+            &LogParams {
+                follow: true,
+                ..LogParams::default()
+            },
+        )
+        .await?;
+
+    let key = format!("waterwheel-logs.{}", task_req.task_run_id);
+    let mut redis = worker.redis_client.get_tokio_connection().await?;
+
+    trace!("sending kubernetes pod logs to {}", key);
+    while let Some(line) = logs.try_next().await? {
+        trace!("got log line ({} bytes)", line.len());
+        redis.xadd_maxlen(&key, StreamMaxlen::Approx(1024),
+                          "*",
+                          &[
+                              ("data", line.as_ref()),
+                          ]
+        ).await?;
+        trace!("sent to redis");
+    }
+
+    let _: redis::Value = redis.expire(&key, worker.config.log_retention_secs).await?;
+    drop(redis);
 
     trace!(pod_name=%name, "deleting pod");
 
@@ -126,7 +139,7 @@ fn make_grist() -> String {
     .join("")
 }
 
-async fn make_pod(worker: &Worker, task_req: TaskRequest, task_def: TaskDef) -> Result<Pod> {
+async fn make_pod(worker: &Worker, task_req: &TaskRequest, task_def: TaskDef) -> Result<Pod> {
     let env = env::get_env(worker, &task_req, &task_def)?;
 
     let grist = make_grist();
