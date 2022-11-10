@@ -1,5 +1,5 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   labels:
     app: amqp
@@ -9,7 +9,7 @@ spec:
   selector:
     matchLabels:
       app: amqp
-  strategy: {}
+  serviceName: amqp
   template:
     metadata:
       labels:
@@ -21,7 +21,21 @@ spec:
           ports:
             - containerPort: 5672
             - containerPort: 15672
+          volumeMounts:
+            - mountPath: /var/lib/rabbitmq
+              name: rabbitmq-data
+
       restartPolicy: Always
+
+  volumeClaimTemplates:
+      - metadata:
+          name: rabbitmq-data
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 10G
 
 ---
 apiVersion: v1
@@ -40,3 +54,23 @@ spec:
       targetPort: 15672
   selector:
     app: amqp
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: amqp
+  labels:
+    app: amqp
+spec:
+  rules:
+    - host: rabbitmq.kube
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: amqp
+                port:
+                  number: 8055

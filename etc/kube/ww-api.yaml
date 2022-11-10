@@ -41,7 +41,8 @@ spec:
             - containerPort: 8080
 
         - name: seal
-          image: sealproxy:local
+          image: ghcr.io/sphenlee/sealproxy:main
+          imagePullPolicy: Always
           args:
             - -c
             - /etc/sealproxy/sealproxy.yml

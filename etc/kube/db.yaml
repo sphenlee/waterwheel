@@ -1,5 +1,5 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   labels:
     app: db
@@ -9,8 +9,7 @@ spec:
   selector:
     matchLabels:
       app: db
-  strategy:
-    type: Recreate
+  serviceName: db
   template:
     metadata:
       labels:
@@ -29,11 +28,17 @@ spec:
             - mountPath: /var/lib/postgresql/data
               name: dbdata
       restartPolicy: Always
-      volumes:
-        - name: dbdata
-          persistentVolumeClaim:
-            claimName: dbdata
-status: {}
+
+  volumeClaimTemplates:
+    - metadata:
+        name: dbdata
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10G
+
 
 ---
 apiVersion: v1
@@ -49,20 +54,3 @@ spec:
       targetPort: 5432
   selector:
     app: db
-status:
-  loadBalancer: {}
-
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  labels:
-    app: dbdata
-  name: dbdata
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 100Mi
-status: {}
