@@ -1,7 +1,8 @@
 use anyhow::Result;
 use postage::dispatch::{Receiver, Sender};
 use tokio::sync::Mutex;
-use typemap::SendMap;
+
+type AnySendMap = anymap::Map<dyn std::any::Any + Send>;
 
 struct Mailbox<T> {
     tx: Sender<T>,
@@ -15,15 +16,11 @@ impl<T: Clone> Mailbox<T> {
     }
 }
 
-impl<T: 'static> typemap::Key for Mailbox<T> {
-    type Value = Mailbox<T>;
-}
-
-pub struct PostOffice(Mutex<SendMap>);
+pub struct PostOffice(Mutex<AnySendMap>);
 
 impl PostOffice {
     pub fn open() -> Self {
-        Self(Mutex::new(SendMap::custom()))
+        Self(Mutex::new(AnySendMap::new()))
     }
 
     async fn with_mailbox<T: Clone + Send + 'static, F, R>(&self, f: F) -> Result<R>
