@@ -1,6 +1,8 @@
+use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
+use tracing::error;
 use uuid::Uuid;
 
 /// state of a token
@@ -12,6 +14,8 @@ use uuid::Uuid;
 pub enum TokenState {
     /// waiting for the count to reach the threshold
     Waiting,
+    /// task was sent for execution but the job was paused
+    Cancelled,
     /// task has been sent to the message broker to be started
     Active,
     /// running the task
@@ -31,6 +35,17 @@ impl TokenState {
             TokenState::Success | TokenState::Failure | TokenState::Error
         )
     }
+
+    pub fn from_result(result: Result<bool>) -> Self {
+        match result {
+            Ok(true) => TokenState::Success,
+            Ok(false) => TokenState::Failure,
+            Err(err) => {
+                error!("failed to run task: {:#}", err);
+                TokenState::Error
+            }
+        }
+    }
 }
 
 impl AsRef<str> for TokenState {
@@ -42,6 +57,7 @@ impl AsRef<str> for TokenState {
             TokenState::Success => "success",
             TokenState::Failure => "failure",
             TokenState::Error => "error",
+            TokenState::Cancelled => "cancelled",
         }
     }
 }
@@ -59,6 +75,7 @@ impl FromStr for TokenState {
             "success" => Ok(TokenState::Success),
             "failure" => Ok(TokenState::Failure),
             "error" => Ok(TokenState::Error),
+            "cancelled" => Ok(TokenState::Cancelled),
             _ => Err(TokenStateParseError(format!(
                 "invalid token state: '{}'",
                 s
@@ -91,6 +108,7 @@ pub struct TaskDef {
     pub image: Option<String>,
     pub args: Vec<String>,
     pub env: Option<Vec<String>>,
+    pub paused: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

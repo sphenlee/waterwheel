@@ -16,7 +16,7 @@ use lapin::{
 };
 use serde_json::Value as JsonValue;
 use std::{sync::Arc, time::Duration};
-use tracing::{trace, warn};
+use tracing::{error, trace, warn};
 use uuid::Uuid;
 
 const CONFIG_EXCHANGE: &str = "waterwheel.config";
@@ -113,11 +113,11 @@ async fn fetch_task_def(
                 Ok(Some(def))
             }
             StatusCode::NOT_FOUND => {
-                trace!(?task_id, "task def not found");
+                warn!(?task_id, "task def not found");
                 Ok(None)
             }
             otherwise => {
-                warn!(
+                error!(
                     ?task_id,
                     "unexpected status code while fetching task_def: {}", otherwise
                 );

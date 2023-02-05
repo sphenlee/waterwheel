@@ -15,6 +15,7 @@ import {
   QuestionCircleOutlined,
   LeftOutlined,
   DoubleRightOutlined,
+  StopOutlined,
 } from '@ant-design/icons';
 import { Token, TokenOverview, TokensRow, TokenState } from "../../types/Token";
 import { datetime, uuid } from "../../types/common";
@@ -64,6 +65,8 @@ function iconForState(task: TokenState) {
         return <CloseSquareOutlined style={{color: red[5]}}/>;
     } else if (state == 'error') {
         return <WarningOutlined style={{color: orange[5]}}/>;
+    } else if (state == 'cancelled') {
+        return <StopOutlined style={{color: grey[5]}} />;
     } else {
         return 'invalid state?';
     }

@@ -20,7 +20,7 @@ import { ColumnsType } from "antd/lib/table";
 
 const { Content } = Layout;
 
-const defaultFilter = ["active", "running"];
+const defaultFilter = ["running"];
 
 function makeColumns(): ColumnsType<WorkerTask> {
     return [

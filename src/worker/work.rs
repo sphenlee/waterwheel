@@ -17,7 +17,7 @@ use lapin::{
     BasicProperties, Channel, Consumer, ExchangeKind,
 };
 use std::{sync::Arc, time::Duration};
-use tracing::{debug, error, info, info_span};
+use tracing::{debug, error, info, info_span, trace};
 
 // TODO - queues should be configurable for task routing
 const TASK_QUEUE: &str = "waterwheel.tasks";
@@ -106,15 +106,13 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
         let task_req: TaskRequest = serde_json::from_slice(&delivery.data)?;
 
         let span = info_span!("running_task",
-        task_run_id=?task_req.task_run_id,
-        task_id=?task_req.task_id,
-        trigger_datetime=?task_req.trigger_datetime.to_rfc3339(),
+            task_run_id=?task_req.task_run_id,
+            task_id=?task_req.task_id,
+            trigger_datetime=?task_req.trigger_datetime.to_rfc3339(),
         );
 
         instrumented!(span, {
             info!("received task");
-
-            let maybe_task_def = config_cache::get_task_def(&worker, task_req.task_id).await?;
 
             let running_task_guard = RUNNING_TASKS.boost();
             statsd
@@ -126,21 +124,28 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
                 .with_tag("worker_id", &WORKER_ID.to_string())
                 .send();
 
-            let started_datetime = Utc::now();
-            publish_progress(
-                &chan,
-                &task_req,
-                started_datetime,
-                None,
-                TokenState::Running,
-            )
-            .await?;
+            let progress = ProgressPublisher {
+                chan: &chan,
+                task_req: &task_req,
+                started_datetime: Utc::now(),
+            };
+
+            progress.publish(TokenState::Running).await?;
 
             delivery.ack(BasicAckOptions::default()).await?;
             debug!("task acked");
 
+            let maybe_task_def = config_cache::get_task_def(&worker, task_req.task_id).await?;
+
             let result = if let Some(task_def) = maybe_task_def {
-                if task_def.image.is_some() {
+                if task_def.paused {
+                    // job has been paused - task will get rerun by the
+                    // requeue processor when the job is unpaused
+                    TokenState::Cancelled
+                } else if task_def.image.is_none() {
+                    // task has no image, mark success immediately
+                    TokenState::Success
+                } else {
                     let mut task = engine.run_task(&worker, task_req.clone(), task_def).boxed();
 
                     let mut ticker = tokio::time::interval(DEFAULT_TASK_HEARTBEAT);
@@ -153,29 +158,15 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
                                 break TokenState::Error;
                             }
                             _ = ticker.tick() => {
-                                publish_progress(
-                                    &chan,
-                                    &task_req,
-                                    started_datetime,
-                                    None,
-                                    TokenState::Running,
-                                ).await?;
+                                trace!("task heartbeat");
+                                progress.publish(TokenState::Running).await?;
                             }
                             result = &mut task => {
-                                break match result {
-                                    Ok(true) => TokenState::Success,
-                                    Ok(false) => TokenState::Failure,
-                                    Err(err) => {
-                                        error!("failed to run task: {:#}", err);
-                                        TokenState::Error
-                                    }
-                                }
+                                trace!("task engine returned: {:?}", result);
+                                break TokenState::from_result(result);
                             }
                         }
                     }
-                } else {
-                    // task has no image, mark success immediately
-                    TokenState::Success
                 }
             } else {
                 TokenState::Error
@@ -197,50 +188,57 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
                 .send();
 
             info!(result=result.as_ref(),
-                started_datetime=?started_datetime.to_rfc3339(),
+                started_datetime=?progress.started_datetime.to_rfc3339(),
                 "task completed");
 
-            publish_progress(
-                &chan,
-                &task_req,
-                started_datetime,
-                Some(finished_datetime),
-                result,
-            )
-            .await?;
+            progress.finish(finished_datetime, result).await?;
         })?;
     }
 
     unreachable!("consumer stopped consuming")
 }
 
-async fn publish_progress(
-    chan: &Channel,
-    task_req: &TaskRequest,
+struct ProgressPublisher<'a> {
+    chan: &'a Channel,
+    task_req: &'a TaskRequest,
     started_datetime: DateTime<Utc>,
-    finished_datetime: Option<DateTime<Utc>>,
-    result: TokenState,
-) -> Result<()> {
-    let payload = serde_json::to_vec(&TaskProgress {
-        task_run_id: task_req.task_run_id,
-        task_id: task_req.task_id,
-        trigger_datetime: task_req.trigger_datetime,
-        started_datetime,
-        finished_datetime,
-        worker_id: *WORKER_ID,
-        result,
-    })?;
+}
 
-    chan.basic_publish(
-        RESULT_EXCHANGE,
-        "",
-        BasicPublishOptions::default(),
-        &payload,
-        BasicProperties::default(),
-    )
-    .await?;
+impl ProgressPublisher<'_> {
+    async fn publish(&self, result: TokenState) -> Result<()> {
+        self.do_publish(None, result).await
+    }
 
-    debug!(result=?result, "task result published");
+    async fn finish(&self, finished_datetime: DateTime<Utc>, result: TokenState) -> Result<()> {
+        self.do_publish(Some(finished_datetime), result).await
+    }
 
-    Ok(())
+    async fn do_publish(
+        &self,
+        finished_datetime: Option<DateTime<Utc>>,
+        result: TokenState,
+    ) -> Result<()> {
+        let payload = serde_json::to_vec(&TaskProgress {
+            task_run_id: self.task_req.task_run_id,
+            task_id: self.task_req.task_id,
+            trigger_datetime: self.task_req.trigger_datetime,
+            started_datetime: self.started_datetime,
+            finished_datetime,
+            worker_id: *WORKER_ID,
+            result,
+        })?;
+
+        self.chan.basic_publish(
+            RESULT_EXCHANGE,
+            "",
+            BasicPublishOptions::default(),
+            &payload,
+            BasicProperties::default(),
+        )
+        .await?;
+
+        debug!(result=?result, "task result published");
+
+        Ok(())
+    }
 }

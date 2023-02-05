@@ -8,9 +8,10 @@ import {
   ClockCircleOutlined,
   MinusCircleOutlined,
   WarningOutlined,
+  StopOutlined,
 } from '@ant-design/icons';
 
-type States = 'active' | 'running' | 'waiting' | 'success' | 'failure' | 'error';
+type States = 'active' | 'running' | 'waiting' | 'success' | 'failure' | 'error' | 'cancelled';
 type StateProps = {
   state: States
 };
@@ -39,6 +40,9 @@ class State extends Component<StateProps> {
     } else if (state == 'error') {
       color = 'warning';
       icon = <WarningOutlined />;
+    } else if (state == 'cancelled') {
+       color = 'default';
+       icon = <StopOutlined />;
     } else {
       color = 'warning';
       icon = <WarningOutlined />;

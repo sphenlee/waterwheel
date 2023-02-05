@@ -43,6 +43,8 @@ type TokenTableState = {
     tokens: Token[];
 };
 
+const defaultFilter = ['running'];
+
 class TokenTable extends Component<TokenTableProps, TokenTableState> {
     columns: ColumnsType<Token>;
     interval: NodeJS.Timeout;
@@ -53,7 +55,7 @@ class TokenTable extends Component<TokenTableProps, TokenTableState> {
         this.columns = makeColumns(props.id);
 
         this.state = {
-            filter: ['active', 'running'],
+            filter: defaultFilter,
             tokens: [],
         }
     }
@@ -97,7 +99,7 @@ class TokenTable extends Component<TokenTableProps, TokenTableState> {
             <Fragment>
                 <Select
                   mode="multiple"
-                  defaultValue={["active", "running"]}
+                  defaultValue={defaultFilter}
                   style={{ width: 350 }}
                   onChange={(value: Filter[]) => {
                     this.setState({
@@ -112,6 +114,7 @@ class TokenTable extends Component<TokenTableProps, TokenTableState> {
                     <Option value="success">Success</Option>
                     <Option value="failure">Failure</Option>
                     <Option value="waiting">Waiting</Option>
+                    <Option value="error">Error</Option>
                 </Select>
 
                 <Table rowKey={record => record.trigger_datetime + record.task_name}

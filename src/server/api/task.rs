@@ -155,7 +155,8 @@ async fn get_task_def_common(req: &Request<State>) -> highnoon::Result<Option<Ta
                 p.name AS project_name,
                 image,
                 COALESCE(args, ARRAY[]::VARCHAR[]) AS args,
-                env
+                env,
+                j.paused
             FROM task t
             JOIN job j on t.job_id = j.id
             JOIN project p ON j.project_id = p.id

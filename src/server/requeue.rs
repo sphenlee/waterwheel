@@ -38,12 +38,13 @@ pub async fn process_requeue(server: Arc<Server>) -> Result<!> {
             FROM task_run r
             JOIN task t ON r.task_id = t.id
             JOIN job j ON t.job_id = j.id
-            WHERE r.state = $1
+            WHERE (r.state = $1 OR r.state = $2)
             AND r.updated_datetime < CURRENT_TIMESTAMP - INTERVAL '5 minutes'
             AND NOT j.paused
             FOR UPDATE OF r",
         )
         .bind(TokenState::Running)
+        .bind(TokenState::Cancelled)
         .fetch_all(&mut txn)
         .await?;
 
@@ -74,17 +75,17 @@ pub async fn process_requeue(server: Arc<Server>) -> Result<!> {
             .execute(&mut txn)
             .await?;
 
-            sqlx::query(
-                "UPDATE token
-                   SET state = $1
-                 WHERE task_id = $2
-                   AND trigger_datetime = $3",
-            )
-            .bind(TokenState::Running)
-            .bind(requeue.task_id)
-            .bind(requeue.trigger_datetime)
-            .execute(&mut txn)
-            .await?;
+            // sqlx::query(
+            //     "UPDATE token
+            //        SET state = $1
+            //      WHERE task_id = $2
+            //        AND trigger_datetime = $3",
+            // )
+            // .bind(TokenState::Active)
+            // .bind(requeue.task_id)
+            // .bind(requeue.trigger_datetime)
+            // .execute(&mut txn)
+            // .await?;
         }
 
         txn.commit().await?;

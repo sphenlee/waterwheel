@@ -373,6 +373,21 @@ pub async fn set_paused(mut req: Request<State>) -> impl Responder {
     let triggers_to_tx = triggers_to_tx.into_iter().map(first).collect();
     updates::send_trigger_update(req.get_channel(), TriggerUpdate(triggers_to_tx)).await?;
 
+    // send taskdef updates for the whole job to notify the workers
+    let tasks_to_tx: Vec<(Uuid,)> = sqlx::query_as(
+        "SELECT id
+        FROM task
+        WHERE job_id = $1",
+    )
+    .bind(&job_id)
+    .fetch_all(&req.get_pool())
+    .await?;
+
+    for (id,) in tasks_to_tx {
+        config_cache::send(req.get_channel(), ConfigUpdate::TaskDef(id)).await?;
+    }
+
+    // if job is being unpaused notify the token processor to trigger any pending tasks
     if !paused {
         updates::send_token_update(req.get_channel(), ProcessToken::UnpauseJob(job_id)).await?;
     }
