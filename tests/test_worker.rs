@@ -43,6 +43,7 @@ pub async fn test_worker() -> highnoon::Result<()> {
                     image: None,
                     args: vec![],
                     env: None,
+                    paused: false,
                 }),
             );
         }
