@@ -30,8 +30,8 @@ build:
     cargo build --release
 
 # build Waterwheel into a docker image for local use
-package: build
-    docker build . -t waterwheel:local
+package:
+    DOCKER_BUILDKIT=1 docker build . -t waterwheel:local
 
 # connect to the database interactively
 psql:

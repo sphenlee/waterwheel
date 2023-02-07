@@ -1,9 +1,5 @@
 .idea
 .musl-cargo-cache
 .cargo
-src/
-ui/
-!ui/dist/
 target/
-!target/debug/waterwheel
-!target/release/waterwheel
+ui/node_modules/
