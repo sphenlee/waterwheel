@@ -43,7 +43,7 @@ type TokenTableState = {
     tokens: Token[];
 };
 
-const defaultFilter = ['running'];
+const defaultFilter: Filter[] = ['running'];
 
 class TokenTable extends Component<TokenTableProps, TokenTableState> {
     columns: ColumnsType<Token>;
