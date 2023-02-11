@@ -48,6 +48,7 @@ metadata:
     app: db
   name: db
 spec:
+  type: NodePort
   ports:
     - name: "5432"
       port: 5432

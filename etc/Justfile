@@ -32,12 +32,3 @@ gen-keypair:
     kubectl create -n waterwheel  secret generic sealproxy-pubkey \
         --from-file=public.pem \
         --from-file=private.pem
-
-# create the TLS keys for https
-gen-tlscert:
-    mkcert -key-file sealtls.key -cert-file sealtls.crt waterwheel.kube
-
-    kubectl delete secret sealproxy-tls --ignore-not-found
-    kubectl create secret tls sealproxy-tls \
-        --cert=sealtls.crt \
-        --key=sealtls.key

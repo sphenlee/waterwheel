@@ -81,24 +81,3 @@ spec:
                 name: influxdb
                 port:
                   number: 8086
-
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: telegraf-conf
-data:
-  telegraf.conf: |
-    [agent]
-    quiet = false
-    debug = true
-
-    [[inputs.statsd]]
-    service_address = "0.0.0.0:8125"
-    datadog_extensions = true
-
-    [[outputs.influxdb_v2]]
-    urls = ["http://influxdb:8086"]
-    token = "$INFLUX_TOKEN"
-    organization = "waterwheel"
-    bucket = "waterwheel"

@@ -39,8 +39,8 @@ spec:
             - name: WATERWHEEL_REDIS_URL
               value: redis://redis/
 
-        - name: telegraf
-          image: telegraf:1.18
+        - name: vector
+          image: timberio/vector:0.27.0-alpine
           env:
             - name: INFLUX_TOKEN
               value: my-super-secret-influx-token
@@ -49,12 +49,12 @@ spec:
               name: statsd
               protocol: UDP
           volumeMounts:
-            - name: telegraf-conf
-              mountPath: "/etc/telegraf"
+            - name: vector-conf
+              mountPath: "/etc/vector/"
               readOnly: true
 
       restartPolicy: Always
       volumes:
-        - name: telegraf-conf
+        - name: vector-conf
           configMap:
-            name: telegraf-conf
+            name: vector-conf
