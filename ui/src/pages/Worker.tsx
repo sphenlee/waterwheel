@@ -64,6 +64,11 @@ function expandedRowRender(record: WorkerTask) {
                     logs
                 </Link>
             </Descriptions.Item>
+            {/*<Descriptions.Item label="Task">
+                <Link to={`/jobs/${record.job_id}/tokens/${record.trigger_datetime}`}>
+                    {record.project_name}/{record.job_name}/{record.task_name}
+                </Link>
+            </Descriptions.Item>*/}
             <Descriptions.Item label="Project">
                 <Link to={`/projects/${record.project_id}`}>
                     {record.project_name}
@@ -73,6 +78,9 @@ function expandedRowRender(record: WorkerTask) {
                 <Link to={`/jobs/${record.job_id}`}>
                     {record.job_name}
                 </Link>
+            </Descriptions.Item>
+            <Descriptions.Item label="Attempt">
+                {record.attempt}
             </Descriptions.Item>
             <Descriptions.Item label="Queued Time">
                 <RelDate>{record.queued_datetime}</RelDate>

@@ -107,6 +107,7 @@ async fn run_docker(worker: &Worker, task_req: TaskRequest, task_def: TaskDef) -
             follow: true,
             stdout: true,
             stderr: true,
+            timestamps: true,
             ..LogsOptions::default()
         }),
     );

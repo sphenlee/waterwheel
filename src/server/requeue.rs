@@ -16,6 +16,7 @@ struct Requeue {
     task_id: Uuid,
     trigger_datetime: DateTime<Utc>,
     priority: TaskPriority,
+    attempt: i64,
 }
 
 pub async fn process_requeue(server: Arc<Server>) -> Result<!> {
@@ -42,7 +43,8 @@ pub async fn process_requeue(server: Arc<Server>) -> Result<!> {
                 r.id AS task_run_id,
                 r.task_id,
                 r.trigger_datetime,
-                r.priority
+                r.priority,
+                r.attempt
             FROM task_run r
             JOIN task t ON r.task_id = t.id
             JOIN job j ON t.job_id = j.id
@@ -64,13 +66,14 @@ pub async fn process_requeue(server: Arc<Server>) -> Result<!> {
                 "requeueing task");
 
             execute_tx
-                .send(ExecuteToken(
-                    Token {
+                .send(ExecuteToken {
+                    token: Token {
                         task_id: requeue.task_id,
                         trigger_datetime: requeue.trigger_datetime,
                     },
-                    requeue.priority,
-                ))
+                    priority: requeue.priority,
+                    attempt: u32::try_from(requeue.attempt)? + 1,
+                })
                 .await?;
 
             sqlx::query(

@@ -69,6 +69,7 @@ struct GetWorkerTask {
     started_datetime: DateTime<Utc>,
     finish_datetime: Option<DateTime<Utc>>,
     state: String,
+    attempt: i64,
 }
 
 pub async fn tasks(req: Request<State>) -> highnoon::Result<Response> {
@@ -88,12 +89,13 @@ pub async fn tasks(req: Request<State>) -> highnoon::Result<Response> {
             p.id AS project_id,
             t.name AS task_name,
             r.id AS task_run_id,
-            r.task_id AS task_id,
-            r.trigger_datetime AS trigger_datetime,
+            r.task_id,
+            r.trigger_datetime,
             queued_datetime,
             started_datetime,
             finish_datetime,
-            r.state AS state
+            r.state,
+            r.attempt
         FROM task_run r
         JOIN task t ON t.id = r.task_id
         JOIN job j ON j.id = t.job_id

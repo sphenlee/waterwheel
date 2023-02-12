@@ -15,7 +15,6 @@ fn get_as_string(value: &redis::Value) -> highnoon::Result<String> {
     }
 }
 
-// TODO - this is a placeholder and was never implemented!
 pub async fn logs(req: Request<State>, mut tx: WebSocketSender, mut _rx: WebSocketReceiver) -> highnoon::Result<()> {
     let mut redis = req.state().redis_client.get_tokio_connection().await?;
 

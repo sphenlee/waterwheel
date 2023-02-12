@@ -39,10 +39,11 @@ pub async fn list_job_all_task_runs(req: Request<State>) -> highnoon::Result<imp
             tr.id AS task_run_id,
             t.name AS name,
             tr.trigger_datetime AS trigger_datetime,
-            rank() OVER (
-                PARTITION BY tr.task_id
-                ORDER BY tr.queued_datetime
-            ) AS attempt,
+            --rank() OVER (
+            --    PARTITION BY tr.task_id
+            --    ORDER BY tr.queued_datetime
+            --) AS attempt,
+            attempt,
             queued_datetime,
             started_datetime,
             finish_datetime,
@@ -53,7 +54,7 @@ pub async fn list_job_all_task_runs(req: Request<State>) -> highnoon::Result<imp
         JOIN task t ON t.id = tr.task_id
         WHERE t.job_id = $1
         AND tr.trigger_datetime = $2
-        ORDER BY t.name
+        ORDER BY t.name ASC, tr.queued_datetime ASC
         LIMIT $3",
     )
     .bind(&job_id)
@@ -87,9 +88,10 @@ pub async fn list_task_runs(req: Request<State>) -> highnoon::Result<impl Respon
     let tasks: Vec<ListTaskRuns> = sqlx::query_as(
         "SELECT
             tr.id AS task_run_id,
-            rank() OVER (
-                ORDER BY tr.queued_datetime
-            ) AS attempt,
+            --rank() OVER (
+            --    ORDER BY tr.queued_datetime
+            --) AS attempt,
+            attempt,
             queued_datetime,
             started_datetime,
             finish_datetime,

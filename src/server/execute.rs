@@ -22,7 +22,11 @@ const TASK_QUEUE: &str = "waterwheel.tasks";
 const PERSISTENT: u8 = 2;
 
 #[derive(Debug, Clone)]
-pub struct ExecuteToken(pub Token, pub TaskPriority);
+pub struct ExecuteToken {
+    pub token: Token,
+    pub priority: TaskPriority,
+    pub attempt: u32,
+}
 
 pub async fn process_executions(server: Arc<Server>) -> Result<!> {
     let pool = server.db_pool.clone();
@@ -68,10 +72,12 @@ pub async fn process_executions(server: Arc<Server>) -> Result<!> {
     // TODO - recover any tasks
 
     while let Some(msg) = execute_rx.recv().await {
-        let ExecuteToken(token, priority) = msg;
+        let ExecuteToken {token, priority, attempt} = msg;
+
         debug!(task_id=?token.task_id,
             trigger_datetime=%token.trigger_datetime.to_rfc3339(),
             ?priority,
+            ?attempt,
             "enqueueing");
 
         let mut conn = pool.acquire().await?;
@@ -112,17 +118,18 @@ pub async fn process_executions(server: Arc<Server>) -> Result<!> {
             "INSERT INTO task_run(id, task_id, trigger_datetime,
                 queued_datetime, started_datetime, finish_datetime,
                 updated_datetime,
-                worker_id, state, priority)
+                worker_id, state, priority, attempt)
             VALUES ($1, $2, $3,
                 $4, NULL, NULL,
                 NULL,
-                NULL, 'active', $5)",
+                NULL, 'active', $5, $6)",
         )
         .bind(&task_req.task_run_id)
         .bind(token.task_id)
         .bind(token.trigger_datetime)
         .bind(Utc::now())
         .bind(priority)
+        .bind(attempt as i64)
         .execute(&mut txn)
         .await?;
 
@@ -131,6 +138,7 @@ pub async fn process_executions(server: Arc<Server>) -> Result<!> {
         info!(task_id=?token.task_id,
             trigger_datetime=%token.trigger_datetime.to_rfc3339(),
             ?priority,
+            ?attempt,
             "task enqueued");
 
         statsd
