@@ -12,6 +12,8 @@ cluster_gossip_bind = "127.0.0.1:7111"
 cluster_gossip_addr = "127.0.0.1:7111"
 cluster_seed_nodes = []
 requeue_interval_secs = 300 # 5 mins
+requeue_missed_heartbeats = 3
 default_task_timeout_secs = 14400 # 4 hours
+task_heartbeat_secs = 60
 log_retention_secs = 14400 # 4 hours
 

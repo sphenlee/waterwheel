@@ -30,7 +30,9 @@ pub struct Config {
     pub cluster_gossip_addr: String,
     pub cluster_seed_nodes: Vec<String>,
     pub requeue_interval_secs: u64, // TODO - deserialise both of these as duration strings
+    pub requeue_missed_heartbeats: u32,
     pub default_task_timeout_secs: u64,
+    pub task_heartbeat_secs: u64,
     pub log_retention_secs: usize,
 }
 

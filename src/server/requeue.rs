@@ -2,10 +2,11 @@ use crate::{
     messages::{TaskPriority, Token, TokenState},
     server::{execute::ExecuteToken, Server},
 };
-use anyhow::Result;
+use anyhow::{Result, format_err};
 use chrono::{DateTime, Utc};
 use postage::prelude::*;
 use std::{sync::Arc, time::Duration};
+use sqlx::postgres::types::PgInterval;
 use tracing::{debug, warn};
 use uuid::Uuid;
 
@@ -20,8 +21,15 @@ struct Requeue {
 pub async fn process_requeue(server: Arc<Server>) -> Result<!> {
     let mut execute_tx = server.post_office.post_mail::<ExecuteToken>().await?;
 
+    let timeout: PgInterval = (Duration::from_secs(server.config.task_heartbeat_secs)
+            * server.config.requeue_missed_heartbeats)
+        .try_into()
+        .map_err(|err| format_err!("error converting duration to pg_interval: {:?}", err))?;
+
     let mut ticker =
         tokio::time::interval(Duration::from_secs(server.config.requeue_interval_secs));
+
+    ticker.tick().await; // first tick happens immediately
 
     loop {
         ticker.tick().await;
@@ -39,12 +47,13 @@ pub async fn process_requeue(server: Arc<Server>) -> Result<!> {
             JOIN task t ON r.task_id = t.id
             JOIN job j ON t.job_id = j.id
             WHERE (r.state = $1 OR r.state = $2)
-            AND r.updated_datetime < CURRENT_TIMESTAMP - INTERVAL '5 minutes'
+            AND r.updated_datetime < CURRENT_TIMESTAMP - $3
             AND NOT j.paused
             FOR UPDATE OF r",
         )
         .bind(TokenState::Running)
         .bind(TokenState::Cancelled)
+        .bind(&timeout)
         .fetch_all(&mut txn)
         .await?;
 

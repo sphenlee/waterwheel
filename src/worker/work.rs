@@ -25,8 +25,6 @@ const TASK_QUEUE: &str = "waterwheel.tasks";
 const RESULT_EXCHANGE: &str = "waterwheel.results";
 const RESULT_QUEUE: &str = "waterwheel.results";
 
-const DEFAULT_TASK_HEARTBEAT: Duration = Duration::from_secs(60);
-
 pub async fn setup_queues(chan: &Channel) -> Result<()> {
     // declare queue for consuming incoming messages
     let mut args = FieldTable::default();
@@ -96,6 +94,7 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
 
     let engine = worker.config.task_engine.get_impl()?;
     let task_timeout = Duration::from_secs(worker.config.default_task_timeout_secs);
+    let task_heartbeat = Duration::from_secs(worker.config.task_heartbeat_secs);
 
     let chan = worker.amqp_conn.create_channel().await?;
     setup_queues(&chan).await?;
@@ -148,7 +147,7 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
                 } else {
                     let mut task = engine.run_task(&worker, task_req.clone(), task_def).boxed();
 
-                    let mut ticker = tokio::time::interval(DEFAULT_TASK_HEARTBEAT);
+                    let mut ticker = tokio::time::interval(task_heartbeat);
                     let mut timeout = tokio::time::sleep(task_timeout).boxed();
 
                     loop {
