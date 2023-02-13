@@ -7,14 +7,12 @@ use futures::{StreamExt, TryStreamExt};
 use itertools::Itertools;
 use k8s_openapi::api::core::v1::Pod;
 use kube::{
-    api::{Api, DeleteParams, PostParams},
+    api::{Api, DeleteParams, LogParams, PostParams},
     Client, Config, ResourceExt,
 };
 use rand::seq::SliceRandom;
+use redis::{streams::StreamMaxlen, AsyncCommands};
 use std::{convert::TryFrom, time::Duration};
-use kube::api::LogParams;
-use redis::AsyncCommands;
-use redis::streams::StreamMaxlen;
 use tracing::{trace, warn};
 
 const DELETE_POD_TIMEOUT: Duration = Duration::from_secs(5 * 60);
@@ -94,12 +92,14 @@ pub async fn run_kube(worker: &Worker, task_req: TaskRequest, task_def: TaskDef)
     trace!("sending kubernetes pod logs to {}", key);
     while let Some(line) = logs.try_next().await? {
         trace!("got log line ({} bytes)", line.len());
-        redis.xadd_maxlen(&key, StreamMaxlen::Approx(1024),
-                          "*",
-                          &[
-                              ("data", line.as_ref()),
-                          ]
-        ).await?;
+        redis
+            .xadd_maxlen(
+                &key,
+                StreamMaxlen::Approx(1024),
+                "*",
+                &[("data", line.as_ref())],
+            )
+            .await?;
         trace!("sent to redis");
     }
 

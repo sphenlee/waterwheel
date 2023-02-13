@@ -1,10 +1,16 @@
-use crate::{config::Config, messages::TriggerUpdate, rendezvous, server::{triggers::TriggerChange, Server}, util::{deref, first}};
+use crate::{
+    config::Config,
+    messages::TriggerUpdate,
+    rendezvous,
+    server::{triggers::TriggerChange, Server},
+    util::{deref, first},
+};
 ///! Scheduler Cluster.
 ///! Multiple schedulers can form a cluster using the chitchat membership finding library
 ///! and then choose which triggers to manage using rendezvous hashing.
 ///! Membership changes are expected to be rare and don't need to be handled quickly.
 use anyhow::{Context, Result};
-use chitchat::{transport::UdpTransport, ChitchatConfig, NodeId, ChitchatHandle};
+use chitchat::{transport::UdpTransport, ChitchatConfig, ChitchatHandle, NodeId};
 use chrono::Utc;
 use futures::StreamExt as _;
 use postage::prelude::*;

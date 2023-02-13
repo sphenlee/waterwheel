@@ -1,12 +1,10 @@
+use crate::{amqp, config::Config, db, metrics, server::api::jwt::JwtKeys};
 use anyhow::Result;
-use lapin::Channel;
-use std::sync::Arc;
 use cadence::StatsdClient;
+use lapin::Channel;
 use sqlx::PgPool;
+use std::sync::Arc;
 use tracing::{debug, warn};
-use crate::{amqp, db, metrics};
-use crate::config::Config;
-use crate::server::api::jwt::JwtKeys;
 
 pub mod auth;
 mod config_cache;

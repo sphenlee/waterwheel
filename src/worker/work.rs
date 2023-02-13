@@ -227,14 +227,15 @@ impl ProgressPublisher<'_> {
             result,
         })?;
 
-        self.chan.basic_publish(
-            RESULT_EXCHANGE,
-            "",
-            BasicPublishOptions::default(),
-            &payload,
-            BasicProperties::default(),
-        )
-        .await?;
+        self.chan
+            .basic_publish(
+                RESULT_EXCHANGE,
+                "",
+                BasicPublishOptions::default(),
+                &payload,
+                BasicProperties::default(),
+            )
+            .await?;
 
         debug!(result=?result, "task result published");
 

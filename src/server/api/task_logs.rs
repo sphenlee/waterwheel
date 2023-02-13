@@ -1,11 +1,12 @@
 use super::State;
 use highnoon::{
     ws::{WebSocketReceiver, WebSocketSender},
-    Message,
-    Request,
+    Message, Request,
 };
-use redis::AsyncCommands;
-use redis::streams::{StreamReadOptions, StreamReadReply};
+use redis::{
+    streams::{StreamReadOptions, StreamReadReply},
+    AsyncCommands,
+};
 use tracing::{debug, trace};
 
 fn get_as_string(value: &redis::Value) -> highnoon::Result<String> {
@@ -15,7 +16,11 @@ fn get_as_string(value: &redis::Value) -> highnoon::Result<String> {
     }
 }
 
-pub async fn logs(req: Request<State>, mut tx: WebSocketSender, mut _rx: WebSocketReceiver) -> highnoon::Result<()> {
+pub async fn logs(
+    req: Request<State>,
+    mut tx: WebSocketSender,
+    mut _rx: WebSocketReceiver,
+) -> highnoon::Result<()> {
     let mut redis = req.state().redis_client.get_tokio_connection().await?;
 
     let task_run_id = req.param("id")?;
@@ -26,11 +31,9 @@ pub async fn logs(req: Request<State>, mut tx: WebSocketSender, mut _rx: WebSock
     debug!("reading logs from {}", key);
     loop {
         trace!("reading starting at id {}", id);
-        let reply: StreamReadReply = redis.xread_options(
-            &[key.as_str()],
-            &[id.as_str()],
-            &opts
-        ).await?;
+        let reply: StreamReadReply = redis
+            .xread_options(&[key.as_str()], &[id.as_str()], &opts)
+            .await?;
 
         if reply.keys.is_empty() {
             trace!("key expired while tailing logs");

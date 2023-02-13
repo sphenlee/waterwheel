@@ -1,6 +1,9 @@
 use anyhow::Result;
-use waterwheel::{config, logging, server::Server, worker::Worker};
-use waterwheel::server::api;
+use waterwheel::{
+    config, logging,
+    server::{api, Server},
+    worker::Worker,
+};
 
 #[tokio::main]
 async fn main() -> Result<()> {

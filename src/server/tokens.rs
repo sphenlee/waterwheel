@@ -66,19 +66,23 @@ pub async fn process_tokens(server: Arc<Server>) -> Result<!> {
                     "count is {} (threshold {})", info.count, info.threshold);
 
                 if !info.paused && info.count >= info.threshold {
-                    execute_tx.send(ExecuteToken {
-                        token,
-                        priority,
-                        attempt: 1,
-                    }).await?;
+                    execute_tx
+                        .send(ExecuteToken {
+                            token,
+                            priority,
+                            attempt: 1,
+                        })
+                        .await?;
                 }
             }
             ProcessToken::Activate(token, priority) => {
-                execute_tx.send(ExecuteToken {
-                    token,
-                    priority,
-                    attempt: 1,
-                }).await?;
+                execute_tx
+                    .send(ExecuteToken {
+                        token,
+                        priority,
+                        attempt: 1,
+                    })
+                    .await?;
             }
             ProcessToken::Clear(_token) => {
                 // TODO - don't need to know about token clears anymore
@@ -157,7 +161,8 @@ async fn restore_tokens(server: &Server, job_id: Option<Uuid>) -> Result<()> {
                 token: token.clone(),
                 priority: TaskPriority::Normal,
                 attempt: 1,
-            }).await?;
+            })
+            .await?;
 
         num_tokens_restored += 1;
     }

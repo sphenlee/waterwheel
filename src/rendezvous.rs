@@ -1,13 +1,10 @@
-
 pub struct Rendezvous<Node> {
     nodes: Vec<Node>,
 }
 
 impl<Node> Rendezvous<Node> {
     pub fn new() -> Self {
-        Rendezvous {
-            nodes: vec![]
-        }
+        Rendezvous { nodes: vec![] }
     }
 
     pub fn add_node(&mut self, node: Node) {
@@ -15,10 +12,11 @@ impl<Node> Rendezvous<Node> {
     }
 }
 
-impl <Node: AsRef<[u8]>> Rendezvous<Node> {
-
+impl<Node: AsRef<[u8]>> Rendezvous<Node> {
     fn score_for_node<Item>(node: &Node, item: &Item) -> u64
-    where Item: AsRef<[u8]> + ?Sized {
+    where
+        Item: AsRef<[u8]> + ?Sized,
+    {
         let mut hasher = xxhash_rust::xxh3::Xxh3::default();
         hasher.update(node.as_ref());
         hasher.update(item.as_ref());
@@ -26,12 +24,13 @@ impl <Node: AsRef<[u8]>> Rendezvous<Node> {
     }
 
     pub fn node_for_item<Item>(&self, item: &Item) -> &Node
-    where Item: AsRef<[u8]> + ?Sized
+    where
+        Item: AsRef<[u8]> + ?Sized,
     {
-        let target = self.nodes.iter()
-            .max_by_key(|node| {
-                Rendezvous::score_for_node(node, item)
-            });
+        let target = self
+            .nodes
+            .iter()
+            .max_by_key(|node| Rendezvous::score_for_node(node, item));
 
         target.expect("rendezvous had no nodes")
     }
@@ -39,8 +38,8 @@ impl <Node: AsRef<[u8]>> Rendezvous<Node> {
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashMap;
     use super::*;
+    use std::collections::HashMap;
 
     #[test]
     fn test_rendezvous() {
@@ -71,7 +70,6 @@ mod test {
             } else {
                 b += 1;
             }
-
         }
 
         // sanity check!

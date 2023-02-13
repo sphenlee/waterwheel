@@ -5,16 +5,14 @@ use crate::{
 use anyhow::Result;
 use bollard::{
     container::{
-        Config, CreateContainerOptions, RemoveContainerOptions, StartContainerOptions,
+        Config, CreateContainerOptions, LogsOptions, RemoveContainerOptions, StartContainerOptions,
         WaitContainerOptions,
     },
     image::{CreateImageOptions, ListImagesOptions},
 };
 use futures::TryStreamExt;
+use redis::{streams::StreamMaxlen, AsyncCommands};
 use std::collections::HashMap;
-use bollard::container::LogsOptions;
-use redis::AsyncCommands;
-use redis::streams::StreamMaxlen;
 use tracing::trace;
 
 pub struct DockerEngine;
@@ -119,12 +117,14 @@ async fn run_docker(worker: &Worker, task_req: TaskRequest, task_def: TaskDef) -
     while let Some(line) = logs.try_next().await? {
         let bytes = line.into_bytes();
         trace!("got log line ({} bytes)", bytes.len());
-        redis.xadd_maxlen(&key, StreamMaxlen::Approx(1024),
-            "*",
-            &[
-                ("data", bytes.as_ref()),
-            ]
-        ).await?;
+        redis
+            .xadd_maxlen(
+                &key,
+                StreamMaxlen::Approx(1024),
+                "*",
+                &[("data", bytes.as_ref())],
+            )
+            .await?;
         trace!("sent to redis");
     }
 

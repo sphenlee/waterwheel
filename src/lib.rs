@@ -10,9 +10,9 @@ pub mod logging;
 pub mod messages;
 mod metrics;
 pub mod postoffice;
+pub mod rendezvous;
 pub mod server;
 pub mod util;
 pub mod worker;
-pub mod rendezvous;
 
 pub const GIT_VERSION: &str = git_version::git_version!();

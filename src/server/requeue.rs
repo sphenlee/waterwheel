@@ -2,11 +2,11 @@ use crate::{
     messages::{TaskPriority, Token, TokenState},
     server::{execute::ExecuteToken, Server},
 };
-use anyhow::{Result, format_err};
+use anyhow::{format_err, Result};
 use chrono::{DateTime, Utc};
 use postage::prelude::*;
-use std::{sync::Arc, time::Duration};
 use sqlx::postgres::types::PgInterval;
+use std::{sync::Arc, time::Duration};
 use tracing::{debug, warn};
 use uuid::Uuid;
 
@@ -23,7 +23,7 @@ pub async fn process_requeue(server: Arc<Server>) -> Result<!> {
     let mut execute_tx = server.post_office.post_mail::<ExecuteToken>().await?;
 
     let timeout: PgInterval = (Duration::from_secs(server.config.task_heartbeat_secs)
-            * server.config.requeue_missed_heartbeats)
+        * server.config.requeue_missed_heartbeats)
         .try_into()
         .map_err(|err| format_err!("error converting duration to pg_interval: {:?}", err))?;
 

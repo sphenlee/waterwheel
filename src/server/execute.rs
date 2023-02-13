@@ -72,7 +72,11 @@ pub async fn process_executions(server: Arc<Server>) -> Result<!> {
     // TODO - recover any tasks
 
     while let Some(msg) = execute_rx.recv().await {
-        let ExecuteToken {token, priority, attempt} = msg;
+        let ExecuteToken {
+            token,
+            priority,
+            attempt,
+        } = msg;
 
         debug!(task_id=?token.task_id,
             trigger_datetime=%token.trigger_datetime.to_rfc3339(),

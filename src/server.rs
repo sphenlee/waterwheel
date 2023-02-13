@@ -10,7 +10,6 @@ use sqlx::PgPool;
 use std::sync::{atomic::AtomicUsize, Arc};
 use tokio::sync::Mutex;
 use uuid::Uuid;
-use crate::server::cluster::watch_live_nodes;
 
 pub mod api;
 pub mod body_parser;
@@ -61,7 +60,7 @@ impl Server {
 
     pub async fn run_scheduler(self: Arc<Self>) -> Result<!> {
         spawn_or_crash("heartbeat", self.clone(), heartbeat::heartbeat);
-        spawn_or_crash("watch_live_nodes", self.clone(), watch_live_nodes);
+        spawn_or_crash("watch_live_nodes", self.clone(), cluster::watch_live_nodes);
         spawn_or_crash("triggers", self.clone(), triggers::process_triggers);
         spawn_or_crash("tokens", self.clone(), tokens::process_tokens);
         spawn_or_crash("executions", self.clone(), execute::process_executions);
