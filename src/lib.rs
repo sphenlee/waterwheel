@@ -13,5 +13,6 @@ pub mod postoffice;
 pub mod server;
 pub mod util;
 pub mod worker;
+pub mod rendezvous;
 
 pub const GIT_VERSION: &str = git_version::git_version!();

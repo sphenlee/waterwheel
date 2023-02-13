@@ -1,9 +1,4 @@
-use crate::{
-    config::Config,
-    messages::TriggerUpdate,
-    server::{triggers::TriggerChange, Server},
-    util::{deref, first},
-};
+use crate::{config::Config, messages::TriggerUpdate, rendezvous, server::{triggers::TriggerChange, Server}, util::{deref, first}};
 ///! Scheduler Cluster.
 ///! Multiple schedulers can form a cluster using the chitchat membership finding library
 ///! and then choose which triggers to manage using rendezvous hashing.
@@ -68,20 +63,19 @@ pub async fn watch_live_nodes(server: Arc<Server>) -> Result<!> {
         info!("cluster membership changed");
         let triggers = get_all_triggers(&server.db_pool).await?;
 
-        let h =
-            std::hash::BuildHasherDefault::<std::collections::hash_map::DefaultHasher>::default();
-        let mut rendezvous = hash_rings::rendezvous::Client::with_hasher(h);
+        let mut rendezvous = rendezvous::Rendezvous::new();
 
-        rendezvous.insert_node(&me, 1);
-        for item in &live_nodes {
-            rendezvous.insert_node(&item.id, 1);
+        rendezvous.add_node(me.clone());
+        for item in live_nodes {
+            rendezvous.add_node(item.id);
         }
 
-        for trigger in &triggers {
-            rendezvous.insert_point(trigger);
+        let mut new_triggers = HashSet::new();
+        for trigger in triggers {
+            if rendezvous.node_for_item(&trigger) == &me {
+                new_triggers.insert(trigger);
+            }
         }
-
-        let new_triggers: HashSet<_> = rendezvous.get_points(&me).into_iter().map(deref).collect();
 
         let to_remove: Vec<_> = current_triggers
             .difference(&new_triggers)
@@ -111,27 +105,28 @@ pub async fn trigger_update(server: Arc<Server>, update: TriggerUpdate) -> Resul
     let TriggerUpdate(uuids) = update;
     trace!(?uuids, "got trigger update");
 
-    let h = std::hash::BuildHasherDefault::<std::collections::hash_map::DefaultHasher>::default();
-    let mut rendezvous = hash_rings::rendezvous::Client::with_hasher(h);
+    let mut rendezvous = rendezvous::Rendezvous::new();
 
     let chitchat = server.get_chitchat().await;
     let chitchat = chitchat.lock().await;
 
-    let me = &chitchat.self_node_id().id;
-    rendezvous.insert_node(me, 1);
+    let me = chitchat.self_node_id().id.clone();
+    rendezvous.add_node(me.clone());
 
     for item in chitchat.live_nodes() {
-        rendezvous.insert_node(&item.id, 1);
+        rendezvous.add_node(item.id.clone());
     }
 
-    let to_add = uuids
+    let to_add: Vec<_> = uuids
         .iter()
-        .filter(|trigger| rendezvous.get_node(trigger) == &chitchat.self_node_id().id)
+        .filter(|trigger| rendezvous.node_for_item(trigger) == &me)
         .map(deref)
         .collect();
     trace!(?to_add, "filtered triggers by rendezvous hash");
 
-    change_tx.send(TriggerChange::Add(to_add)).await?;
+    if !to_add.is_empty() {
+        change_tx.send(TriggerChange::Add(to_add)).await?;
+    }
 
     Ok(())
 }
