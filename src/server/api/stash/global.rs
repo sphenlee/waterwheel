@@ -20,7 +20,7 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<impl Responder>
         DO UPDATE
         SET data = $2",
     )
-    .bind(&key)
+    .bind(key)
     .bind(&data)
     .execute(&db)
     .await?;
@@ -58,7 +58,7 @@ pub async fn get(req: Request<State>) -> highnoon::Result<impl Responder> {
         FROM global_stash
         WHERE name = $1",
     )
-    .bind(&key)
+    .bind(key)
     .fetch_optional(&db)
     .await?;
 
@@ -82,7 +82,7 @@ pub async fn delete(req: Request<State>) -> highnoon::Result<impl Responder> {
         FROM global_stash
         WHERE name = $1",
     )
-    .bind(&key)
+    .bind(key)
     .execute(&db)
     .await?;
 

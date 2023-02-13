@@ -41,7 +41,7 @@ pub async fn get_job_project_id(pool: &PgPool, job_id: Uuid) -> highnoon::Result
         FROM job
         WHERE id = $1",
     )
-    .bind(&job_id)
+    .bind(job_id)
     .fetch_optional(pool)
     .await?;
 
@@ -92,11 +92,11 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
     );
 
     let res = query
-        .bind(&job.uuid)
+        .bind(job.uuid)
         .bind(&job.name)
-        .bind(&project_id)
+        .bind(project_id)
         .bind(&job.description)
-        .bind(&job.paused)
+        .bind(job.paused)
         .bind(serde_json::to_string(&job)?)
         .execute(&mut txn)
         .await;
@@ -254,7 +254,7 @@ pub async fn get_by_id(req: Request<State>) -> highnoon::Result<impl Responder> 
         JOIN project p ON j.project_id = p.id
         WHERE j.id = $1",
     )
-    .bind(&id)
+    .bind(id)
     .fetch_optional(&req.get_pool())
     .await?;
 
@@ -277,7 +277,7 @@ pub async fn delete(req: Request<State>) -> highnoon::Result<StatusCode> {
         "DELETE FROM job
         WHERE id = $1",
     )
-    .bind(&id)
+    .bind(id)
     .execute(&req.get_pool())
     .await;
 
@@ -306,7 +306,7 @@ pub async fn get_paused(req: Request<State>) -> highnoon::Result<impl Responder>
         FROM job
         WHERE id = $1",
     )
-    .bind(&id)
+    .bind(id)
     .fetch_optional(&req.get_pool())
     .await?;
 
@@ -336,8 +336,8 @@ pub async fn set_paused(mut req: Request<State>) -> impl Responder {
         SET paused = $2
         WHERE id = $1",
     )
-    .bind(&job_id)
-    .bind(&paused)
+    .bind(job_id)
+    .bind(paused)
     .execute(&req.get_pool())
     .await;
 
@@ -366,7 +366,7 @@ pub async fn set_paused(mut req: Request<State>) -> impl Responder {
         FROM trigger
         WHERE job_id = $1",
     )
-    .bind(&job_id)
+    .bind(job_id)
     .fetch_all(&req.get_pool())
     .await?;
 
@@ -379,7 +379,7 @@ pub async fn set_paused(mut req: Request<State>) -> impl Responder {
         FROM task
         WHERE job_id = $1",
     )
-    .bind(&job_id)
+    .bind(job_id)
     .fetch_all(&req.get_pool())
     .await?;
 

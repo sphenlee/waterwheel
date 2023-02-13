@@ -27,8 +27,8 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<impl Responder>
         DO UPDATE
         SET data = $3",
     )
-    .bind(&proj_id)
-    .bind(&key)
+    .bind(proj_id)
+    .bind(key)
     .bind(&data)
     .execute(&db)
     .await?;
@@ -54,7 +54,7 @@ pub async fn list(req: Request<State>) -> highnoon::Result<impl Responder> {
         FROM project_stash
         WHERE project_id = $1",
     )
-    .bind(&proj_id)
+    .bind(proj_id)
     .fetch_all(&db)
     .await?;
 
@@ -82,9 +82,9 @@ pub async fn get(req: Request<State>) -> highnoon::Result<impl Responder> {
         )
         AND name = $3",
     )
-    .bind(&proj_id)
-    .bind(&task_id)
-    .bind(&key)
+    .bind(proj_id)
+    .bind(task_id)
+    .bind(key)
     .fetch_optional(&db)
     .await?;
 
@@ -115,8 +115,8 @@ pub async fn delete(req: Request<State>) -> highnoon::Result<impl Responder> {
         WHERE project_id = $1
         AND name = $2",
     )
-    .bind(&proj_id)
-    .bind(&key)
+    .bind(proj_id)
+    .bind(key)
     .execute(&db)
     .await?;
 

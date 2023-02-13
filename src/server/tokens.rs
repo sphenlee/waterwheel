@@ -40,8 +40,8 @@ async fn get_count_and_threshold(pool: &PgPool, token: &Token) -> Result<Increme
         WHERE t.id = $1
         AND k.trigger_datetime = $2",
     )
-    .bind(&token.task_id)
-    .bind(&token.trigger_datetime)
+    .bind(token.task_id)
+    .bind(token.trigger_datetime)
     .fetch_one(pool)
     .await?;
 
@@ -140,7 +140,7 @@ async fn restore_tokens(server: &Server, job_id: Option<Uuid>) -> Result<()> {
         AND ($1 IS NULL OR job.id = $1)
         AND NOT job.paused",
     )
-    .bind(&job_id)
+    .bind(job_id)
     .fetch(&pool);
 
     let mut num_tokens_restored = 0;

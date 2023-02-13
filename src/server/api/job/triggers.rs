@@ -69,11 +69,11 @@ pub async fn create_trigger(
             catchup = $9
         RETURNING id",
     )
-    .bind(&new_id)
+    .bind(new_id)
     .bind(&trigger.name)
-    .bind(&job.uuid)
-    .bind(&trigger.start)
-    .bind(&trigger.end)
+    .bind(job.uuid)
+    .bind(trigger.start)
+    .bind(trigger.end)
     .bind(period_from_string(trigger.period.as_deref())?)
     .bind(&trigger.cron)
     .bind(period_from_string(trigger.offset.as_deref())?)
@@ -121,7 +121,7 @@ pub async fn get_triggers_by_job(req: Request<State>) -> highnoon::Result<impl R
         WHERE job_id = $1
         ORDER BY latest_trigger_datetime DESC",
     )
-    .bind(&job_id)
+    .bind(job_id)
     .fetch_all(&req.get_pool())
     .await?;
 
@@ -179,7 +179,7 @@ pub async fn get_trigger(req: Request<State>) -> highnoon::Result<impl Responder
         JOIN project p ON p.id = j.project_id
         WHERE g.id = $1",
     )
-    .bind(&trigger_id)
+    .bind(trigger_id)
     .fetch_optional(&req.get_pool())
     .await?;
 
@@ -226,8 +226,8 @@ pub async fn get_trigger(req: Request<State>) -> highnoon::Result<impl Responder
         ORDER BY trigger_datetime DESC
         ",
     )
-    .bind(&trigger_id)
-    .bind(&query.before)
+    .bind(trigger_id)
+    .bind(query.before)
     .bind(query.limit.unwrap_or(100))
     .fetch_all(&req.get_pool())
     .await?;

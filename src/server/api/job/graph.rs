@@ -62,8 +62,8 @@ pub async fn get_graph(req: Request<State>) -> highnoon::Result<impl Responder> 
         FROM trigger g
         WHERE g.job_id = $1",
     )
-    .bind(&job_id)
-    .bind(&q.trigger_datetime)
+    .bind(job_id)
+    .bind(q.trigger_datetime)
     .fetch_all(&req.get_pool())
     .await?;
 
@@ -84,7 +84,7 @@ pub async fn get_graph(req: Request<State>) -> highnoon::Result<impl Responder> 
         JOIN task t ON t.id = ge.task_id
         WHERE t.job_id = $1",
     )
-    .bind(&job_id)
+    .bind(job_id)
     .fetch_all(&req.get_pool())
     .await?;
 
@@ -118,8 +118,8 @@ pub async fn get_graph(req: Request<State>) -> highnoon::Result<impl Responder> 
         WHERE t2.job_id = $1
         AND g.job_id != $1",
     )
-    .bind(&job_id)
-    .bind(&q.trigger_datetime)
+    .bind(job_id)
+    .bind(q.trigger_datetime)
     .fetch_all(&req.get_pool())
     .await?;
 

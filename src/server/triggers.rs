@@ -483,7 +483,7 @@ async fn requeue_next_triggertime(
         WHERE id = $1
     ",
     )
-    .bind(&next_triggertime.trigger_id)
+    .bind(next_triggertime.trigger_id)
     .fetch_one(&server.db_pool)
     .await?;
 

@@ -83,7 +83,7 @@ pub async fn process_requeue(server: Arc<Server>) -> Result<!> {
                 WHERE id = $2",
             )
             .bind(TokenState::Error)
-            .bind(&requeue.task_run_id)
+            .bind(requeue.task_run_id)
             .execute(&mut txn)
             .await?;
 

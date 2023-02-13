@@ -24,8 +24,7 @@ impl FromStr for ReferenceKind {
                 highnoon::StatusCode::BAD_REQUEST,
                 format!(
                     "failed to parse reference kind (expected \"task\" \
-                         or \"trigger\", got \"{}\")",
-                    s
+                         or \"trigger\", got \"{s}\")"
                 ),
             ))),
         }
@@ -53,10 +52,10 @@ pub struct Reference {
 impl Display for Reference {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(p) = &self.proj {
-            write!(f, "{}/", p)?;
+            write!(f, "{p}/")?;
         }
         if let Some(j) = &self.job {
-            write!(f, "{}/", j)?;
+            write!(f, "{j}/")?;
         }
         write!(f, "{}/{}", self.kind, self.name)?;
         if let Some(offset) = self.offset {
@@ -85,7 +84,7 @@ static REFERENCE_PATTERN: Lazy<Regex> = Lazy::new(|| {
 
 pub fn parse_reference(reference: &str) -> highnoon::Result<Reference> {
     let captures = REFERENCE_PATTERN.captures(reference).ok_or_else(|| {
-        highnoon::Error::bad_request(format!("invalid reference \'{}\'", reference))
+        highnoon::Error::bad_request(format!("invalid reference \'{reference}\'"))
     })?;
 
     let mut proj = captures

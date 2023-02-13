@@ -21,15 +21,15 @@ pub async fn read_from_body<T: DeserializeOwned>(
 
     if content_type == ContentType::json() {
         return serde_json::from_reader(reader).map_err(|err| {
-            highnoon::Error::bad_request(format!("error parsing request body as json: {}", err))
+            highnoon::Error::bad_request(format!("error parsing request body as json: {err}"))
         });
     } else if content_type_is_yaml(&content_type) {
         return serde_yaml::from_reader(reader).map_err(|err| {
-            highnoon::Error::bad_request(format!("error parsing request body as yaml: {}", err))
+            highnoon::Error::bad_request(format!("error parsing request body as yaml: {err}"))
         });
     }
 
-    return Err(highnoon::Error::http((
+    Err(highnoon::Error::http((
         highnoon::StatusCode::UNSUPPORTED_MEDIA_TYPE,
         format!(
             "Unsupported media type.\n\
@@ -38,5 +38,5 @@ pub async fn read_from_body<T: DeserializeOwned>(
             SUPPORTED_MIMES.join("\n"),
             YAML_MIMES.join("\n"),
         ),
-    )));
+    )))
 }

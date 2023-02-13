@@ -34,11 +34,11 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<impl Responder>
         DO UPDATE
         SET data = $4",
     )
-    .bind(&job_id)
-    .bind(&trigger_datetime)
-    .bind(&key)
+    .bind(job_id)
+    .bind(trigger_datetime)
+    .bind(key)
     .bind(&data)
-    .bind(&task_id)
+    .bind(task_id)
     .execute(&db)
     .await?;
 
@@ -65,8 +65,8 @@ pub async fn list(req: Request<State>) -> highnoon::Result<impl Responder> {
         WHERE job_id = $1
         AND trigger_datetime = $2",
     )
-    .bind(&job_id)
-    .bind(&trigger_datetime)
+    .bind(job_id)
+    .bind(trigger_datetime)
     .fetch_all(&db)
     .await?;
 
@@ -98,10 +98,10 @@ pub async fn get(req: Request<State>) -> highnoon::Result<impl Responder> {
              AND t.job_id = $1)
         AND js.name = $4",
     )
-    .bind(&job_id)
-    .bind(&trigger_datetime)
-    .bind(&task_id)
-    .bind(&key)
+    .bind(job_id)
+    .bind(trigger_datetime)
+    .bind(task_id)
+    .bind(key)
     .fetch_optional(&db)
     .await?;
 
@@ -134,9 +134,9 @@ pub async fn delete(req: Request<State>) -> highnoon::Result<impl Responder> {
         AND trigger_datetime = $2
         AND name = $3",
     )
-    .bind(&job_id)
-    .bind(&trigger_datetime)
-    .bind(&key)
+    .bind(job_id)
+    .bind(trigger_datetime)
+    .bind(key)
     .execute(&db)
     .await?;
 

@@ -62,8 +62,8 @@ pub async fn get_duration(req: Request<State>) -> highnoon::Result<impl Responde
         ORDER BY t.name, x.trigger_datetime
         ",
     )
-    .bind(&job_id)
-    .bind(&query.before)
+    .bind(job_id)
+    .bind(query.before)
     .bind(query.limit.unwrap_or(31))
     .fetch_all(&req.get_pool())
     .await?;

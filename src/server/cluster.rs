@@ -22,7 +22,7 @@ use uuid::Uuid;
 fn get_node_id(config: &Config) -> Result<NodeId> {
     let hostname = gethostname::gethostname().to_string_lossy().into_owned();
     let ts = Utc::now().timestamp();
-    let name = format!("{}/{}", hostname, ts);
+    let name = format!("{hostname}/{ts}");
 
     let gossip_addr = config
         .cluster_gossip_addr
@@ -33,7 +33,7 @@ fn get_node_id(config: &Config) -> Result<NodeId> {
 }
 
 pub async fn start_cluster(config: &Config) -> Result<ChitchatHandle> {
-    let node_id = get_node_id(&config)?;
+    let node_id = get_node_id(config)?;
     debug!("node id is {:?}", node_id);
 
     let config = ChitchatConfig {

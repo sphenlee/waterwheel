@@ -57,9 +57,9 @@ pub async fn list_job_all_task_runs(req: Request<State>) -> highnoon::Result<imp
         ORDER BY t.name ASC, tr.queued_datetime ASC
         LIMIT $3",
     )
-    .bind(&job_id)
-    .bind(&trigger_datetime)
-    .bind(&query.limit)
+    .bind(job_id)
+    .bind(trigger_datetime)
+    .bind(query.limit)
     .fetch_all(&req.get_pool())
     .await?;
 
@@ -104,8 +104,8 @@ pub async fn list_task_runs(req: Request<State>) -> highnoon::Result<impl Respon
         AND tr.trigger_datetime = $2
         ORDER BY queued_datetime",
     )
-    .bind(&task_id)
-    .bind(&trigger_datetime)
+    .bind(task_id)
+    .bind(trigger_datetime)
     .fetch_all(&req.get_pool())
     .await?;
 

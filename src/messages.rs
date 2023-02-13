@@ -77,8 +77,7 @@ impl FromStr for TokenState {
             "error" => Ok(TokenState::Error),
             "cancelled" => Ok(TokenState::Cancelled),
             _ => Err(TokenStateParseError(format!(
-                "invalid token state: '{}'",
-                s
+                "invalid token state: '{s}'"
             ))),
         }
     }

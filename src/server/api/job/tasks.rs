@@ -40,9 +40,9 @@ pub async fn create_task(
              env = $7
          RETURNING id",
     )
-    .bind(&new_id)
+    .bind(new_id)
     .bind(&task.name)
-    .bind(&job.uuid)
+    .bind(job.uuid)
     .bind(threshold)
     .bind(task.docker.as_ref().map(|d| &d.image))
     .bind(task.docker.as_ref().map(|d| &d.args))
@@ -64,7 +64,7 @@ pub async fn create_task_edges(
          WHERE job_id = $1
          AND name = $2",
     )
-    .bind(&job.uuid)
+    .bind(job.uuid)
     .bind(&task.name)
     .fetch_one(&mut *txn)
     .await?;
@@ -74,7 +74,7 @@ pub async fn create_task_edges(
         "DELETE FROM trigger_edge
         WHERE task_id = $1",
     )
-    .bind(&task_id)
+    .bind(task_id)
     .execute(&mut *txn)
     .await?;
 
@@ -82,7 +82,7 @@ pub async fn create_task_edges(
         "DELETE FROM task_edge
         WHERE child_task_id = $1",
     )
-    .bind(&task_id)
+    .bind(task_id)
     .execute(&mut *txn)
     .await?;
 
@@ -160,8 +160,7 @@ async fn create_trigger_edge(
             Err(highnoon::Error::http((
                 highnoon::StatusCode::BAD_REQUEST,
                 format!(
-                    "invalid trigger reference (does this trigger exist?): {}",
-                    reference
+                    "invalid trigger reference (does this trigger exist?): {reference}"
                 ),
             )))
         } else {
@@ -210,8 +209,7 @@ async fn create_task_edge(
             Err(highnoon::Error::http((
                 highnoon::StatusCode::BAD_REQUEST,
                 format!(
-                    "invalid task reference (does this task exist?): {}",
-                    reference
+                    "invalid task reference (does this task exist?): {reference}"
                 ),
             )))
         } else {
@@ -242,7 +240,7 @@ pub async fn list_tasks(req: Request<State>) -> highnoon::Result<impl Responder>
         ORDER BY name
         LIMIT 200",
     )
-    .bind(&job_id)
+    .bind(job_id)
     .fetch_all(&req.get_pool())
     .await?;
 

@@ -128,7 +128,7 @@ pub async fn process_executions(server: Arc<Server>) -> Result<!> {
                 NULL,
                 NULL, 'active', $5, $6)",
         )
-        .bind(&task_req.task_run_id)
+        .bind(task_req.task_run_id)
         .bind(token.task_id)
         .bind(token.trigger_datetime)
         .bind(Utc::now())

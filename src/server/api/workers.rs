@@ -105,7 +105,7 @@ pub async fn tasks(req: Request<State>) -> highnoon::Result<Response> {
         ORDER BY r.started_datetime DESC
         LIMIT 100",
     )
-    .bind(&id)
+    .bind(id)
     .bind(&states)
     .fetch_all(&req.get_pool())
     .await?;
@@ -125,7 +125,7 @@ pub async fn tasks(req: Request<State>) -> highnoon::Result<Response> {
         FROM worker w
         WHERE id = $1",
     )
-    .bind(&id)
+    .bind(id)
     .fetch_optional(&req.get_pool())
     .await?;
 

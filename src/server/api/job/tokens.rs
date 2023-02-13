@@ -70,7 +70,7 @@ async fn get_tokens_common(req: Request<State>) -> highnoon::Result<Vec<GetToken
         ",
     )
     .bind(job_id)
-    .bind(&q.before)
+    .bind(q.before)
     .bind(q.limit.unwrap_or(200))
     .bind(maybe_states)
     .fetch_all(&req.get_pool())
@@ -166,8 +166,8 @@ pub async fn get_tokens_trigger_datetime(req: Request<State>) -> highnoon::Resul
         AND k.trigger_datetime = $2
         ORDER BY t.name",
     )
-    .bind(&job_id)
-    .bind(&trigger_datetime)
+    .bind(job_id)
+    .bind(trigger_datetime)
     .fetch_all(&req.get_pool())
     .await?;
 
@@ -197,8 +197,8 @@ pub async fn clear_tokens_trigger_datetime(
         AND k.trigger_datetime = $2
         RETURNING k.task_id",
     )
-    .bind(&job_id)
-    .bind(&trigger_datetime)
+    .bind(job_id)
+    .bind(trigger_datetime)
     .fetch_all(&req.get_pool())
     .await?;
 

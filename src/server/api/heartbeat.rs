@@ -30,11 +30,11 @@ pub async fn post(mut req: Request<State>) -> highnoon::Result<impl Responder> {
             total_tasks = $5,
             version = $6",
     )
-    .bind(&beat.uuid)
+    .bind(beat.uuid)
     .bind(&beat.addr)
-    .bind(&beat.last_seen_datetime)
-    .bind(&beat.running_tasks)
-    .bind(&beat.total_tasks)
+    .bind(beat.last_seen_datetime)
+    .bind(beat.running_tasks)
+    .bind(beat.total_tasks)
     .bind(&beat.version)
     .execute(&req.get_pool())
     .await?;

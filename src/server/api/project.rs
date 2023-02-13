@@ -34,7 +34,7 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
             description = $3,
             config = COALESCE($4, project.config)",
     )
-    .bind(&id)
+    .bind(id)
     .bind(&proj.name)
     .bind(&proj.description)
     .bind(&proj.config)
@@ -187,7 +187,7 @@ pub async fn get_by_id(req: Request<State>) -> highnoon::Result<Response> {
         FROM project
         WHERE id = $1",
     )
-    .bind(&id)
+    .bind(id)
     .fetch_optional(&req.get_pool())
     .await?;
 
@@ -215,7 +215,7 @@ pub async fn get_config(req: Request<State>) -> highnoon::Result<impl Responder>
         FROM project
         WHERE id = $1",
     )
-    .bind(&id)
+    .bind(id)
     .fetch_optional(&req.get_pool())
     .await?;
 
@@ -236,7 +236,7 @@ pub async fn delete(req: Request<State>) -> highnoon::Result<StatusCode> {
         "DELETE FROM project
         WHERE id = $1",
     )
-    .bind(&id)
+    .bind(id)
     .execute(&req.get_pool())
     .await;
 
@@ -331,7 +331,7 @@ pub async fn list_jobs(req: Request<State>) -> highnoon::Result<impl Responder> 
         ORDER BY name
         LIMIT $4",
     )
-    .bind(&id)
+    .bind(id)
     .bind(query.after.as_ref())
     .bind(query.name.as_ref())
     .bind(query.limit.unwrap_or(50))

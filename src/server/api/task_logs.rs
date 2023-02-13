@@ -24,7 +24,7 @@ pub async fn logs(
     let mut redis = req.state().redis_client.get_tokio_connection().await?;
 
     let task_run_id = req.param("id")?;
-    let key = format!("waterwheel-logs.{}", task_run_id);
+    let key = format!("waterwheel-logs.{task_run_id}");
     let mut id = "0-0".to_owned();
     let opts = StreamReadOptions::default().block(60000).count(10);
 

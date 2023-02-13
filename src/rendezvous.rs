@@ -64,7 +64,7 @@ mod test {
         let mut a = 0;
         let mut b = 0;
         for i in 0..1000 {
-            let ab = r.node_for_item(&format!("node{}", i));
+            let ab = r.node_for_item(&format!("node{i}"));
             if ab == "ServerA" {
                 a += 1;
             } else {
@@ -90,7 +90,7 @@ mod test {
 
         let mut counts = HashMap::<String, u32>::new();
         for i in 0..1000 {
-            let target = r.node_for_item(&format!("node{}", i));
+            let target = r.node_for_item(&format!("node{i}"));
             *counts.entry(target.clone()).or_default() += 1;
         }
 

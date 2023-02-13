@@ -102,8 +102,8 @@ pub async fn advance_tokens(
         WHERE parent_task_id = $1
         AND kind = $2",
     )
-    .bind(&task_progress.task_id)
-    .bind(&task_progress.result)
+    .bind(task_progress.task_id)
+    .bind(task_progress.result)
     .fetch(pool);
 
     let mut tokens_to_tx = Vec::new();
@@ -137,9 +137,9 @@ async fn update_task_progress(
         WHERE task_id = $2
         AND trigger_datetime = $3",
     )
-    .bind(&task_progress.result)
-    .bind(&task_progress.task_id)
-    .bind(&task_progress.trigger_datetime)
+    .bind(task_progress.result)
+    .bind(task_progress.task_id)
+    .bind(task_progress.trigger_datetime)
     .execute(&mut *txn)
     .await?;
 
@@ -153,11 +153,11 @@ async fn update_task_progress(
         WHERE id = $5
         RETURNING priority",
     )
-    .bind(&task_progress.result)
-    .bind(&task_progress.started_datetime)
-    .bind(&task_progress.finished_datetime)
-    .bind(&task_progress.worker_id)
-    .bind(&task_progress.task_run_id)
+    .bind(task_progress.result)
+    .bind(task_progress.started_datetime)
+    .bind(task_progress.finished_datetime)
+    .bind(task_progress.worker_id)
+    .bind(task_progress.task_run_id)
     .fetch_optional(&mut *txn)
     .await?;
 

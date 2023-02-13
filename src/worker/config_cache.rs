@@ -60,7 +60,7 @@ async fn fetch_project_config(
 
     let url = reqwest::Url::parse(server_addr)?
         .join("int-api/projects/")?
-        .join(&format!("{}/", proj_id))?
+        .join(&format!("{proj_id}/"))?
         .join("config")?;
 
     let client = reqwest::Client::builder()
@@ -91,7 +91,7 @@ async fn fetch_task_def(
 
     let url = reqwest::Url::parse(server_addr)?
         .join("int-api/tasks/")?
-        .join(&format!("{}", task_id))?;
+        .join(&format!("{task_id}"))?;
 
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(10))

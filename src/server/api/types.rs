@@ -37,18 +37,16 @@ pub struct Job {
 #[serde(rename_all = "lowercase")]
 #[sqlx(rename_all = "lowercase")]
 #[sqlx(type_name = "VARCHAR")]
+#[derive(Default)]
 pub enum Catchup {
     None,
+    #[default]
     Earliest,
     Latest,
     Random,
 }
 
-impl Default for Catchup {
-    fn default() -> Self {
-        Catchup::Earliest
-    }
-}
+
 
 #[derive(Deserialize, Serialize)]
 pub struct Trigger {

@@ -36,8 +36,8 @@ pub async fn activate_token(mut req: Request<State>) -> highnoon::Result<impl Re
             SET count = (SELECT threshold FROM task WHERE id = $1),
                 state = 'waiting'",
     )
-    .bind(&token.task_id)
-    .bind(&token.trigger_datetime)
+    .bind(token.task_id)
+    .bind(token.trigger_datetime)
     .execute(&mut txn)
     .await?;
 
@@ -90,9 +90,9 @@ pub async fn activate_multiple_tokens(mut req: Request<State>) -> highnoon::Resu
          AND (NOT $4 OR state = 'failure')
          RETURNING trigger_datetime",
     )
-    .bind(&task_id)
-    .bind(&params.first)
-    .bind(&params.last)
+    .bind(task_id)
+    .bind(params.first)
+    .bind(params.last)
     .bind(params.only_failed.unwrap_or(false))
     .fetch(&mut txn);
 
@@ -162,7 +162,7 @@ async fn get_task_def_common(req: &Request<State>) -> highnoon::Result<Option<Ta
             JOIN project p ON j.project_id = p.id
             WHERE t.id = $1",
     )
-    .bind(&task_id)
+    .bind(task_id)
     .fetch_optional(&req.get_pool())
     .await?;
 
