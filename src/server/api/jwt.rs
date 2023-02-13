@@ -115,7 +115,7 @@ pub fn validate_config_jwt(req: &Request<State>, id: Uuid) -> highnoon::Result<S
         .header::<Authorization<Bearer>>()
         .ok_or_else(|| Error::http(StatusCode::FORBIDDEN))?;
 
-    let keys = &req.state().server.jwt_keys;
+    let keys = &req.state().jwt_keys;
 
     let sub = validate_jwt(keys, bearer.0.token(), CONFIG_AUDIENCE)?;
     if sub != id.to_string() {

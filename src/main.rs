@@ -1,5 +1,6 @@
 use anyhow::Result;
 use waterwheel::{config, logging, server::Server, worker::Worker};
+use waterwheel::server::api;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -43,8 +44,7 @@ async fn main() -> Result<()> {
             server.run_scheduler().await?;
         }
         ("api", _args) => {
-            let server = Server::new(config).await?;
-            server.run_api().await?;
+            api::serve(config).await?;
         }
         ("worker", _args) => {
             let worker = Worker::new(config).await?;
@@ -52,4 +52,6 @@ async fn main() -> Result<()> {
         }
         _ => unreachable!("clap should have already checked the subcommands"),
     }
+
+    unreachable!("main never returns!")
 }

@@ -9,8 +9,8 @@ use lapin::Connection;
 use sqlx::PgPool;
 use std::sync::{atomic::AtomicUsize, Arc};
 use tokio::sync::Mutex;
-use tracing::warn;
 use uuid::Uuid;
+use crate::server::cluster::watch_live_nodes;
 
 pub mod api;
 pub mod body_parser;
@@ -32,7 +32,7 @@ pub struct Server {
     pub statsd: Arc<StatsdClient>,
     pub config: Config,
     pub jwt_keys: JwtKeys,
-    pub cluster: Option<ChitchatHandle>,
+    pub cluster: ChitchatHandle,
     pub queued_triggers: AtomicUsize,
     pub waiting_for_trigger_id: Mutex<Option<Uuid>>,
 }
@@ -43,6 +43,7 @@ impl Server {
         let amqp_conn = amqp_connect(&config).await?;
         let statsd = metrics::new_client(&config)?;
         let jwt_keys = jwt::load_keys(&config)?;
+        let chitchat = cluster::start_cluster(&config).await?;
 
         Ok(Arc::new(Server {
             scheduler_id: Uuid::new_v4(),
@@ -52,16 +53,15 @@ impl Server {
             statsd,
             config,
             jwt_keys,
-            cluster: None,
+            cluster: chitchat,
             queued_triggers: AtomicUsize::new(0),
             waiting_for_trigger_id: Mutex::default(),
         }))
     }
 
-    pub async fn run_scheduler(mut self: Arc<Self>) -> Result<!> {
-        cluster::start_cluster(&mut self).await?;
-
+    pub async fn run_scheduler(self: Arc<Self>) -> Result<!> {
         spawn_or_crash("heartbeat", self.clone(), heartbeat::heartbeat);
+        spawn_or_crash("watch_live_nodes", self.clone(), watch_live_nodes);
         spawn_or_crash("triggers", self.clone(), triggers::process_triggers);
         spawn_or_crash("tokens", self.clone(), tokens::process_tokens);
         spawn_or_crash("executions", self.clone(), execute::process_executions);
@@ -78,23 +78,12 @@ impl Server {
         );
         spawn_or_crash("process_requeue", self.clone(), requeue::process_requeue);
 
-        self.run_api().await
-    }
-
-    pub async fn run_api(self: Arc<Self>) -> Result<!> {
-        if self.config.no_authz {
-            warn!("authorization is disabled, this is not recommended in production");
-        }
-
-        api::serve(self).await?;
+        api::serve(self.config.clone()).await?;
 
         unreachable!("server stop serving");
     }
 
     pub async fn get_chitchat(self: &Arc<Self>) -> Arc<Mutex<Chitchat>> {
-        self.cluster
-            .as_ref()
-            .expect("cluster is not created!")
-            .chitchat()
+        self.cluster.chitchat()
     }
 }

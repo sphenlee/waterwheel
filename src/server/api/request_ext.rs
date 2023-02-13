@@ -13,7 +13,7 @@ pub trait RequestExt {
 
 impl RequestExt for Request<State> {
     fn get_pool(&self) -> PgPool {
-        self.state().server.db_pool.clone()
+        self.state().db_pool.clone()
     }
 
     fn get_channel(&self) -> &Channel {
@@ -21,6 +21,6 @@ impl RequestExt for Request<State> {
     }
 
     fn get_statsd(&self) -> &StatsdClient {
-        &self.state().server.statsd
+        &self.state().statsd
     }
 }

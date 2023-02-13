@@ -2,14 +2,14 @@ use crate::{
     config::Config,
     messages::TriggerUpdate,
     server::{triggers::TriggerChange, Server},
-    util::{deref, first, spawn_or_crash},
+    util::{deref, first},
 };
 ///! Scheduler Cluster.
 ///! Multiple schedulers can form a cluster using the chitchat membership finding library
 ///! and then choose which triggers to manage using rendezvous hashing.
 ///! Membership changes are expected to be rare and don't need to be handled quickly.
 use anyhow::{Context, Result};
-use chitchat::{transport::UdpTransport, ChitchatConfig, NodeId};
+use chitchat::{transport::UdpTransport, ChitchatConfig, NodeId, ChitchatHandle};
 use chrono::Utc;
 use futures::StreamExt as _;
 use postage::prelude::*;
@@ -31,41 +31,31 @@ fn get_node_id(config: &Config) -> Result<NodeId> {
     Ok(NodeId::new(name, gossip_addr))
 }
 
-pub async fn start_cluster(server: &mut Arc<Server>) -> Result<()> {
-    let node_id = get_node_id(&server.config)?;
+pub async fn start_cluster(config: &Config) -> Result<ChitchatHandle> {
+    let node_id = get_node_id(&config)?;
     debug!("node id is {:?}", node_id);
 
     let config = ChitchatConfig {
         node_id,
-        cluster_id: server
-            .config
+        cluster_id: config
             .cluster_id
             .as_deref()
             .unwrap_or("waterwheel")
             .to_owned(),
-        listen_addr: server
-            .config
+        listen_addr: config
             .cluster_gossip_bind
             .parse()
             .context("parsing cluster_gossip_bind")?,
-        seed_nodes: server.config.cluster_seed_nodes.clone(),
+        seed_nodes: config.cluster_seed_nodes.clone(),
         ..ChitchatConfig::default()
     };
 
     let chitchat_handle = chitchat::spawn_chitchat(config, vec![], &UdpTransport).await?;
 
-    {
-        let server = Arc::get_mut(server).expect("someone else has a reference to the server!");
-
-        server.cluster = Some(chitchat_handle);
-    }
-
-    spawn_or_crash("watch_live_nodes", server.clone(), watch_live_nodes);
-
-    Ok(())
+    Ok(chitchat_handle)
 }
 
-async fn watch_live_nodes(server: Arc<Server>) -> Result<!> {
+pub async fn watch_live_nodes(server: Arc<Server>) -> Result<!> {
     let chitchat = server.get_chitchat().await;
 
     let me = chitchat.lock().await.self_node_id().id.clone();

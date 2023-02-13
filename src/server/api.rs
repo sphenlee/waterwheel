@@ -1,8 +1,12 @@
-use crate::server::Server;
 use anyhow::Result;
 use lapin::Channel;
 use std::sync::Arc;
-use tracing::debug;
+use cadence::StatsdClient;
+use sqlx::PgPool;
+use tracing::{debug, warn};
+use crate::{amqp, db, metrics};
+use crate::config::Config;
+use crate::server::api::jwt::JwtKeys;
 
 pub mod auth;
 mod config_cache;
@@ -21,9 +25,14 @@ mod updates;
 mod workers;
 
 pub struct State {
+    db_pool: PgPool,
+    //amqp_conn: Connection,
     amqp_channel: Channel,
-    server: Arc<Server>,
+    //pub post_office: PostOffice,
+    statsd: Arc<StatsdClient>,
     redis_client: redis::Client,
+    pub config: Config,
+    pub jwt_keys: JwtKeys,
 }
 
 impl highnoon::State for State {
@@ -46,13 +55,22 @@ macro_rules! get_file {
     };
 }
 
-pub async fn make_app(server: Arc<Server>) -> Result<highnoon::App<State>> {
-    let amqp_channel = server.amqp_conn.create_channel().await?;
-    let redis_client = redis::Client::open(server.config.redis_url.as_ref())?;
+pub async fn make_app(config: Config) -> Result<highnoon::App<State>> {
+    let amqp_conn = amqp::amqp_connect(&config).await?;
+    let db_pool = db::create_pool(&config).await?;
+    let statsd = metrics::new_client(&config)?;
+    let jwt_keys = jwt::load_keys(&config)?;
+
+    let amqp_channel = amqp_conn.create_channel().await?;
+    let redis_client = redis::Client::open(config.redis_url.as_ref())?;
 
     let state = State {
+        config,
+        db_pool,
+        //amqp_conn,
         amqp_channel,
-        server,
+        statsd,
+        jwt_keys,
         redis_client,
     };
 
@@ -193,9 +211,16 @@ pub async fn make_app(server: Arc<Server>) -> Result<highnoon::App<State>> {
     Ok(app)
 }
 
-pub async fn serve(server: Arc<Server>) -> Result<()> {
-    let app = make_app(server.clone()).await?;
-    debug!("server binding to {}", server.config.server_bind);
-    app.listen(&server.config.server_bind).await?;
+pub async fn serve(config: Config) -> Result<()> {
+    if config.no_authz {
+        warn!("authorization is disabled, this is not recommended in production");
+    }
+
+    let app = make_app(config).await?;
+
+    let server_bind = &app.state().config.server_bind.clone();
+    debug!("server binding to {}", server_bind);
+    app.listen(&server_bind).await?;
+
     Ok(())
 }
