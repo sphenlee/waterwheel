@@ -31,4 +31,5 @@ export type WorkerTask = {
     started_datetime: datetime;
     finish_datetime: datetime;
     state: string;
+    attempt: number;
 };

@@ -1,7 +1,7 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
 import { Table, Select, notification, Popconfirm, Row, Button, DatePicker, Space, Col } from 'antd';
-import { geekblue, lime, red, grey, orange } from '@ant-design/colors';
+import { geekblue, lime, red, grey, orange, purple } from '@ant-design/colors';
 import axios from 'axios';
 import styled, { CSSProperties } from 'styled-components';
 
@@ -16,6 +16,7 @@ import {
   LeftOutlined,
   DoubleRightOutlined,
   StopOutlined,
+  PlusSquareOutlined,
 } from '@ant-design/icons';
 import { Token, TokenOverview, TokensRow, TokenState } from "../../types/Token";
 import { datetime, uuid } from "../../types/common";
@@ -67,6 +68,8 @@ function iconForState(task: TokenState) {
         return <WarningOutlined style={{color: orange[5]}}/>;
     } else if (state == 'cancelled') {
         return <StopOutlined style={{color: grey[5]}} />;
+    } else if (state == 'retry') {
+        return <PlusSquareOutlined  style={{color: purple[6]}} />
     } else {
         return 'invalid state?';
     }
@@ -90,7 +93,7 @@ type TaskGridState = {
     data: TokenOverview | null;
     limit: number;
     before: datetime | null;
-    last?: datetime;
+    //last?: datetime;
     drawer_task_id: string | null;
     drawer_trigger_datetime: datetime | null;
 }
@@ -190,11 +193,11 @@ class TaskGrid extends Component<TaskGridProps, TaskGridState> {
                 params: params
         });
 
-        let last = resp.data.tokens[resp.data.tokens.length - 1].trigger_datetime;
+        //let last = resp.data.tokens[resp.data.tokens.length - 1].trigger_datetime;
         
         this.setState({
             data: resp.data,
-            last: last,
+            //last: last,
         });
     }
 

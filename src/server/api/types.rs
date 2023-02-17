@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-pub fn period_from_string(period: Option<&str>) -> anyhow::Result<Option<i32>> {
+pub fn duration_from_string(period: Option<&str>) -> anyhow::Result<Option<i32>> {
     match period {
         Some(mut s) => {
             let mut neg = false;
@@ -67,51 +67,58 @@ pub struct Docker {
 }
 
 #[derive(Deserialize, Serialize)]
+pub struct Retry {
+    pub max_attempts: i32,
+    pub delay: String,
+}
+
+#[derive(Deserialize, Serialize)]
 pub struct Task {
     pub name: String,
     pub docker: Option<Docker>,
     pub depends: Option<Vec<String>>,
     pub depends_failure: Option<Vec<String>>, // TODO - better name for this?
     pub threshold: Option<i32>,
+    pub retry: Option<Retry>,
 }
 
 #[cfg(test)]
 mod test {
-    use super::period_from_string;
+    use super::duration_from_string;
 
     #[test]
     fn test_period_from_string() -> anyhow::Result<()> {
-        assert_eq!(period_from_string(None)?, None);
+        assert_eq!(duration_from_string(None)?, None);
 
-        assert_eq!(period_from_string(Some("1m"))?, Some(60));
-        assert_eq!(period_from_string(Some("10m"))?, Some(600));
-        assert_eq!(period_from_string(Some("1h"))?, Some(3600));
+        assert_eq!(duration_from_string(Some("1m"))?, Some(60));
+        assert_eq!(duration_from_string(Some("10m"))?, Some(600));
+        assert_eq!(duration_from_string(Some("1h"))?, Some(3600));
 
-        assert_eq!(period_from_string(Some("-1m"))?, Some(-60));
-        assert_eq!(period_from_string(Some("-10m"))?, Some(-600));
-        assert_eq!(period_from_string(Some("-1h"))?, Some(-3600));
+        assert_eq!(duration_from_string(Some("-1m"))?, Some(-60));
+        assert_eq!(duration_from_string(Some("-10m"))?, Some(-600));
+        assert_eq!(duration_from_string(Some("-1h"))?, Some(-3600));
 
-        assert_eq!(period_from_string(Some("- 1m"))?, Some(-60));
+        assert_eq!(duration_from_string(Some("- 1m"))?, Some(-60));
         Ok(())
     }
 
     #[test]
     fn test_period_from_string_errors() -> anyhow::Result<()> {
-        let res = period_from_string(Some("1"));
+        let res = duration_from_string(Some("1"));
         assert_eq!(
             res.unwrap_err().to_string().as_str(),
             "time unit needed, for example 1sec or 1ms"
         );
 
-        let res = period_from_string(Some("1x"));
+        let res = duration_from_string(Some("1x"));
         assert_eq!(res.unwrap_err().to_string().as_str(), "unknown time unit \"x\", \
             supported units: ns, us, ms, sec, min, hours, days, weeks, months, years (and few variations)");
 
-        let res = period_from_string(Some(""));
+        let res = duration_from_string(Some(""));
         assert_eq!(res.unwrap_err().to_string().as_str(), "value was empty");
 
         // TODO - we should probably accept this by trimming whitespace
-        let res = period_from_string(Some(" -1m"));
+        let res = duration_from_string(Some(" -1m"));
         assert_eq!(
             res.unwrap_err().to_string().as_str(),
             "expected number at 0"

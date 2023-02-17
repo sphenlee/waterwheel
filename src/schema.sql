@@ -35,6 +35,8 @@ CREATE TABLE IF NOT EXISTS task (
     name VARCHAR NOT NULL,
     job_id UUID NOT NULL REFERENCES job(id),
     threshold INT,
+    retry_max_attempts INT,
+    retry_delay_secs BIGINT,
     image VARCHAR,
     args VARCHAR[],
     env VARCHAR[],
@@ -47,6 +49,12 @@ CREATE TABLE IF NOT EXISTS token (
     count INT,
     state VARCHAR,
     UNIQUE(task_id, trigger_datetime)
+);
+
+CREATE TABLE IF NOT EXISTS retry (
+    task_run_id UUID NOT NULL REFERENCES task_run(id),
+    retry_at_datetime TIMESTAMP WITH TIME ZONE NOT NULL,
+    UNIQUE(task_run_id, retry_at_datetime)
 );
 
 CREATE TABLE IF NOT EXISTS worker (

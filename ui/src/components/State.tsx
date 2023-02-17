@@ -9,6 +9,7 @@ import {
   MinusCircleOutlined,
   WarningOutlined,
   StopOutlined,
+  PlusSquareOutlined,
 } from '@ant-design/icons';
 
 type States = 'active' | 'running' | 'waiting' | 'success' | 'failure' | 'error' | 'cancelled';
@@ -43,6 +44,9 @@ class State extends Component<StateProps> {
     } else if (state == 'cancelled') {
        color = 'default';
        icon = <StopOutlined />;
+    } else if (state == 'retry') {
+       color = 'purple';
+       icon = <PlusSquareOutlined />;
     } else {
       color = 'warning';
       icon = <WarningOutlined />;

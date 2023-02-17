@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 /// state of a token
 // TODO - strings are still hardcoded, use the enum!
-#[derive(Copy, Clone, Serialize, Deserialize, Debug, sqlx::Type)]
+#[derive(Copy, Clone, Serialize, Deserialize, Debug, PartialEq, sqlx::Type)]
 #[serde(rename_all = "lowercase")]
 #[sqlx(rename_all = "lowercase")]
 #[sqlx(type_name = "VARCHAR")]
@@ -26,6 +26,8 @@ pub enum TokenState {
     Failure,
     /// an error occurred (ie. task did not succeed or fail)
     Error,
+    /// task failed but is going to be retried
+    Retry,
 }
 
 impl TokenState {
@@ -58,6 +60,7 @@ impl AsRef<str> for TokenState {
             TokenState::Failure => "failure",
             TokenState::Error => "error",
             TokenState::Cancelled => "cancelled",
+            TokenState::Retry => "retry",
         }
     }
 }
@@ -76,6 +79,7 @@ impl FromStr for TokenState {
             "failure" => Ok(TokenState::Failure),
             "error" => Ok(TokenState::Error),
             "cancelled" => Ok(TokenState::Cancelled),
+            "retry" => Ok(TokenState::Retry),
             _ => Err(TokenStateParseError(format!(
                 "invalid token state: '{s}'"
             ))),

@@ -115,6 +115,7 @@ class TokenTable extends Component<TokenTableProps, TokenTableState> {
                     <Option value="failure">Failure</Option>
                     <Option value="waiting">Waiting</Option>
                     <Option value="error">Error</Option>
+                    <Option value="retry">Retry</Option>
                 </Select>
 
                 <Table rowKey={record => record.trigger_datetime + record.task_name}

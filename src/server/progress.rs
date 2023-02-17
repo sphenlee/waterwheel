@@ -1,10 +1,10 @@
 use crate::{
-    messages::{ProcessToken, TaskPriority, TaskProgress, Token},
+    messages::{ProcessToken, TaskPriority, TaskProgress, Token, TokenState},
     server::{tokens::increment_token, Server},
     util::first,
 };
 use anyhow::Result;
-use chrono::Duration;
+use chrono::{DateTime, Duration, Utc};
 use futures::TryStreamExt;
 use lapin::{
     options::{BasicAckOptions, BasicConsumeOptions, BasicQosOptions, QueueDeclareOptions},
@@ -13,8 +13,10 @@ use lapin::{
 use postage::prelude::*;
 use sqlx::{Connection, PgPool, Postgres, Transaction};
 use std::sync::Arc;
-use tracing::debug;
+use tracing::{debug, info, trace};
 use uuid::Uuid;
+use crate::postoffice::PostOffice;
+use crate::server::retries::SubmitRetry;
 
 const RESULT_QUEUE: &str = "waterwheel.results";
 
@@ -58,13 +60,19 @@ pub async fn process_progress(server: Arc<Server>) -> Result<!> {
         let mut conn = pool.acquire().await?;
         let mut txn = conn.begin().await?;
 
-        let tokens_to_tx = if task_progress.result.is_final() {
-            advance_tokens(&pool, &mut txn, &task_progress).await?
-        } else {
-            Vec::<Token>::new()
-        };
-
         let priority = update_task_progress(&server, &mut txn, &task_progress).await?;
+
+        let mut tokens_to_tx = Vec::new();
+
+        if task_progress.result.is_final() {
+            if task_progress.result == TokenState::Failure
+                && has_retries(&pool, task_progress.task_run_id).await?
+            {
+                submit_retry(&mut txn, &server.post_office, &task_progress).await?;
+            } else {
+                tokens_to_tx = advance_tokens(&pool, &mut txn, &task_progress).await?;
+            }
+        }
 
         txn.commit().await?;
 
@@ -94,6 +102,10 @@ pub async fn advance_tokens(
     txn: &mut Transaction<'_, Postgres>,
     task_progress: &TaskProgress,
 ) -> Result<Vec<Token>> {
+    trace!(task_id=?task_progress.task_id,
+        task_run_id=?task_progress.task_run_id,
+        "advancing tokens");
+
     let mut cursor = sqlx::query_as(
         "SELECT
             child_task_id,
@@ -131,6 +143,10 @@ async fn update_task_progress(
     txn: &mut Transaction<'_, Postgres>,
     task_progress: &TaskProgress,
 ) -> Result<TaskPriority> {
+    trace!(task_id=?task_progress.task_id,
+        task_run_id=?task_progress.task_run_id,
+        "updating token state");
+
     sqlx::query(
         "UPDATE token
             SET state = $1
@@ -142,6 +158,10 @@ async fn update_task_progress(
     .bind(task_progress.trigger_datetime)
     .execute(&mut *txn)
     .await?;
+
+    trace!(task_id=?task_progress.task_id,
+        task_run_id=?task_progress.task_run_id,
+        "updating task_run state");
 
     let maybe_priority: Option<(TaskPriority,)> = sqlx::query_as(
         "UPDATE task_run
@@ -168,3 +188,77 @@ async fn update_task_progress(
 
     Ok(priority)
 }
+
+async fn has_retries(pool: &PgPool, task_run_id: Uuid) -> Result<bool> {
+    trace!(?task_run_id, "checking if task has retries");
+
+    let maybe_row: Option<(bool,)> = sqlx::query_as(
+        "SELECT (r.attempt < t.retry_max_attempts) AS has_retries
+        FROM task_run r
+        JOIN task t ON r.task_id = t.id
+        WHERE r.id = $1",
+    )
+    .bind(task_run_id)
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(maybe_row.map(first).unwrap_or(false))
+}
+
+async fn submit_retry(
+    txn: &mut Transaction<'_, Postgres>,
+    post_office: &PostOffice,
+    task_progress: &TaskProgress
+) -> Result<()> {
+    debug!(task_id=?task_progress.task_id,
+        task_run_id=?task_progress.task_run_id,
+        "submitting retry");
+
+    let (retry_at_datetime,): (DateTime<Utc>,) = sqlx::query_as(
+        "SELECT $2 + (INTERVAL '1s' * t.retry_delay_secs)
+        FROM task t
+        JOIN task_run r ON t.id = r.task_id
+        WHERE r.id = $1",
+    )
+    .bind(task_progress.task_run_id)
+    .bind(task_progress.finished_datetime.unwrap())
+    .fetch_one(&mut *txn)
+    .await?;
+
+    info!(task_id=?task_progress.task_id,
+        task_run_id=?task_progress.task_run_id,
+        "task will retry at {}", retry_at_datetime);
+
+    sqlx::query(
+        "INSERT INTO retry(task_run_id, retry_at_datetime)
+        VALUES(
+            $1,
+            $2
+        )",
+    )
+    .bind(task_progress.task_run_id)
+    .bind(retry_at_datetime)
+    .execute(&mut *txn)
+    .await?;
+
+    sqlx::query(
+        "UPDATE token
+            SET state = $1
+        WHERE task_id = $2
+        AND trigger_datetime = $3",
+    )
+    .bind(TokenState::Retry)
+    .bind(task_progress.task_id)
+    .bind(task_progress.trigger_datetime)
+    .execute(&mut *txn)
+    .await?;
+
+    let mut retry_tx = post_office.post_mail::<SubmitRetry>().await?;
+    retry_tx.send(SubmitRetry {
+        task_run_id: task_progress.task_run_id,
+        retry_at_datetime,
+    }).await?;
+
+    Ok(())
+}
+

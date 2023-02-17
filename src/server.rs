@@ -22,6 +22,7 @@ pub mod tokens;
 mod trigger_time;
 pub mod triggers;
 mod updates;
+mod retries;
 
 pub struct Server {
     pub scheduler_id: Uuid,
@@ -76,6 +77,7 @@ impl Server {
             updates::process_token_updates,
         );
         spawn_or_crash("process_requeue", self.clone(), requeue::process_requeue);
+        spawn_or_crash("process_retries", self.clone(), retries::process_retries);
 
         api::serve(self.config.clone()).await?;
 

@@ -27,23 +27,44 @@ pub async fn create_task(
         }
     });
 
+    let retry_delay_secs = task
+        .retry
+        .as_ref()
+        .map(|r| humantime::parse_duration(&r.delay))
+        .transpose()?
+        .map(|dur| dur.as_secs() as i32);
+
     let new_id = Uuid::new_v4();
 
     let (task_id,): (Uuid,) = sqlx::query_as(
-        "INSERT INTO task(id, name, job_id, threshold, image, args, env)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+        "INSERT INTO task(
+            id,
+            name,
+            job_id,
+            threshold,
+            retry_max_attempts,
+            retry_delay_secs,
+            image,
+            args,
+            env
+         )
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          ON CONFLICT(name, job_id)
          DO UPDATE
          SET threshold = $4,
-             image = $5,
-             args = $6,
-             env = $7
+             retry_max_attempts = $5,
+             retry_delay_secs = $6,
+             image = $7,
+             args = $8,
+             env = $9
          RETURNING id",
     )
     .bind(new_id)
     .bind(&task.name)
     .bind(job.uuid)
     .bind(threshold)
+    .bind(task.retry.as_ref().map(|r| r.max_attempts))
+    .bind(retry_delay_secs)
     .bind(task.docker.as_ref().map(|d| &d.image))
     .bind(task.docker.as_ref().map(|d| &d.args))
     .bind(task.docker.as_ref().map(|d| &d.env))

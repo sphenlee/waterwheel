@@ -1,7 +1,7 @@
 use crate::server::api::{
     auth,
     request_ext::RequestExt,
-    types::{period_from_string, Job, Trigger},
+    types::{duration_from_string, Job, Trigger},
     State,
 };
 use chrono::{DateTime, Utc};
@@ -74,9 +74,9 @@ pub async fn create_trigger(
     .bind(job.uuid)
     .bind(trigger.start)
     .bind(trigger.end)
-    .bind(period_from_string(trigger.period.as_deref())?)
+    .bind(duration_from_string(trigger.period.as_deref())?)
     .bind(&trigger.cron)
-    .bind(period_from_string(trigger.offset.as_deref())?)
+    .bind(duration_from_string(trigger.offset.as_deref())?)
     .bind(trigger.catchup.unwrap_or_default())
     .fetch_one(&mut *txn)
     .await?;
