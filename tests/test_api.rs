@@ -1,5 +1,5 @@
 use highnoon::StatusCode;
-use waterwheel::server::{api::make_app, Server};
+use waterwheel::server::api::make_app;
 
 mod common;
 
@@ -7,8 +7,7 @@ mod common;
 #[test]
 pub async fn test_healthcheck() -> highnoon::Result<()> {
     common::with_external_services(|config| async {
-        let server = Server::new(config).await?;
-        let tc = make_app(server).await?.test();
+        let tc = make_app(config).await?.test();
 
         let mut resp = tc.get("/healthcheck").send().await?;
         assert_eq!(resp.status(), StatusCode::OK);

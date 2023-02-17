@@ -12,9 +12,9 @@ use tokio::time::timeout;
 use uuid::Uuid;
 use waterwheel::{
     messages::TaskDef,
-    server::Server,
     worker::{engine::TaskEngine, heartbeat, work, Worker},
 };
+use waterwheel::server::api;
 
 mod common;
 
@@ -170,8 +170,7 @@ pub async fn test_worker_missing_taskid() -> highnoon::Result<()> {
     common::with_external_services(|mut config| async move {
         config.task_engine = TaskEngine::Null;
 
-        let server = Server::new(config.clone()).await?;
-        tokio::spawn(server.run_api());
+        tokio::spawn(api::serve(config.clone()));
         heartbeat::wait_for_server(&config).await;
 
         let worker = Arc::new(Worker::new(config.clone()).await?);

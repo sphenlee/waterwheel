@@ -1,7 +1,7 @@
 use highnoon::StatusCode;
 use pretty_assertions::assert_eq;
 use serde_json::{json, Value};
-use waterwheel::server::{api::make_app, Server};
+use waterwheel::server::api::make_app;
 
 mod common;
 
@@ -10,9 +10,7 @@ mod common;
 
 pub async fn test_project_jobs() -> highnoon::Result<()> {
     common::with_external_services(|config| async {
-        let server = Server::new(config).await?;
-
-        let tc = make_app(server).await?.test();
+        let tc = make_app(config).await?.test();
 
         let project_uuid = "00000000-0000-0000-0000-000000000000";
         let project_name = "integration_tests";

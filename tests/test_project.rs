@@ -13,9 +13,9 @@ mod common;
 #[test]
 pub async fn test_project() -> highnoon::Result<()> {
     common::with_external_services(|config| async {
-        let server = Server::new(config).await?;
+        let server = Server::new(config.clone()).await?;
 
-        let tc = make_app(server.clone()).await?.test();
+        let tc = make_app(config).await?.test();
 
         // (setup a queue to receive the config updates - these are a fanout broadcast so
         // no queue is subscribed by default)

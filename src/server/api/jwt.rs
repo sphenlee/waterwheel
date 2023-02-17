@@ -1,5 +1,5 @@
 use crate::{config::Config, server::api::State};
-use anyhow::{anyhow, Result};
+use anyhow::{format_err, Result};
 use highnoon::{Error, Request, StatusCode};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use serde::{Deserialize, Serialize};
@@ -37,16 +37,17 @@ pub fn load_keys(config: &Config) -> Result<JwtKeys> {
             let priv_key_file = config
                 .private_key
                 .as_deref()
-                .ok_or_else(|| anyhow!("RSA private key not set
-                    (either both public and private keys must be set, or the HMAC secret must be set)"))?;
+                .ok_or_else(|| format_err!(
+                    "RSA private key not set (either both public and private keys must be set, \
+                    or the HMAC secret must be set)"))?;
 
             load_rsa_keys(pub_key_file, priv_key_file)
         }
         None => {
             let secret = config.hmac_secret.as_deref().ok_or_else(|| {
-                anyhow!(
-                    "HMAC secret set
-                (either both public and private keys must be set, or the HMAC secret must be set)"
+                format_err!(
+                    "HMAC secret set (either both public and private keys must be set, \
+                    or the HMAC secret must be set)"
                 )
             })?;
             load_hmac_secret(secret)
