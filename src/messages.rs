@@ -2,6 +2,7 @@ use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
+use std::time::Duration;
 use tracing::error;
 use uuid::Uuid;
 
@@ -100,7 +101,7 @@ pub struct TaskRequest {
     pub trigger_datetime: DateTime<Utc>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, sqlx::FromRow)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TaskDef {
     pub task_id: Uuid,
     pub task_name: String,
@@ -112,6 +113,7 @@ pub struct TaskDef {
     pub args: Vec<String>,
     pub env: Option<Vec<String>>,
     pub paused: bool,
+    pub timeout: Option<Duration>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

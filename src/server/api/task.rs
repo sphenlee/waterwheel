@@ -5,6 +5,7 @@ use crate::{
 use chrono::{DateTime, Utc};
 use futures::TryStreamExt;
 use highnoon::{Json, Request, Responder, Response, StatusCode};
+use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -142,10 +143,43 @@ pub async fn internal_get_task_def(req: Request<State>) -> highnoon::Result<impl
     Ok(maybe_def.map(Json))
 }
 
+#[derive(sqlx::FromRow)]
+struct DbTaskDef {
+    pub task_id: Uuid,
+    pub task_name: String,
+    pub job_id: Uuid,
+    pub job_name: String,
+    pub project_id: Uuid,
+    pub project_name: String,
+    pub image: Option<String>,
+    pub args: Vec<String>,
+    pub env: Option<Vec<String>>,
+    pub paused: bool,
+    pub timeout_secs: Option<i64>,
+}
+
+impl Into<TaskDef> for DbTaskDef {
+    fn into(self) -> TaskDef {
+        TaskDef {
+            task_id: self.task_id,
+            task_name: self.task_name,
+            job_id: self.job_id,
+            job_name: self.job_name,
+            project_id: self.project_id,
+            project_name: self.project_name,
+            image: self.image,
+            args: self.args,
+            env: self.env,
+            paused: self.paused,
+            timeout: self.timeout_secs.map(|secs| Duration::from_secs(secs as u64)),
+        }
+    }
+}
+
 async fn get_task_def_common(req: &Request<State>) -> highnoon::Result<Option<TaskDef>> {
     let task_id = req.param("id")?.parse::<Uuid>()?;
 
-    let maybe_def: Option<TaskDef> = sqlx::query_as(
+    let maybe_def: Option<DbTaskDef> = sqlx::query_as(
         "SELECT
                 t.id AS task_id,
                 t.name AS task_name,
@@ -156,7 +190,8 @@ async fn get_task_def_common(req: &Request<State>) -> highnoon::Result<Option<Ta
                 image,
                 COALESCE(args, ARRAY[]::VARCHAR[]) AS args,
                 env,
-                j.paused
+                j.paused,
+                t.timeout_secs
             FROM task t
             JOIN job j on t.job_id = j.id
             JOIN project p ON j.project_id = p.id
@@ -166,5 +201,5 @@ async fn get_task_def_common(req: &Request<State>) -> highnoon::Result<Option<Ta
     .fetch_optional(&req.get_pool())
     .await?;
 
-    Ok(maybe_def)
+    Ok(maybe_def.map(|t| t.into()))
 }

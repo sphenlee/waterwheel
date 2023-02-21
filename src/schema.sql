@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS task (
     threshold INT,
     retry_max_attempts INT,
     retry_delay_secs BIGINT,
+    timeout_secs BIGINT,
     image VARCHAR,
     args VARCHAR[],
     env VARCHAR[],

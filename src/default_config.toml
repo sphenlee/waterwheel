@@ -11,9 +11,10 @@ log = "warn,waterwheel=info,lapin=off"
 cluster_gossip_bind = "127.0.0.1:7111"
 cluster_gossip_addr = "127.0.0.1:7111"
 cluster_seed_nodes = []
-requeue_interval_secs = 300 # 5 mins
+requeue_interval = "5m"
 requeue_missed_heartbeats = 3
-default_task_timeout_secs = 14400 # 4 hours
-task_heartbeat_secs = 60
-log_retention_secs = 14400 # 4 hours
+default_task_timeout = "4h"
+default_task_retry_delay = "5m"
+task_heartbeat = "60s"
+log_retention = "4h"
 

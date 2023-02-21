@@ -128,7 +128,7 @@ async fn run_docker(worker: &Worker, task_req: TaskRequest, task_def: TaskDef) -
         trace!("sent to redis");
     }
 
-    let _: redis::Value = redis.expire(&key, worker.config.log_retention_secs).await?;
+    let _: redis::Value = redis.expire(&key, worker.config.log_retention.try_into()?).await?;
     drop(redis);
 
     // ____________________________________________________

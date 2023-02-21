@@ -69,7 +69,7 @@ pub struct Docker {
 #[derive(Deserialize, Serialize)]
 pub struct Retry {
     pub max_attempts: i32,
-    pub delay: String,
+    pub delay: Option<String>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -80,6 +80,7 @@ pub struct Task {
     pub depends_failure: Option<Vec<String>>, // TODO - better name for this?
     pub threshold: Option<i32>,
     pub retry: Option<Retry>,
+    pub timeout: Option<String>,
 }
 
 #[cfg(test)]

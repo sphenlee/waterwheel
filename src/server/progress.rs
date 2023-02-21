@@ -68,7 +68,7 @@ pub async fn process_progress(server: Arc<Server>) -> Result<!> {
             if task_progress.result == TokenState::Failure
                 && has_retries(&pool, task_progress.task_run_id).await?
             {
-                submit_retry(&mut txn, &server.post_office, &task_progress).await?;
+                submit_retry(&server, &mut txn, &server.post_office, &task_progress).await?;
             } else {
                 tokens_to_tx = advance_tokens(&pool, &mut txn, &task_progress).await?;
             }
@@ -206,6 +206,7 @@ async fn has_retries(pool: &PgPool, task_run_id: Uuid) -> Result<bool> {
 }
 
 async fn submit_retry(
+    server: &Server,
     txn: &mut Transaction<'_, Postgres>,
     post_office: &PostOffice,
     task_progress: &TaskProgress
@@ -215,13 +216,14 @@ async fn submit_retry(
         "submitting retry");
 
     let (retry_at_datetime,): (DateTime<Utc>,) = sqlx::query_as(
-        "SELECT $2 + (INTERVAL '1s' * t.retry_delay_secs)
+        "SELECT $2 + (INTERVAL '1s' * COALESCE(t.retry_delay_secs, $3))
         FROM task t
         JOIN task_run r ON t.id = r.task_id
         WHERE r.id = $1",
     )
     .bind(task_progress.task_run_id)
     .bind(task_progress.finished_datetime.unwrap())
+    .bind(server.config.default_task_retry_delay as i64)
     .fetch_one(&mut *txn)
     .await?;
 

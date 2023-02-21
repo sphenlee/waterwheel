@@ -1,8 +1,27 @@
+use std::fmt::Formatter;
 use crate::worker::engine::TaskEngine;
 use anyhow::{Context, Result};
 use config::{builder::DefaultState, ConfigBuilder, Environment, File, FileFormat};
 use reqwest::Url;
 use std::path::Path;
+use serde::{Deserialize, Deserializer, de};
+
+struct DurationError(humantime::DurationError);
+
+impl de::Expected for DurationError {
+    fn fmt(&self, formatter: &mut Formatter) -> std::fmt::Result {
+        write!(formatter, "a human duration string ({})", self.0)
+    }
+}
+
+fn serde_human_time<'de, D: Deserializer<'de>>(d: D) -> std::result::Result<u64, D::Error> {
+    let raw: String = Deserialize::deserialize(d)?;
+    let secs = humantime::parse_duration(&raw)
+        .map_err(|err| {
+            de::Error::invalid_value(de::Unexpected::Str(&raw), &DurationError(err))
+        })?.as_secs() as u64;
+    Ok(secs)
+}
 
 /// config for Waterwheel
 /// note that the default values are loaded from default_config.toml,
@@ -29,11 +48,23 @@ pub struct Config {
     pub cluster_gossip_bind: String,
     pub cluster_gossip_addr: String,
     pub cluster_seed_nodes: Vec<String>,
-    pub requeue_interval_secs: u64, // TODO - deserialise both of these as duration strings
+
+    #[serde(deserialize_with="serde_human_time")]
+    pub requeue_interval: u64,
+
     pub requeue_missed_heartbeats: u32,
-    pub default_task_timeout_secs: u64,
-    pub task_heartbeat_secs: u64,
-    pub log_retention_secs: usize,
+
+    #[serde(deserialize_with="serde_human_time")]
+    pub default_task_timeout: u64,
+
+    #[serde(deserialize_with="serde_human_time")]
+    pub default_task_retry_delay: u64,
+
+    #[serde(deserialize_with="serde_human_time")]
+    pub task_heartbeat: u64,
+
+    #[serde(deserialize_with="serde_human_time")]
+    pub log_retention: u64,
 }
 
 pub fn loader(file: Option<&Path>) -> ConfigBuilder<DefaultState> {

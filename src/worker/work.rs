@@ -93,8 +93,8 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
     let statsd = worker.statsd.clone();
 
     let engine = worker.config.task_engine.get_impl()?;
-    let task_timeout = Duration::from_secs(worker.config.default_task_timeout_secs);
-    let task_heartbeat = Duration::from_secs(worker.config.task_heartbeat_secs);
+    let default_task_timeout = Duration::from_secs(worker.config.default_task_timeout);
+    let task_heartbeat = Duration::from_secs(worker.config.task_heartbeat);
 
     let chan = worker.amqp_conn.create_channel().await?;
     setup_queues(&chan).await?;
@@ -145,6 +145,8 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
                     // task has no image, mark success immediately
                     TokenState::Success
                 } else {
+                    let task_timeout = task_def.timeout.unwrap_or(default_task_timeout);
+
                     let mut task = engine.run_task(&worker, task_req.clone(), task_def).boxed();
 
                     let mut ticker = tokio::time::interval(task_heartbeat);
