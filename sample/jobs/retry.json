@@ -1,0 +1,47 @@
+{
+  "uuid": "94344b91-9450-434d-ae90-4a140eee2a0c",
+  "project": "test_project",
+  "name": "retry_demo",
+  "description": "a job to test retries",
+  "paused": false,
+  "triggers": [
+    {
+      "name": "five_minutes",
+      "start": "2023-02-15T13:00:00Z",
+      "period": "5m",
+      "catchup": "none"
+    }
+  ],
+  "tasks": [
+    {
+      "name": "step0",
+      "docker": {
+        "image": "waterwheel_random:1",
+        "args": [],
+        "env": [
+          "FAIL_PERCENTAGE=95"
+        ]
+      },
+      "timeout": "50s",
+      "retry": {
+        "max_attempts": 5,
+        "delay": "2m"
+      },
+      "depends": [
+        "trigger/five_minutes"
+      ]
+    },
+    {
+      "name": "success",
+      "depends": [
+        "task/step0"
+      ]
+    },
+    {
+      "name": "failure",
+      "depends_failure": [
+        "task/step0"
+      ]
+    }
+  ]
+}

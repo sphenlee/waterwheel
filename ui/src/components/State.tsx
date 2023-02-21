@@ -10,9 +10,11 @@ import {
   WarningOutlined,
   StopOutlined,
   PlusSquareOutlined,
+  HourglassOutlined,
 } from '@ant-design/icons';
+import { orange } from '@ant-design/colors';
 
-type States = 'active' | 'running' | 'waiting' | 'success' | 'failure' | 'error' | 'cancelled';
+import { States } from '../types/Job';
 type StateProps = {
   state: States
 };
@@ -39,8 +41,11 @@ class State extends Component<StateProps> {
       color = 'error';
       icon = <CloseSquareOutlined />;
     } else if (state == 'error') {
-      color = 'warning';
+      color = 'orange';
       icon = <WarningOutlined />;
+    } else if (state == 'timeout') {
+        color = 'orange';
+        icon = <HourglassOutlined />;
     } else if (state == 'cancelled') {
        color = 'default';
        icon = <StopOutlined />;

@@ -156,7 +156,7 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
                         tokio::select! {
                             _ = &mut timeout => {
                                 error!("timeout running task");
-                                break TokenState::Error;
+                                break TokenState::Timeout;
                             }
                             _ = ticker.tick() => {
                                 trace!("task heartbeat");

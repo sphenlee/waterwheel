@@ -65,7 +65,7 @@ export type JobGraphNode = {
     kind: string;
     name: string;
     job_id: uuid;
-    state: JobGraphNodeState | null;
+    state: States | null;
 };
 
 export type JobGraphEdge = {
@@ -74,4 +74,12 @@ export type JobGraphEdge = {
     kind: string;
 };
 
-export type JobGraphNodeState = 'active' | 'success' | 'failure';
+export type States = 'active'
+    | 'success'
+    | 'failure'
+    | 'waiting'
+    | 'running'
+    | 'timeout'
+    | 'error'
+    | 'retry'
+    | 'cancelled';

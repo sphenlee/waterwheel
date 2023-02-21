@@ -2,10 +2,10 @@ import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
 import Graph, { GraphRep } from "react-graph-vis";
 import { Table, Select, notification, Spin } from 'antd';
-import { geekblue, lime, red, grey, yellow } from '@ant-design/colors';
+import { geekblue, lime, red, grey, yellow, orange, purple } from '@ant-design/colors';
 import axios from 'axios';
 
-import { JobGraph as JobGraphType, JobGraphNode, JobGraphNodeState } from "../types/Job";
+import { JobGraph as JobGraphType, JobGraphNode, States } from "../types/Job";
 
 const options = {
     width: '100%',
@@ -22,12 +22,17 @@ const options = {
     }*/
 }
 
-function stateColor(state: JobGraphNodeState | null) {
+function stateColor(state: States | null) {
     return state ? {
         waiting: grey[3],
-        active: geekblue[3],
+        active: geekblue[3], // TODO different colour?
+        running: geekblue[3],
         success: lime[3],
         failure: red[3],
+        timeout: orange[3],
+        error: orange[3], // TODO - different to timeout
+        retry: purple[3],
+        cancelled: grey[3],
     }[state] : grey[0];
 }
 
@@ -76,7 +81,7 @@ class JobGraph extends Component<JobGraphProps, JobGraphState> {
                 id: n.id,
                 label: nodeLabel(n),
                 title: nodeTitle(n),
-                shape: 'box',
+                shape: (n.kind === 'trigger' ? 'ellipse': 'box'),
                 color: (n.kind === 'trigger' ? yellow[3] : stateColor(n.state))
             })),
             edges: data.edges.map(e => ({

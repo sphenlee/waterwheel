@@ -17,6 +17,7 @@ import {
   DoubleRightOutlined,
   StopOutlined,
   PlusSquareOutlined,
+  HourglassOutlined,
 } from '@ant-design/icons';
 import { Token, TokenOverview, TokensRow, TokenState } from "../../types/Token";
 import { datetime, uuid } from "../../types/common";
@@ -64,6 +65,8 @@ function iconForState(task: TokenState) {
         return <CheckCircleOutlined style={{color: lime[5]}}/>;
     } else if (state == 'failure') {
         return <CloseSquareOutlined style={{color: red[5]}}/>;
+    } else if (state == 'timeout') {
+        return <HourglassOutlined style={{color: orange[5]}}/>;
     } else if (state == 'error') {
         return <WarningOutlined style={{color: orange[5]}}/>;
     } else if (state == 'cancelled') {

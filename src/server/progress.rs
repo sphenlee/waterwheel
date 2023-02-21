@@ -65,7 +65,7 @@ pub async fn process_progress(server: Arc<Server>) -> Result<!> {
         let mut tokens_to_tx = Vec::new();
 
         if task_progress.result.is_final() {
-            if task_progress.result == TokenState::Failure
+            if task_progress.result.is_retryable()
                 && has_retries(&pool, task_progress.task_run_id).await?
             {
                 submit_retry(&server, &mut txn, &server.post_office, &task_progress).await?;

@@ -25,6 +25,8 @@ pub enum TokenState {
     Success,
     /// task failed
     Failure,
+    /// task did not complete in allowed time
+    Timeout,
     /// an error occurred (ie. task did not succeed or fail)
     Error,
     /// task failed but is going to be retried
@@ -35,7 +37,14 @@ impl TokenState {
     pub fn is_final(&self) -> bool {
         matches!(
             self,
-            TokenState::Success | TokenState::Failure | TokenState::Error
+            TokenState::Success | TokenState::Failure | TokenState::Error | TokenState::Timeout
+        )
+    }
+
+    pub fn is_retryable(&self) -> bool {
+        matches!(
+            self,
+            TokenState::Failure | TokenState::Timeout
         )
     }
 
@@ -59,6 +68,7 @@ impl AsRef<str> for TokenState {
             TokenState::Running => "running",
             TokenState::Success => "success",
             TokenState::Failure => "failure",
+            TokenState::Timeout => "timeout",
             TokenState::Error => "error",
             TokenState::Cancelled => "cancelled",
             TokenState::Retry => "retry",
@@ -78,6 +88,7 @@ impl FromStr for TokenState {
             "running" => Ok(TokenState::Running),
             "success" => Ok(TokenState::Success),
             "failure" => Ok(TokenState::Failure),
+            "timeout" => Ok(TokenState::Timeout),
             "error" => Ok(TokenState::Error),
             "cancelled" => Ok(TokenState::Cancelled),
             "retry" => Ok(TokenState::Retry),
