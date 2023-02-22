@@ -1,6 +1,6 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
-import { Table, Select, notification, Popconfirm, Row, Button, DatePicker, Space, Col } from 'antd';
+import { Table, Select, notification, Popconfirm, Row, Button, DatePicker, Space, Col, Tooltip } from 'antd';
 import { geekblue, lime, red, grey, orange, purple } from '@ant-design/colors';
 import axios from 'axios';
 import styled, { CSSProperties } from 'styled-components';
@@ -46,36 +46,37 @@ const TRow = styled.tr`
     }
 `;
 
-console.log(grey);
-
 function iconForState(task: TokenState) {
     if (task === undefined) {
         return <MinusOutlined style={{color: grey[5]}} />;
     }
 
     let state = task.state;
+    let icon;
 
     if (state == 'active') {
-        return <SyncOutlined style={{color: grey[5]}}/>;
+        icon = <SyncOutlined style={{color: grey[5]}}/>;
     } else if (state == 'running') {
-        return <SyncOutlined spin style={{color: geekblue[5]}}/>;
+        icon = <SyncOutlined spin style={{color: geekblue[5]}}/>;
     } else if (state == 'waiting') {
-        return <ClockCircleOutlined style={{color: grey[5]}}/>;
+        icon = <ClockCircleOutlined style={{color: grey[5]}}/>;
     } else if (state == 'success') {
-        return <CheckCircleOutlined style={{color: lime[5]}}/>;
+        icon = <CheckCircleOutlined style={{color: lime[5]}}/>;
     } else if (state == 'failure') {
-        return <CloseSquareOutlined style={{color: red[5]}}/>;
+        icon = <CloseSquareOutlined style={{color: red[5]}}/>;
     } else if (state == 'timeout') {
-        return <HourglassOutlined style={{color: orange[5]}}/>;
+        icon = <HourglassOutlined style={{color: orange[5]}}/>;
     } else if (state == 'error') {
-        return <WarningOutlined style={{color: orange[5]}}/>;
+        icon = <WarningOutlined style={{color: orange[5]}}/>;
     } else if (state == 'cancelled') {
-        return <StopOutlined style={{color: grey[5]}} />;
+        icon = <StopOutlined style={{color: grey[5]}} />;
     } else if (state == 'retry') {
-        return <PlusSquareOutlined  style={{color: purple[6]}} />
+        icon = <PlusSquareOutlined  style={{color: purple[6]}} />;
     } else {
-        return 'invalid state?';
+        icon = 'invalid state?';
     }
+
+    return <Tooltip title={state}>{icon}</Tooltip>;
 }
 
 async function activateToken(trigger_datetime: string, task_id: string) {
