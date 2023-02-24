@@ -69,16 +69,15 @@ pub async fn watch_live_nodes(server: Arc<Server>) -> Result<!> {
         info!("cluster membership changed");
         let triggers = get_all_triggers(&server.db_pool).await?;
 
-        let mut rendezvous = rendezvous::Rendezvous::new();
+        let mut rendezvous = rendezvous::Rendezvous::with_me(me.clone());
 
-        rendezvous.add_node(me.clone());
         for item in live_nodes {
             rendezvous.add_node(item.id);
         }
 
         let mut new_triggers = HashSet::new();
         for trigger in triggers {
-            if rendezvous.node_for_item(&trigger) == &me {
+            if rendezvous.item_is_mine(&me, &trigger) {
                 new_triggers.insert(trigger);
             }
         }
@@ -111,13 +110,11 @@ pub async fn trigger_update(server: Arc<Server>, update: TriggerUpdate) -> Resul
     let TriggerUpdate(uuids) = update;
     trace!(?uuids, "got trigger update");
 
-    let mut rendezvous = rendezvous::Rendezvous::new();
-
     let chitchat = server.get_chitchat().await;
     let chitchat = chitchat.lock().await;
 
     let me = chitchat.self_node_id().id.clone();
-    rendezvous.add_node(me.clone());
+    let mut rendezvous = rendezvous::Rendezvous::with_me(me.clone());
 
     for item in chitchat.live_nodes() {
         rendezvous.add_node(item.id.clone());
@@ -125,7 +122,7 @@ pub async fn trigger_update(server: Arc<Server>, update: TriggerUpdate) -> Resul
 
     let to_add: Vec<_> = uuids
         .iter()
-        .filter(|trigger| rendezvous.node_for_item(trigger) == &me)
+        .filter(|trigger| rendezvous.item_is_mine(&me, trigger))
         .map(deref)
         .collect();
     trace!(?to_add, "filtered triggers by rendezvous hash");
