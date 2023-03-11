@@ -1,8 +1,7 @@
 use std::sync::Arc;
 use anyhow::{format_err, Result};
-use binary_heap_plus::BinaryHeap;
+use binary_heap_plus::{BinaryHeap, MinComparator};
 use chrono::{DateTime, Duration, Utc};
-use futures::TryStreamExt;
 use postage::prelude::*;
 use tokio::select;
 use tracing::{debug, info, trace, warn};
@@ -12,8 +11,16 @@ use crate::server::execute::ExecuteToken;
 use crate::server::Server;
 use crate::util::format_duration_approx;
 
+type RetryQueue = BinaryHeap<Retry, MinComparator>;
+
+#[derive(Clone, Debug)]
+pub enum SubmitRetry {
+    Add(Retry),
+    Reload,
+}
+
 #[derive(Clone, PartialOrd, Ord, PartialEq, Eq, Debug, sqlx::FromRow)]
-pub struct SubmitRetry {
+pub struct Retry {
     // sort by time first
     pub retry_at_datetime: DateTime<Utc>,
     pub task_run_id: Uuid,
@@ -24,27 +31,17 @@ pub async fn process_retries(server: Arc<Server>) -> Result<!> {
 
     let mut queue = BinaryHeap::new_min();
 
-    debug!("restoring retries from database");
-    let mut cursor = sqlx::query_as(
-        "SELECT retry_at_datetime, task_run_id FROM retry"
-    )
-    .fetch(&server.db_pool);
-
-    while let Some(retry) = cursor.try_next().await? {
-        queue.push(retry);
-    }
-    debug!("restored {} retries from database", queue.len());
-
     loop {
         trace!("checking if the queue is empty");
         if queue.is_empty() {
             trace!("retry queue is empty, waiting for new retries");
-            let retry = retry_rx
+            let submit_retry = retry_rx
                 .recv()
                 .await
                 .ok_or_else(|| format_err!("retry_rx channel was closed"))?;
-            trace!("received a retry");
-            queue.push(retry);
+
+            process_submit_retry(&server, &mut queue, submit_retry).await?;
+            continue;
         }
 
         let next_retry = queue.pop().expect("queue is not empty now");
@@ -56,11 +53,11 @@ pub async fn process_retries(server: Arc<Server>) -> Result<!> {
 
         if delay > Duration::zero() {
             select! {
-                Some(new_retry) = retry_rx.recv() => {
+                Some(submit_retry) = retry_rx.recv() => {
                     trace!("received a retry while sleeping");
-                    // put the current retry, and the new one in the queue
+                    // put the current retry back in the queue
                     queue.push(next_retry);
-                    queue.push(new_retry);
+                    process_submit_retry(&server, &mut queue, submit_retry).await?;
                 }
                 _ = tokio::time::sleep(delay.to_std()?) => {
                     trace!("sleep completed, no new retries");
@@ -74,6 +71,22 @@ pub async fn process_retries(server: Arc<Server>) -> Result<!> {
     }
 }
 
+async fn process_submit_retry(
+    server: &Server,
+    queue: &mut RetryQueue,
+    submit_retry: SubmitRetry
+) -> Result<()> {
+    match submit_retry {
+        SubmitRetry::Add(retry) => {
+            trace!("received a retry");
+            queue.push(retry);
+        }
+        SubmitRetry::Reload => reload_retries(server, queue).await?,
+    }
+    Ok(())
+}
+
+
 #[derive(sqlx::FromRow)]
 struct RetryInfo {
     pub task_id: Uuid,
@@ -82,7 +95,7 @@ struct RetryInfo {
     pub attempt: i64,
 }
 
-async fn do_retry(server: &Server, retry: SubmitRetry) -> Result<()> {
+async fn do_retry(server: &Server, retry: Retry) -> Result<()> {
     let mut execute_tx = server.post_office.post_mail::<ExecuteToken>().await?;
 
     let info: RetryInfo = sqlx::query_as(
@@ -123,4 +136,41 @@ async fn do_retry(server: &Server, retry: SubmitRetry) -> Result<()> {
     .await?;
 
     Ok(())
+}
+
+async fn reload_retries(server: &Server, queue: &mut RetryQueue) -> Result<()> {
+    debug!("loading retries from database");
+    let retries = sqlx::query_as::<_, Retry>(
+        "SELECT retry_at_datetime, task_run_id FROM retry"
+    )
+    .fetch_all(&server.db_pool)
+    .await?;
+
+    let me = &*server.node_id;
+    let rendezvous = server.on_cluster_membership_change.borrow();
+
+    for retry in retries {
+        if rendezvous.item_is_mine(me, &retry.task_run_id) {
+            queue.push(retry);
+        }
+    }
+    debug!("loaded {} retries from database", queue.len());
+
+    Ok(())
+}
+
+
+pub async fn retry_cluster_changes(server: Arc<Server>) -> Result<!> {
+    let mut cluster_rx = server.on_cluster_membership_change.subscribe();
+        //server.post_office.receive_mail::<ClusterMembershipChange>().await?;
+    let mut retry_tx = server.post_office.post_mail::<SubmitRetry>().await?;
+
+    loop {
+        //let _ = cluster_rx.recv().await?;
+
+        info!("cluster membership changed");
+        retry_tx.send(SubmitRetry::Reload).await?;
+
+        cluster_rx.changed().await?;
+    }
 }

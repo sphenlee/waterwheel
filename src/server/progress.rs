@@ -16,7 +16,7 @@ use std::sync::Arc;
 use tracing::{debug, info, trace};
 use uuid::Uuid;
 use crate::postoffice::PostOffice;
-use crate::server::retries::SubmitRetry;
+use crate::server::retries::{Retry, SubmitRetry};
 
 const RESULT_QUEUE: &str = "waterwheel.results";
 
@@ -256,10 +256,10 @@ async fn submit_retry(
     .await?;
 
     let mut retry_tx = post_office.post_mail::<SubmitRetry>().await?;
-    retry_tx.send(SubmitRetry {
+    retry_tx.send(SubmitRetry::Add(Retry {
         task_run_id: task_progress.task_run_id,
         retry_at_datetime,
-    }).await?;
+    })).await?;
 
     Ok(())
 }

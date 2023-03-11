@@ -13,6 +13,9 @@ impl<Node> Rendezvous<Node> {
         Rendezvous { nodes: vec![me] }
     }
 
+    pub fn clear(&mut self) {
+        self.nodes.clear();
+    }
 
     pub fn add_node(&mut self, node: Node) {
         self.nodes.push(node);

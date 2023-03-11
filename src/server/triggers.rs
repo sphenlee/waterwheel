@@ -17,9 +17,12 @@ use std::{
     str::FromStr,
     sync::{atomic::Ordering, Arc},
 };
+use std::collections::HashSet;
 use tokio::time;
 use tracing::{debug, info, trace, warn};
 use uuid::Uuid;
+use crate::messages::TriggerUpdate;
+use crate::util::{deref, first};
 
 type Queue = BinaryHeap<TriggerTime, MinComparator>;
 
@@ -429,39 +432,6 @@ async fn update_one_trigger(server: &Server, uuid: Uuid, queue: &mut Queue) -> R
     Ok(())
 }
 
-/*async fn restore_triggers(server: &Server, queue: &mut Queue) -> Result<()> {
-    let pool = server.db_pool.clone();
-
-    info!("restoring triggers from database...");
-
-    // first load all unpaused triggers from the DB
-    let mut cursor = sqlx::query_as(
-        "SELECT
-            t.id AS id,
-            start_datetime,
-            end_datetime,
-            earliest_trigger_datetime,
-            latest_trigger_datetime,
-            period,
-            cron,
-            trigger_offset,
-            catchup
-        FROM trigger t
-        JOIN job j ON t.job_id = j.id
-        WHERE NOT j.paused
-    ",
-    )
-    .fetch(&pool);
-
-    while let Some(trigger) = cursor.try_next().await? {
-        catchup_trigger(server, &trigger, queue).await?;
-    }
-
-    info!("done restoring {} triggers from database", queue.len());
-
-    Ok(())
-}*/
-
 async fn requeue_next_triggertime(
     server: &Server,
     next_triggertime: &TriggerTime,
@@ -499,4 +469,85 @@ async fn requeue_next_triggertime(
     }
 
     Ok(())
+}
+
+pub async fn trigger_cluster_changes(server: Arc<Server>) -> Result<!> {
+    let mut cluster_rx = server.on_cluster_membership_change.subscribe();
+    let mut change_tx = server.post_office.post_mail::<TriggerChange>().await?;
+    let mut current_triggers = HashSet::new();
+
+    loop {
+        info!("cluster membership changed");
+        let triggers = get_all_triggers(&server.db_pool).await?;
+
+        let new_triggers = {
+            let rendezvous = cluster_rx.borrow();
+
+            let mut new_triggers = HashSet::new();
+            for trigger in triggers {
+                if rendezvous.item_is_mine(&server.node_id, &trigger) {
+                    new_triggers.insert(trigger);
+                }
+            }
+            new_triggers
+        };
+
+        let to_remove: Vec<_> = current_triggers
+            .difference(&new_triggers)
+            .map(deref)
+            .collect();
+        trace!("removing triggers: {:?}", to_remove);
+        info!("removing {} triggers", to_remove.len());
+        change_tx.send(TriggerChange::Remove(to_remove)).await?;
+
+        let to_add: Vec<_> = new_triggers
+            .difference(&current_triggers)
+            .map(deref)
+            .collect();
+        trace!("adding triggers: {:?}", to_add);
+        info!("adding {} triggers", to_add.len());
+        change_tx.send(TriggerChange::Add(to_add)).await?;
+
+        current_triggers = new_triggers;
+
+        cluster_rx.changed().await?;
+    }
+}
+
+pub async fn trigger_update(server: Arc<Server>, update: TriggerUpdate) -> Result<()> {
+    let mut change_tx = server.post_office.post_mail::<TriggerChange>().await?;
+
+    let TriggerUpdate(uuids) = update;
+    trace!(?uuids, "got trigger update");
+
+    let to_add: Vec<_> = {
+        let rendezvous = server.on_cluster_membership_change.borrow();
+        uuids
+            .iter()
+            .filter(|trigger| rendezvous.item_is_mine(&server.node_id, trigger))
+            .map(deref)
+            .collect()
+    };
+
+    trace!(?to_add, "filtered triggers by rendezvous hash");
+
+    if !to_add.is_empty() {
+        change_tx.send(TriggerChange::Add(to_add)).await?;
+    }
+
+    Ok(())
+}
+
+async fn get_all_triggers(db: &PgPool) -> Result<HashSet<Uuid>> {
+    let triggers = sqlx::query_as(
+        "
+        SELECT t.id
+        FROM trigger t
+        JOIN job j ON t.job_id = j.id
+        WHERE NOT j.paused",
+    )
+    .fetch_all(db)
+    .await?;
+
+    Ok(triggers.into_iter().map(first).collect())
 }

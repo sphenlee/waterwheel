@@ -1,6 +1,6 @@
 use crate::{
     messages::{ProcessToken, TriggerUpdate},
-    server::{cluster::trigger_update, Server},
+    server::{triggers::trigger_update, Server},
 };
 use anyhow::Result;
 use futures::TryStreamExt;
