@@ -75,57 +75,68 @@ class Job extends Component<JobProps, JobState> {
                     activeKey={tab}
                     onChange={(activeKey) => history.replace(`/jobs/${job_id}/${activeKey}`)}
                     destroyInactiveTabPane={true}
-                >
-                    <Tabs.TabPane tab="Overview" key="overview">
-                        <Row gutter={[16, 32]}>
-                            <Col span={4}>
-                                <Statistic title="Running Tasks"
-                                    valueStyle={{color: geekblue[5]}}
-                                    value={job.active_tasks} />
-                            </Col>
-                            <Col span={4}>
-                                <Statistic title="Waiting Tasks"
-                                    valueStyle={{color: grey[5]}}
-                                    value={job.waiting_tasks} />
-                            </Col>
-                            <Col span={4}>
-                                <Statistic title="Succeeded Tasks (last hour)"
-                                    valueStyle={{color: lime[5]}}
-                                    value={job.succeeded_tasks_last_hour} />
-                            </Col>
-                            <Col span={4}>
-                                <Statistic title="Failed Tasks (last hour)"
-                                    valueStyle={{color: red[5]}}
-                                    value={job.failed_tasks_last_hour} />
-                            </Col>
-                            <Col span={4}>
-                                <Statistic title="Error Tasks (last hour)"
-                                    valueStyle={{color: orange[5]}}
-                                    value={job.error_tasks_last_hour} />
-                            </Col>
-                            <Col span={24}>
-                                <Graph id={job_id} />
-                            </Col>
-                        </Row>
-                    </Tabs.TabPane>
-                    <Tabs.TabPane tab="Grid" key="grid">
-                        <Spin spinning={!job}>
-                            <TaskGrid id={job_id} />
-                        </Spin>
-                    </Tabs.TabPane>
-                    <Tabs.TabPane tab="Triggers" key="triggers">
-                        <Triggers id={job_id} job={job} />
-                    </Tabs.TabPane>
-                    <Tabs.TabPane tab="Tokens" key="tokens">
-                        <TokenTable id={job_id}/>
-                    </Tabs.TabPane>
-                    <Tabs.TabPane tab="Duration" key="duration">
-                        <Duration id={job_id} />
-                    </Tabs.TabPane>
-                    <Tabs.TabPane tab="Definition" key="definition">
-                        <JSONPretty data={job.raw_definition} />
-                    </Tabs.TabPane>
-                </Tabs>
+                    items={[
+                        {
+                            label: "Overview",
+                            key: "overview",
+                            children: <Row gutter={[16, 32]}>
+                                          <Col span={4}>
+                                              <Statistic title="Running Tasks"
+                                                  valueStyle={{color: geekblue[5]}}
+                                                  value={job.active_tasks} />
+                                          </Col>
+                                          <Col span={4}>
+                                              <Statistic title="Waiting Tasks"
+                                                  valueStyle={{color: grey[5]}}
+                                                  value={job.waiting_tasks} />
+                                          </Col>
+                                          <Col span={4}>
+                                              <Statistic title="Succeeded Tasks (last hour)"
+                                                  valueStyle={{color: lime[5]}}
+                                                  value={job.succeeded_tasks_last_hour} />
+                                          </Col>
+                                          <Col span={4}>
+                                              <Statistic title="Failed Tasks (last hour)"
+                                                  valueStyle={{color: red[5]}}
+                                                  value={job.failed_tasks_last_hour} />
+                                          </Col>
+                                          <Col span={4}>
+                                              <Statistic title="Error Tasks (last hour)"
+                                                  valueStyle={{color: orange[5]}}
+                                                  value={job.error_tasks_last_hour} />
+                                          </Col>
+                                          <Col span={24}>
+                                              <Graph id={job_id} />
+                                          </Col>
+                                      </Row>
+                        },{
+                            label: "Grid",
+                            key: "grid",
+                            children: <Spin spinning={!job}>
+                                          <TaskGrid id={job_id} />
+                                      </Spin>
+                        },{
+                          label: "Triggers",
+                          key: "triggers",
+                          children: <Triggers id={job_id} job={job} />
+                      },
+                      {
+                          label: "Tokens",
+                          key: "tokens",
+                          children: <TokenTable id={job_id}/>
+                      },
+                      {
+                          label: "Duration",
+                          key: "duration",
+                          children: <Duration id={job_id} />
+                      },
+                      {
+                          label: "Definition",
+                          key: "definition",
+                          children: <JSONPretty data={job.raw_definition} />
+                      }
+                    ]}
+                />
             </>
         ) : <Spin size="large" />;
 
