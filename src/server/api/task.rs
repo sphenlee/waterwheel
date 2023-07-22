@@ -158,20 +158,20 @@ struct DbTaskDef {
     pub timeout_secs: Option<i64>,
 }
 
-impl Into<TaskDef> for DbTaskDef {
-    fn into(self) -> TaskDef {
+impl From<DbTaskDef> for TaskDef {
+    fn from(other: DbTaskDef) -> Self {
         TaskDef {
-            task_id: self.task_id,
-            task_name: self.task_name,
-            job_id: self.job_id,
-            job_name: self.job_name,
-            project_id: self.project_id,
-            project_name: self.project_name,
-            image: self.image,
-            args: self.args,
-            env: self.env,
-            paused: self.paused,
-            timeout: self.timeout_secs.map(|secs| Duration::from_secs(secs as u64)),
+            task_id: other.task_id,
+            task_name: other.task_name,
+            job_id: other.job_id,
+            job_name: other.job_name,
+            project_id: other.project_id,
+            project_name: other.project_name,
+            image: other.image,
+            args: other.args,
+            env: other.env,
+            paused: other.paused,
+            timeout: other.timeout_secs.map(|secs| Duration::from_secs(secs as u64)),
         }
     }
 }
@@ -201,5 +201,5 @@ async fn get_task_def_common(req: &Request<State>) -> highnoon::Result<Option<Ta
     .fetch_optional(&req.get_pool())
     .await?;
 
-    Ok(maybe_def.map(|t| t.into()))
+    Ok(maybe_def.map(TaskDef::from))
 }

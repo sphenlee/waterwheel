@@ -19,7 +19,7 @@ fn serde_human_time<'de, D: Deserializer<'de>>(d: D) -> std::result::Result<u64,
     let secs = humantime::parse_duration(&raw)
         .map_err(|err| {
             de::Error::invalid_value(de::Unexpected::Str(&raw), &DurationError(err))
-        })?.as_secs() as u64;
+        })?.as_secs();
     Ok(secs)
 }
 

@@ -44,7 +44,7 @@ where
 {
     let name = name.into();
 
-    let _ = tokio::spawn(async move {
+    tokio::spawn(async move {
         let handle = tokio::spawn({
             let name = name.clone();
 
@@ -76,7 +76,7 @@ where
 {
     let name = name.into();
 
-    let _ = tokio::spawn(async move {
+    tokio::spawn(async move {
         match func(ctx).await {
             Ok(_) => unreachable!("func never returns"),
             Err(err) => error!("task {} failed: {:?}", name, err),

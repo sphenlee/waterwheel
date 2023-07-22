@@ -31,7 +31,7 @@ pub async fn create_task(
         .retry
         .as_ref()
         .and_then(|r| r.delay.as_deref())
-        .map(|s| humantime::parse_duration(s))
+        .map(humantime::parse_duration)
         .transpose()?
         .map(|dur| dur.as_secs() as i32);
 

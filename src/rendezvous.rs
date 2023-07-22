@@ -4,6 +4,12 @@ pub struct Rendezvous<Node> {
     nodes: Vec<Node>,
 }
 
+impl<Node> Default for Rendezvous<Node> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<Node> Rendezvous<Node> {
     pub fn new() -> Self {
         Rendezvous { nodes: vec![] }
