@@ -17,4 +17,4 @@ default_task_timeout = "4h"
 default_task_retry_delay = "5m"
 task_heartbeat = "60s"
 log_retention = "4h"
-
+amqp_consumer_timeout = "24h"

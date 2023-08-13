@@ -50,6 +50,9 @@ pub async fn process_executions(server: Arc<Server>) -> Result<!> {
     let mut args = FieldTable::default();
     args.insert("x-max-priority".into(), 3i8.into());
 
+    let timeout_ms = server.config.amqp_consumer_timeout * 1000;
+    args.insert("x-consumer-timeout".into(), timeout_ms.into());
+
     chan.queue_declare(
         TASK_QUEUE,
         QueueDeclareOptions {

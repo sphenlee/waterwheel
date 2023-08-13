@@ -65,6 +65,9 @@ pub struct Config {
 
     #[serde(deserialize_with="serde_human_time")]
     pub log_retention: u64,
+
+    #[serde(deserialize_with="serde_human_time")]
+    pub amqp_consumer_timeout: u64,
 }
 
 pub fn loader(file: Option<&Path>) -> ConfigBuilder<DefaultState> {

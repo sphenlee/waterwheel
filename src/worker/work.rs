@@ -18,6 +18,7 @@ use lapin::{
 };
 use std::{sync::Arc, time::Duration};
 use tracing::{debug, error, info, info_span, trace};
+use crate::config::Config;
 
 // TODO - queues should be configurable for task routing
 const TASK_QUEUE: &str = "waterwheel.tasks";
@@ -25,10 +26,13 @@ const TASK_QUEUE: &str = "waterwheel.tasks";
 const RESULT_EXCHANGE: &str = "waterwheel.results";
 const RESULT_QUEUE: &str = "waterwheel.results";
 
-pub async fn setup_queues(chan: &Channel) -> Result<()> {
+pub async fn setup_queues(chan: &Channel, config: &Config) -> Result<()> {
     // declare queue for consuming incoming messages
     let mut args = FieldTable::default();
     args.insert("x-max-priority".into(), 3.into());
+
+    let timeout_ms = config.amqp_consumer_timeout * 1000;
+    args.insert("x-consumer-timeout".into(), timeout_ms.into());
 
     chan.queue_declare(
         TASK_QUEUE,
@@ -97,7 +101,7 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
     let task_heartbeat = Duration::from_secs(worker.config.task_heartbeat);
 
     let chan = worker.amqp_conn.create_channel().await?;
-    setup_queues(&chan).await?;
+    setup_queues(&chan, &worker.config).await?;
     let mut consumer = create_consumer(&chan).await?;
 
     debug!("worker consuming messages");
@@ -130,9 +134,6 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
             };
 
             progress.publish(TokenState::Running).await?;
-
-            delivery.ack(BasicAckOptions::default()).await?;
-            debug!("task acked");
 
             let maybe_task_def = config_cache::get_task_def(&worker, task_req.task_id).await?;
 
@@ -193,6 +194,9 @@ pub async fn process_work(worker: Arc<Worker>) -> Result<!> {
                 "task completed");
 
             progress.finish(finished_datetime, result).await?;
+
+            delivery.ack(BasicAckOptions::default()).await?;
+            debug!("task acked");
         })?;
     }
 
