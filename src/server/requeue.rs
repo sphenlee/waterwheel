@@ -17,6 +17,7 @@ struct Requeue {
     trigger_datetime: DateTime<Utc>,
     priority: TaskPriority,
     attempt: i64,
+    paused: bool,
 }
 
 pub async fn process_requeue(server: Arc<Server>) -> Result<!> {
@@ -44,13 +45,17 @@ pub async fn process_requeue(server: Arc<Server>) -> Result<!> {
                 r.task_id,
                 r.trigger_datetime,
                 r.priority,
-                r.attempt
+                r.attempt,
+                j.paused
             FROM task_run r
             JOIN task t ON r.task_id = t.id
             JOIN job j ON t.job_id = j.id
-            WHERE (r.state = $1 OR r.state = $2)
+            WHERE (
+                r.state = $1
+            OR
+               (NOT j.paused AND r.state = $2)
+            )
             AND r.updated_datetime < CURRENT_TIMESTAMP - $3
-            AND NOT j.paused
             FOR UPDATE OF r",
         )
         .bind(TokenState::Running)
@@ -60,21 +65,28 @@ pub async fn process_requeue(server: Arc<Server>) -> Result<!> {
         .await?;
 
         for requeue in requeues {
-            warn!(task_run_id=?requeue.task_run_id,
-                task_id=?requeue.task_id,
-                trigger_datetime=?requeue.trigger_datetime.to_rfc3339(),
-                "requeueing task");
+            if requeue.paused {
+                warn!(task_run_id=?requeue.task_run_id,
+                    task_id=?requeue.task_id,
+                    trigger_datetime=?requeue.trigger_datetime.to_rfc3339(),
+                    "cancelling running task for paused job");
+            } else {
+                warn!(task_run_id=?requeue.task_run_id,
+                    task_id=?requeue.task_id,
+                    trigger_datetime=?requeue.trigger_datetime.to_rfc3339(),
+                    "requeueing task");
 
-            execute_tx
-                .send(ExecuteToken {
-                    token: Token {
-                        task_id: requeue.task_id,
-                        trigger_datetime: requeue.trigger_datetime,
-                    },
-                    priority: requeue.priority,
-                    attempt: u32::try_from(requeue.attempt)? + 1,
-                })
-                .await?;
+                execute_tx
+                    .send(ExecuteToken {
+                        token: Token {
+                            task_id: requeue.task_id,
+                            trigger_datetime: requeue.trigger_datetime,
+                        },
+                        priority: requeue.priority,
+                        attempt: u32::try_from(requeue.attempt)? + 1,
+                    })
+                    .await?;
+            }
 
             sqlx::query(
                 "UPDATE task_run
@@ -87,17 +99,17 @@ pub async fn process_requeue(server: Arc<Server>) -> Result<!> {
             .execute(&mut txn)
             .await?;
 
-            // sqlx::query(
-            //     "UPDATE token
-            //        SET state = $1
-            //      WHERE task_id = $2
-            //        AND trigger_datetime = $3",
-            // )
-            // .bind(TokenState::Active)
-            // .bind(requeue.task_id)
-            // .bind(requeue.trigger_datetime)
-            // .execute(&mut txn)
-            // .await?;
+            sqlx::query(
+                "UPDATE token
+                   SET state = $1
+                 WHERE task_id = $2
+                   AND trigger_datetime = $3",
+            )
+            .bind(TokenState::Error)
+            .bind(requeue.task_id)
+            .bind(requeue.trigger_datetime)
+            .execute(&mut txn)
+            .await?;
         }
 
         txn.commit().await?;
