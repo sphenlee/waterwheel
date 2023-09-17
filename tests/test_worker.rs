@@ -44,13 +44,14 @@ pub async fn test_worker() -> highnoon::Result<()> {
                     args: vec![],
                     env: None,
                     paused: false,
+                    timeout: None,
                 }),
             );
         }
 
         let amqp_chan = worker.amqp_conn.create_channel().await?;
 
-        work::setup_queues(&amqp_chan).await?;
+        work::setup_queues(&amqp_chan, &config).await?;
 
         tokio::spawn(work::process_work(worker.clone()));
 
@@ -175,7 +176,7 @@ pub async fn test_worker_missing_taskid() -> highnoon::Result<()> {
 
         let worker = Arc::new(Worker::new(config.clone()).await?);
         let amqp_chan = worker.amqp_conn.create_channel().await?;
-        work::setup_queues(&amqp_chan).await?;
+        work::setup_queues(&amqp_chan, &config).await?;
         tokio::spawn(work::process_work(worker.clone()));
 
         // PUBLISH A TASK (no task_def in the cache!)

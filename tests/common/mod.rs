@@ -36,9 +36,11 @@ where
     config.amqp_addr = format!("amqp://localhost:{}//", port);
 
     // other config setup
-    config.server_addr = "http://127.0.0.1:8080/".to_owned();
+    config.server_addr = "http://127.0.0.1:0/".to_owned();
     config.no_authz = true;
     config.hmac_secret = Some("testing value for hmac".to_owned());
+    config.cluster_gossip_bind = "127.0.0.1:0".to_owned();
+    config.cluster_gossip_addr = "127.0.0.1:0".to_owned();
 
     // now run the test
     f(config).await
