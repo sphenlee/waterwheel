@@ -52,12 +52,6 @@ CREATE TABLE IF NOT EXISTS token (
     UNIQUE(task_id, trigger_datetime)
 );
 
-CREATE TABLE IF NOT EXISTS retry (
-    task_run_id UUID NOT NULL REFERENCES task_run(id),
-    retry_at_datetime TIMESTAMP WITH TIME ZONE NOT NULL,
-    UNIQUE(task_run_id, retry_at_datetime)
-);
-
 CREATE TABLE IF NOT EXISTS worker (
     id UUID PRIMARY KEY,
     addr VARCHAR,
@@ -91,6 +85,12 @@ CREATE TABLE IF NOT EXISTS task_run (
 
 CREATE INDEX IF NOT EXISTS task_run_by_state
     ON task_run(state, finish_datetime, task_id);
+
+CREATE TABLE IF NOT EXISTS retry (
+    task_run_id UUID NOT NULL REFERENCES task_run(id),
+    retry_at_datetime TIMESTAMP WITH TIME ZONE NOT NULL,
+    UNIQUE(task_run_id, retry_at_datetime)
+);
 
 CREATE TABLE IF NOT EXISTS trigger_edge (
     trigger_id UUID NOT NULL REFERENCES trigger(id),
