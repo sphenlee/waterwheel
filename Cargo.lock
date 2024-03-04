@@ -2684,8 +2684,9 @@ dependencies = [
 
 [[package]]
 name = "testcontainers"
-version = "0.14.0"
-source = "git+http://github.com/sphenlee/testcontainers-rs?branch=feature/slee/upgrade-bollard#65a33017e9fc7492b3dfb7477ab85109e00e5336"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f83d2931d7f521af5bae989f716c3fa43a6af9af7ec7a5e21b59ae40878cec00"
 dependencies = [
  "bollard-stubs",
  "futures",
@@ -2696,6 +2697,15 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+]
+
+[[package]]
+name = "testcontainers-modules"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d0334776e1e8ee7c504a922c5236daf865ffe413aa630d84ae91dcce0b10bc3"
+dependencies = [
+ "testcontainers",
 ]
 
 [[package]]
@@ -3342,7 +3352,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "sqlx",
- "testcontainers",
+ "testcontainers-modules",
  "thiserror",
  "tokio",
  "tokio-amqp",

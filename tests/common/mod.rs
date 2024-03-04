@@ -1,6 +1,12 @@
 use highnoon::Result;
 use std::{future::Future, sync::Once};
 use waterwheel::config::{self, Config};
+use testcontainers_modules::{
+    rabbitmq::RabbitMq,
+    postgres::Postgres,
+    redis::{Redis, REDIS_PORT},
+    testcontainers
+};
 
 const DEFAULT_LOG: &str = "warn,waterwheel=trace,highnoon=info,testcontainers=info,lapin=off";
 static LOGGING_SETUP: Once = Once::new();
@@ -24,16 +30,22 @@ where
     let client = testcontainers::clients::Cli::default();
 
     // start database
-    let postgres = client.run(testcontainers::images::postgres::Postgres::default());
+    let postgres = client.run(Postgres::default()
+        .with_password("testpassword"));
 
     let port = postgres.get_host_port_ipv4(5432);
-    config.db_url = format!("postgres://postgres@localhost:{}/", port);
+    config.db_url = format!("postgres://postgres:testpassword@localhost:{}/", port);
 
     // start AMQP
-    let rabbit = client.run(testcontainers::images::rabbitmq::RabbitMq);
+    let rabbit = client.run(RabbitMq);
 
     let port = rabbit.get_host_port_ipv4(5672);
     config.amqp_addr = format!("amqp://localhost:{}//", port);
+
+    // start redis
+    let redis = client.run(Redis::default());
+    let port = redis.get_host_port_ipv4(REDIS_PORT);
+    config.redis_url = format!("redis://localhost:{}", port);
 
     // other config setup
     config.server_addr = "http://127.0.0.1:0/".to_owned();
