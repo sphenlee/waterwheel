@@ -1,5 +1,5 @@
 use highnoon::Result;
-use std::{future::Future, sync::Once};
+use std::{future::Future, sync::{atomic, Once}};
 use waterwheel::config::{self, Config};
 use testcontainers_modules::{
     rabbitmq::RabbitMq,
@@ -10,6 +10,9 @@ use testcontainers_modules::{
 
 const DEFAULT_LOG: &str = "warn,waterwheel=trace,highnoon=info,testcontainers=info,lapin=off";
 static LOGGING_SETUP: Once = Once::new();
+
+// hopefully we have some free ports starting from here - we increment for each test run
+static AVAILABLE_PORT: atomic::AtomicU16 = atomic::AtomicU16::new(8200);
 
 pub async fn with_external_services<F, Fut>(f: F) -> Result<()>
 where
@@ -47,8 +50,12 @@ where
     let port = redis.get_host_port_ipv4(REDIS_PORT);
     config.redis_url = format!("redis://localhost:{}", port);
 
+    // grab a (hopefully) unused port
+    let port = AVAILABLE_PORT.fetch_add(1, atomic::Ordering::SeqCst);
+
     // other config setup
-    config.server_addr = "http://127.0.0.1:0/".to_owned();
+    config.server_bind = format!("127.0.0.1:{port}");
+    config.server_addr = format!("http://127.0.0.1:{port}/");
     config.no_authz = true;
     config.hmac_secret = Some("testing value for hmac".to_owned());
     config.cluster_gossip_bind = "127.0.0.1:0".to_owned();
