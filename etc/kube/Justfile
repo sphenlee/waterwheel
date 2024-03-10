@@ -1,0 +1,12 @@
+# show the readme
+help:
+    @cat README.md
+
+# apply all the kubernetes yaml
+apply:
+    kubectl apply -k .
+
+# create the keypair used for signing sessions
+gen-keypair:
+    openssl genrsa -out private.pem 2048
+    openssl rsa -in private.pem -outform PEM -pubout -out public.pem

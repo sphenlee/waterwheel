@@ -16,11 +16,19 @@ This example will use `minikube`.
 2. follow the instructions from Minikube to configure DNS resolutions
    for `*.kube` domain.
 
+   For example on Ubuntu using systemd-resolved:
+
+   ```bash
+   IFACE="$(ip -json route get "$(minikube ip)" | jq -r .[0].dev)"
+   resolvectl dns "$IFACE" "$(minikube ip)"
+   resolvectl domain "$IFACE" ~kube
+   ```
+
 3. generate the required RSA keypair and TLS certificates.
    This will require `openssl` and `mkcert` installed.
 
    ```bash
-   cd etc/
+   cd etc/kube/
    just gen-keypair
    just gen-tlscert
    ```
@@ -32,7 +40,7 @@ This example will use `minikube`.
    ```
 
 5. check the web interface at https://waterwheel.kube/ . You will need to 
-   login as `admin` + `password`.
+   login as `fry` + `fry`.
 
 6. create the sample jobs
 
