@@ -9,8 +9,8 @@ This example will use `minikube`.
 1. enable the `ingress` and `ingress-dns` addons:
 
    ```
-   minikube addon enable ingress
-   minikube addon enable ingress-dns
+   minikube addons enable ingress
+   minikube addons enable ingress-dns
    ```
 
 2. follow the instructions from Minikube to configure DNS resolutions

@@ -5,7 +5,7 @@ import yaml
 import pathlib
 import os
 
-NEEDS_LOGIN = False
+NEEDS_LOGIN = True
 WATERWHEEL_HOST = os.environ.get('WATERWHEEL_ADDR', 'http://localhost:8080')
 
 session = requests.session()
@@ -13,7 +13,7 @@ session.verify = None
 
 if NEEDS_LOGIN:
     print('login')
-    resp = session.post(WATERWHEEL_HOST + '/login', data={'username': 'admin', 'password': 'password'})
+    resp = session.post(WATERWHEEL_HOST + '/login', data={'username': 'fry', 'password': 'fry'})
     print(resp.status_code, resp.text)
     resp.raise_for_status()
 

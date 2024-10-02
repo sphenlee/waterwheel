@@ -10,6 +10,7 @@ resources:
   - redis.yaml
   - ww-api.yaml
   - ww-namespace.yaml
+  - ww-scheduler.yaml
   - ww-worker-role.yaml
   - ww-worker.yaml
 
