@@ -59,12 +59,11 @@ The release binary embeds the UI, so you need to build it first:
 ```
 cd ui
 nvm use
+npm install
 npm run build
 
 cd ..
 cargo build --release
-
-stat ./target/release/waterwheel
 ```
 
 > Other commands are available in the Justfile. Run `just help` for a list.

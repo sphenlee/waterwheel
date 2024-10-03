@@ -1,0 +1,22 @@
+name: UI Build
+
+on: [ push ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - uses: actions/setup-node@v4
+      with:
+        node-version-file: 'ui/.nvmrc'
+
+    - name: Install NPM Packages
+      run: cd ui && npm install
+
+    - name: Build UI
+      run: cd ui && npm run build

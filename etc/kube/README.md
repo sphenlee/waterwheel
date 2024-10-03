@@ -6,14 +6,26 @@ running in Kubernetes.
 
 This example will use `minikube`.
 
-1. enable the `ingress` and `ingress-dns` addons:
+1. First build a release package of Waterwheel:
+
+   ```
+   just package
+   ```
+
+1. Start minikube:
+
+   ```
+   minikube start
+   ```
+
+1. Enable the `ingress` and `ingress-dns` addons:
 
    ```
    minikube addons enable ingress
    minikube addons enable ingress-dns
    ```
 
-2. follow the instructions from Minikube to configure DNS resolutions
+1. Follow the instructions from Minikube to configure DNS resolutions
    for `*.kube` domain.
 
    For example on Ubuntu using systemd-resolved:
@@ -24,25 +36,32 @@ This example will use `minikube`.
    resolvectl domain "$IFACE" ~kube
    ```
 
-3. generate the required RSA keypair and TLS certificates.
-   This will require `openssl` and `mkcert` installed.
+1. Generate the required RSA keypair.
+   This will require `openssl` installed.
 
    ```bash
    cd etc/kube/
    just gen-keypair
-   just gen-tlscert
    ```
 
-4. apply the kubernetes descriptors:
+1. Load the image into minikube
+
+   ```
+   minikube image load waterwheel:local
+   ```
+
+
+1. Apply the kubernetes descriptors:
 
    ``` 
    just apply
    ```
 
-5. check the web interface at https://waterwheel.kube/ . You will need to 
-   login as `fry` + `fry`.
+1. check the web interface at https://waterwheel.kube/ . You will need to 
+   login as username `fry`  and password `fry`. Other members of the Planet Express crew
+   also work if you want to test authorization.
 
-6. create the sample jobs
+1. Create the sample jobs
 
    ```bash
    cd sample/

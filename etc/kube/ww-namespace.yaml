@@ -5,10 +5,10 @@ metadata:
   labels:
     name: waterwheel
 
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: ww_jobs
-  labels:
-    name: ww_jobs
+# ---
+# apiVersion: v1
+# kind: Namespace
+# metadata:
+#   name: ww_jobs
+#   labels:
+#     name: ww_jobs
