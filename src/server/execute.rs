@@ -118,7 +118,7 @@ pub async fn process_executions(server: Arc<Server>) -> Result<!> {
         )
         .bind(token.task_id)
         .bind(token.trigger_datetime)
-        .execute(&mut txn)
+        .execute(txn.as_mut())
         .await?;
 
         sqlx::query(
@@ -137,7 +137,7 @@ pub async fn process_executions(server: Arc<Server>) -> Result<!> {
         .bind(Utc::now())
         .bind(priority)
         .bind(attempt as i64)
-        .execute(&mut txn)
+        .execute(txn.as_mut())
         .await?;
 
         txn.commit().await?;

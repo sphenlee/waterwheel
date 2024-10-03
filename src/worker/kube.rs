@@ -3,7 +3,7 @@ use crate::{
     worker::{config_cache::get_project_config, engine::TaskEngineImpl, env, Worker, WORKER_ID},
 };
 use anyhow::Result;
-use futures::{StreamExt, TryStreamExt};
+use futures::{AsyncBufReadExt, StreamExt, TryStreamExt};
 use itertools::Itertools;
 use k8s_openapi::api::core::v1::Pod;
 use kube::{
@@ -84,10 +84,11 @@ pub async fn run_kube(worker: &Worker, task_req: TaskRequest, task_def: TaskDef)
                 ..LogParams::default()
             },
         )
-        .await?;
+        .await?
+        .lines();
 
     let key = format!("waterwheel-logs.{}", task_req.task_run_id);
-    let mut redis = worker.redis_client.get_tokio_connection().await?;
+    let mut redis = worker.redis_client.get_multiplexed_tokio_connection().await?;
 
     trace!("sending kubernetes pod logs to {}", key);
     while let Some(line) = logs.try_next().await? {
@@ -97,7 +98,7 @@ pub async fn run_kube(worker: &Worker, task_req: TaskRequest, task_def: TaskDef)
                 &key,
                 StreamMaxlen::Approx(1024),
                 "*",
-                &[("data", line.as_ref())],
+                &[("data", line)],
             )
             .await?;
         trace!("sent to redis");

@@ -39,7 +39,7 @@ pub async fn activate_token(mut req: Request<State>) -> highnoon::Result<impl Re
     )
     .bind(token.task_id)
     .bind(token.trigger_datetime)
-    .execute(&mut txn)
+    .execute(txn.as_mut())
     .await?;
 
     let priority = params.priority.unwrap_or(TaskPriority::High);
@@ -95,7 +95,7 @@ pub async fn activate_multiple_tokens(mut req: Request<State>) -> highnoon::Resu
     .bind(params.first)
     .bind(params.last)
     .bind(params.only_failed.unwrap_or(false))
-    .fetch(&mut txn);
+    .fetch(txn.as_mut());
 
     let priority = params.priority.unwrap_or(TaskPriority::BackFill);
 

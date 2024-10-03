@@ -3,22 +3,22 @@
 ///! and then choose which triggers to manage using rendezvous hashing.
 ///! Membership changes are expected to be rare and don't need to be handled quickly.
 use anyhow::{Context, Result};
-use chitchat::{transport::UdpTransport, ChitchatConfig, ChitchatHandle, NodeId};
+use chitchat::{
+    transport::UdpTransport, ChitchatConfig, ChitchatHandle, ChitchatId, FailureDetectorConfig,
+};
 use chrono::Utc;
 use futures::StreamExt as _;
-use std::sync::Arc;
-use std::net::SocketAddr;
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tracing::{debug, info};
-use crate::{
-    config::Config,
-    server::Server,
-};
+use crate::{config::Config, server::Server};
 
 pub fn get_node_id() -> Result<String> {
     let hostname = gethostname::gethostname().to_string_lossy().into_owned();
-    let ts = Utc::now().timestamp();
-    let name = format!("{hostname}/{ts}");
-    Ok(name)
+    Ok(hostname)
+}
+
+pub fn get_generation() -> u64 {
+    Utc::now().timestamp() as u64
 }
 
 fn get_gossip_addr(config: &Config) -> Result<SocketAddr> {
@@ -34,7 +34,7 @@ pub async fn start_cluster(config: &Config, node_id: &str) -> Result<ChitchatHan
     let gossip_addr = get_gossip_addr(config)?;
 
     let config = ChitchatConfig {
-        node_id: NodeId::new(node_id.to_owned(), gossip_addr),
+        chitchat_id: ChitchatId::new(node_id.to_owned(), get_generation(), gossip_addr),
         cluster_id: config
             .cluster_id
             .as_deref()
@@ -45,7 +45,9 @@ pub async fn start_cluster(config: &Config, node_id: &str) -> Result<ChitchatHan
             .parse()
             .context("parsing cluster_gossip_bind")?,
         seed_nodes: config.cluster_seed_nodes.clone(),
-        ..ChitchatConfig::default()
+        failure_detector_config: FailureDetectorConfig::default(),
+        marked_for_deletion_grace_period: 0,
+        gossip_interval: Duration::from_secs(1),
     };
 
     let chitchat_handle = chitchat::spawn_chitchat(config, vec![], &UdpTransport).await?;
@@ -61,14 +63,16 @@ pub async fn watch_live_nodes(server: Arc<Server>) -> Result<!> {
     while let Some(live_nodes) = watcher.next().await {
         info!("cluster membership changed");
 
-        server.on_cluster_membership_change.send_modify(|rendezvous| {
-            rendezvous.clear();
-            rendezvous.add_node(server.node_id.clone());
+        server
+            .on_cluster_membership_change
+            .send_modify(|rendezvous| {
+                rendezvous.clear();
+                rendezvous.add_node(server.node_id.clone());
 
-            for item in live_nodes {
-                rendezvous.add_node(item.id);
-            }
-        });
+                for item in live_nodes {
+                    rendezvous.add_node(item.0.node_id);
+                }
+            });
 
         debug!("updated rendezvous with new members");
     }

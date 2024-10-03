@@ -252,7 +252,7 @@ async fn do_activate_trigger(
     )
     .bind(trigger_time.trigger_id)
     .bind(trigger_time.trigger_datetime)
-    .execute(txn)
+    .execute(txn.as_mut())
     .await?;
 
     Ok(tokens_to_tx)

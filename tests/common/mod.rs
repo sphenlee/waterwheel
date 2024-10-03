@@ -2,10 +2,7 @@ use highnoon::Result;
 use std::{future::Future, sync::{atomic, Once}};
 use waterwheel::config::{self, Config};
 use testcontainers_modules::{
-    rabbitmq::RabbitMq,
-    postgres::Postgres,
-    redis::{Redis, REDIS_PORT},
-    testcontainers
+    postgres::Postgres, rabbitmq::RabbitMq, redis::{Redis, REDIS_PORT}, testcontainers::{self, runners::AsyncRunner}
 };
 
 const DEFAULT_LOG: &str = "warn,waterwheel=trace,highnoon=info,testcontainers=info,lapin=off";
@@ -30,24 +27,21 @@ where
         waterwheel::logging::setup(&config).expect("failed to setup logging");
     });
 
-    let client = testcontainers::clients::Cli::default();
-
     // start database
-    let postgres = client.run(Postgres::default()
-        .with_password("testpassword"));
+    let postgres = Postgres::default().with_password("testpassword").start().await?;
 
-    let port = postgres.get_host_port_ipv4(5432);
+    let port = postgres.get_host_port_ipv4(5432).await?;
     config.db_url = format!("postgres://postgres:testpassword@localhost:{}/", port);
 
     // start AMQP
-    let rabbit = client.run(RabbitMq);
+    let rabbit = RabbitMq::default().start().await?;
 
-    let port = rabbit.get_host_port_ipv4(5672);
+    let port = rabbit.get_host_port_ipv4(5672).await?;
     config.amqp_addr = format!("amqp://localhost:{}//", port);
 
     // start redis
-    let redis = client.run(Redis::default());
-    let port = redis.get_host_port_ipv4(REDIS_PORT);
+    let redis = Redis::default().start().await?;
+    let port = redis.get_host_port_ipv4(REDIS_PORT).await?;
     config.redis_url = format!("redis://localhost:{}", port);
 
     // grab a (hopefully) unused port

@@ -115,7 +115,7 @@ pub async fn increment_token(txn: &mut Transaction<'_, Postgres>, token: &Token)
     )
     .bind(token.task_id)
     .bind(token.trigger_datetime)
-    .execute(&mut *txn)
+    .execute(txn.as_mut())
     .await?;
 
     Ok(())
