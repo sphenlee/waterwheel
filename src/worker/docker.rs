@@ -117,7 +117,7 @@ async fn run_docker(worker: &Worker, task_req: TaskRequest, task_def: TaskDef) -
     while let Some(line) = logs.try_next().await? {
         let bytes = line.into_bytes();
         trace!("got log line ({} bytes)", bytes.len());
-        redis
+        let _: () = redis
             .xadd_maxlen(
                 &key,
                 StreamMaxlen::Approx(1024),
