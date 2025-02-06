@@ -1,9 +1,10 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
-import { Table, Select, notification, Popconfirm, Row, Button, DatePicker, Space, Col, Tooltip } from 'antd';
+import { notification, Row, Button, DatePicker, Space, Col, Tooltip } from 'antd';
 import { geekblue, lime, red, grey, orange, purple } from '@ant-design/colors';
 import axios from 'axios';
 import styled, { CSSProperties } from 'styled-components';
+import { Dayjs } from "dayjs";
 
 import {
   CheckCircleOutlined,
@@ -171,7 +172,7 @@ class TaskGrid extends Component<TaskGridProps, TaskGridState> {
         });
     }
 
-    onDatePicked(date: Moment | null) {
+    onDatePicked(date: Dayjs | null) {
         this.setState({
             before: date && date.toISOString()
         });

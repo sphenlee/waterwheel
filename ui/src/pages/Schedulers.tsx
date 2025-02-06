@@ -2,10 +2,10 @@ import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
 import { Table, Layout, Breadcrumb } from 'antd';
 import axios from 'axios';
-import Moment from 'react-moment';
 
 import Body from '../components/Body';
 import WorkerStatus from '../components/WorkerStatus';
+import RelDate from '../components/Date';
 import { ColumnsType } from "antd/lib/table";
 import { SchedulerState } from "../types/Scheduler";
 
@@ -35,7 +35,7 @@ function makeColumns(): ColumnsType<SchedulerState> {
         },{
             title: 'Last Seen',
             dataIndex: 'last_seen_datetime',
-            render: text => <Moment fromNow withTitle>{text}</Moment>
+            render: text => <RelDate>{text}</RelDate>
         }
     ];
 }

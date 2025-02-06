@@ -1,16 +1,9 @@
 {
   "presets": ["@babel/preset-env", "@babel/preset-react"],
-  "plugins": [
+  "x-plugins": [
   	[
   		"@babel/transform-runtime",
   		{ "regenerator": true }
-  	],
-	[
-		"import",
-		{
-		  "libraryName": "antd",
-		  "style": "css",
-		}
   	]
   ]
 }

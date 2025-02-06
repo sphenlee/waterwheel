@@ -1,13 +1,13 @@
 import React, { Component, Fragment } from "react";
 import { Row, Col, Button, DatePicker, Space } from 'antd';
-import axios from 'axios';
 import { Column } from '@ant-design/charts';
+import { DoubleRightOutlined } from '@ant-design/icons';
 
-import {
-  DoubleRightOutlined,
-} from '@ant-design/icons';
-import { TaskDuration, TaskDurationList } from "../../types/Task";
-import { Moment } from "moment";
+import axios from 'axios';
+import { Dayjs } from "dayjs";
+
+import { TaskDurationList } from "../../types/Task";
+
 
 const config = {
     isStack: true,
@@ -50,7 +50,7 @@ class Duration extends Component<DurationProps, DurationState> {
         this.fetchDuration(null);
     }
 
-    onDatePicked(date: Moment | null) {
+    onDatePicked(date: Dayjs | null) {
         if(date) {
             this.fetchDuration(date.toISOString());
         }

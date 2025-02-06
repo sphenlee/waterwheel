@@ -1,16 +1,16 @@
 import React, { Component, Fragment } from "react";
 import { Link, RouteComponentProps } from "react-router-dom";
-import { Table, Layout, Breadcrumb, PageHeader, Button, notification, Popconfirm,
+import { Table, Layout, Breadcrumb, Button, notification, Popconfirm,
         Row, Col, Drawer, Spin } from 'antd';
+import { PageHeader } from '@ant-design/pro-components';
 
-import { ExclamationCircleOutlined, EllipsisOutlined } from '@ant-design/icons';
+import { ExclamationCircleOutlined } from '@ant-design/icons';
 
 import axios from 'axios';
 
 import Body from '../components/Body';
 import State from '../components/State';
 import Graph from '../components/Graph';
-import ActivateToken from '../components/ActivateToken';
 import TokenRuns from './TokenRuns';
 import { ColumnsType } from "antd/lib/table";
 import { JobExtra } from "../types/Job";

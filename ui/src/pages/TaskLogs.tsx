@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 import { Link, RouteComponentProps } from "react-router-dom";
-import { Layout, Breadcrumb, PageHeader } from 'antd';
+import { Layout, Breadcrumb } from 'antd';
+import { PageHeader } from '@ant-design/pro-components';
 
 import Body from '../components/Body';
 import Log from '../components/Log';

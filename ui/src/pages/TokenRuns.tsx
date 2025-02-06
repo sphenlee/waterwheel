@@ -1,18 +1,17 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
-import { Table, Layout, Breadcrumb, PageHeader, Button, notification, Popconfirm,
-        Row, Col, Drawer, Descriptions, Skeleton, Space } from 'antd';
-
-import { ExclamationCircleOutlined, EllipsisOutlined } from '@ant-design/icons';
+import { Table, Layout, Descriptions } from 'antd';
+import { ColumnsType } from "antd/lib/table";
 import { RightOutlined, DownOutlined } from "@ant-design/icons";
 
 import axios from 'axios';
-import Moment from 'react-moment';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+dayjs.extend(relativeTime);
 
 import State from '../components/State';
 import Priority from '../components/Priority';
 import ActivateToken from '../components/ActivateToken';
-import { ColumnsType } from "antd/lib/table";
 import { datetime } from "../types/common";
 import { Task, TaskRun } from "../types/Task";
 import RelDate from '../components/Date';
@@ -57,7 +56,7 @@ function expandedRowRender(record: TaskRun) {
                 <RelDate>{record.started_datetime}</RelDate>
             </Descriptions.Item>
             <Descriptions.Item label="Start Delay">
-                <Moment duration={record.queued_datetime} date={record.started_datetime} />
+                {dayjs(record.started_datetime).to(record.finish_datetime)}
             </Descriptions.Item>
             <Descriptions.Item label="Finished Time">
                 {record.finish_datetime &&
@@ -66,7 +65,7 @@ function expandedRowRender(record: TaskRun) {
             </Descriptions.Item>
             <Descriptions.Item label="Running Duration">
                 {record.finish_datetime &&
-                    <Moment duration={record.started_datetime} date={record.finish_datetime} />
+                    dayjs(record.started_datetime).to(record.finish_datetime)
                 }
             </Descriptions.Item>
             <Descriptions.Item label="Worker">

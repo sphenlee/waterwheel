@@ -1,10 +1,10 @@
 import React, { Component, Fragment } from "react";
 import { Link, RouteComponentProps } from "react-router-dom";
-import { List, Avatar, Layout, Breadcrumb, PageHeader, Collapse, Tabs, Row, Col, Statistic, Spin, Tag } from 'antd';
+import { Layout, Breadcrumb, Tabs, Row, Col, Statistic, Spin, Tag } from 'antd';
+import { PageHeader } from '@ant-design/pro-components';
 import { geekblue, lime, red, grey, yellow, orange } from '@ant-design/colors';
 import { PauseOutlined } from '@ant-design/icons';
 import JSONPretty from 'react-json-pretty';
-import styled from 'styled-components';
 import axios from 'axios';
 
 import Body from '../components/Body';

@@ -2,7 +2,10 @@ import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
 import { Table, Layout, Breadcrumb } from 'antd';
 import axios from 'axios';
-import Moment from 'react-moment';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+
+dayjs.extend(relativeTime);
 
 import Body from '../components/Body';
 import WorkerStatus from '../components/WorkerStatus';
@@ -38,7 +41,7 @@ function makeColumns(): ColumnsType<WorkerState> {
         },*/{
             title: 'Last Seen',
             dataIndex: 'last_seen_datetime',
-            render: text => <Moment fromNow withTitle>{text}</Moment>
+            render: text => dayjs(text).fromNow()
         }
     ];
 }

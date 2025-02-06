@@ -1,7 +1,9 @@
 import React, { Component, Fragment } from "react";
 import { Link, RouteComponentProps } from "react-router-dom";
-import { Table, Layout, Breadcrumb, PageHeader, Button, notification, Badge, Spin} from 'antd';
+import { Table, Layout, Breadcrumb, Badge, Spin} from 'antd';
+import { PageHeader } from '@ant-design/pro-components';
 import { geekblue, lime, red, grey, yellow } from '@ant-design/colors';
+
 import axios from 'axios';
 
 import Body from '../components/Body';

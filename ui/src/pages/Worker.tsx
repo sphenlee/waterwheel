@@ -1,22 +1,26 @@
 import React, { Component, Fragment } from "react";
 import { Link, RouteComponentProps } from "react-router-dom";
-import { Table, Layout, Breadcrumb, PageHeader, Row, Col, Statistic,
+import { Table, Layout, Breadcrumb, Row, Col, Statistic,
     Descriptions, Button, Select, Spin } from 'antd';
+import { PageHeader } from '@ant-design/pro-components';
 import { geekblue } from '@ant-design/colors';
 import { RightOutlined, DownOutlined } from "@ant-design/icons";
-
+import { ColumnsType } from "antd/lib/table";
 
 const { Option } = Select;
 
 import axios from 'axios';
-import Moment from 'react-moment';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+dayjs.extend(relativeTime);
+
 
 import Body from '../components/Body';
 import State from '../components/State';
 import RelDate from '../components/Date';
 import WorkerStatus from '../components/WorkerStatus';
 import { Worker as WorkerType, WorkerTask } from '../types/Worker';
-import { ColumnsType } from "antd/lib/table";
+
 
 const { Content } = Layout;
 
@@ -89,7 +93,7 @@ function expandedRowRender(record: WorkerTask) {
                 <RelDate>{record.started_datetime}</RelDate>
             </Descriptions.Item>
             <Descriptions.Item label="Start Delay">
-                <Moment duration={record.queued_datetime} date={record.started_datetime} />
+                `${record.queued_datetime}/${record.started_datetime}``
             </Descriptions.Item>
             <Descriptions.Item label="Finished Time">
                 {record.finish_datetime &&
@@ -98,7 +102,7 @@ function expandedRowRender(record: WorkerTask) {
             </Descriptions.Item>
             <Descriptions.Item label="Running Duration">
                 {record.finish_datetime &&
-                    <Moment duration={record.started_datetime} date={record.finish_datetime} />
+                    `${record.started_datetime}/${record.finish_datetime}`
                 }
             </Descriptions.Item>
         </Descriptions>
@@ -185,7 +189,7 @@ class Worker extends Component<WorkerProps, WorkerState> {
                     <Col span={6}>
                         <Statistic title="Last Seen"
                             value={worker.last_seen_datetime}
-                            formatter={(val) => <Moment fromNow withTitle>{val}</Moment>}
+                            formatter={(val) => <RelDate>{dayjs(val).fromNow()}</RelDate>}
                             />
                     </Col>
                     <Col span={24} />
