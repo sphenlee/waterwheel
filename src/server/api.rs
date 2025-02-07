@@ -186,18 +186,18 @@ pub async fn make_app(config: Config) -> Result<highnoon::App<State>> {
     #[cfg(debug_assertions)]
     {
         let index = |_req| async {
-            let body = highnoon::Response::ok().path("ui/dist/index.html").await?;
+            let body = highnoon::Response::ok().path("ui/ui/index.html").await?;
             Ok(body)
         };
-        app.at("/static/*").static_files("ui/dist/");
+        app.at("/static/*").static_files("ui/ui/");
         app.at("/**").get(index);
         app.at("/").get(index);
     }
 
     #[cfg(not(debug_assertions))]
     {
-        static JS: &str = include_str!("../../ui/dist/main.js");
-        static HTML: &str = include_str!("../../ui/dist/index.html");
+        static JS: &str = include_str!("../../ui/ui/main.js");
+        static HTML: &str = include_str!("../../ui/ui/index.html");
 
         app.at("/static/main.js")
             .get(get_file!(JS; "text/javascript"));

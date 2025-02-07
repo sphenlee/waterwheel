@@ -1,5 +1,5 @@
 const webpack = require('webpack');
-// const HtmlWebPackPlugin = require("html-webpack-plugin");
+const HtmlWebPackPlugin = require("html-webpack-plugin");
 //const { GitRevisionPlugin } = require('git-revision-webpack-plugin');
 //const gitRevisionPlugin = new GitRevisionPlugin({
 //      versionCommand: 'describe --always --tags --dirty=-modified'
@@ -29,10 +29,10 @@ module.exports = {
     ]
   },
   plugins: [
-    // new HtmlWebPackPlugin({
-    //   template: "./src/index.html",
-    //   filename: "./index.html"
-    // }),
+    new HtmlWebPackPlugin({
+      template: "./src/index.html",
+      filename: "./index.html"
+    }),
     //new webpack.DefinePlugin({
     //    'VERSION': JSON.stringify(gitRevisionPlugin.version()),
     //    'COMMITHASH': JSON.stringify(gitRevisionPlugin.commithash()),

@@ -16,4 +16,5 @@ rust_binary(
     srcs = ["src/main.rs"],
     aliases = aliases(),
     deps = [":libwaterwheel"] + all_crate_deps(normal = True),
+    data = ["//ui:ui"]
 )
