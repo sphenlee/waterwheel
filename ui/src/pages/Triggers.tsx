@@ -7,10 +7,12 @@ import { geekblue, lime, red, grey, yellow } from '@ant-design/colors';
 import axios from 'axios';
 
 import Body from '../components/Body';
-import { ColumnsType } from "antd/lib/table";
+import { ColumnsType } from "antd/es/table";
 import { Trigger, TriggerTime } from "../types/Job";
+import { interval } from "../types/common";
 
 const { Content } = Layout;
+
 
 
 function makeColumns(job_id: string): ColumnsType<TriggerTime> {
@@ -50,7 +52,7 @@ type TriggersState = {
 
 class Triggers extends Component<TriggersProps, TriggersState> {
     columns: ColumnsType<TriggerTime>;
-    interval: NodeJS.Timeout;
+    interval: interval;
 
     constructor(props: TriggersProps) {
         super(props);
@@ -95,7 +97,7 @@ class Triggers extends Component<TriggersProps, TriggersState> {
                     title={trigger.trigger_name}
                     subTitle={`Trigger in ${trigger.job_name}`}
                 />
-                <Table columns={this.columns} dataSource={trigger.times} pagination={{position: ['bottomLeft']}}/>
+                <Table<TriggerTime> columns={this.columns} dataSource={trigger.times} pagination={{position: ['bottomLeft']}}/>
             </>
         ) : <Spin size="large" />;
 

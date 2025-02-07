@@ -13,17 +13,13 @@ import {
   ClockCircleOutlined,
   MinusOutlined,
   WarningOutlined,
-  QuestionCircleOutlined,
-  LeftOutlined,
   DoubleRightOutlined,
   StopOutlined,
   PlusSquareOutlined,
   HourglassOutlined,
 } from '@ant-design/icons';
-import { Token, TokenOverview, TokensRow, TokenState } from "../../types/Token";
-import { datetime, uuid } from "../../types/common";
-import { Moment } from "moment";
-import { Task } from "../../types/Task";
+import { TokenOverview, TokenState } from "../../types/Token";
+import { datetime, interval, uuid } from "../../types/common";
 import TokenRuns from "../TokenRuns";
 
 
@@ -104,7 +100,7 @@ type TaskGridState = {
 }
 
 class TaskGrid extends Component<TaskGridProps, TaskGridState> {
-    interval: NodeJS.Timeout;
+    interval: interval;
 
     constructor(props: TaskGridProps) {
         super(props);

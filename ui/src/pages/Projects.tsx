@@ -5,7 +5,6 @@ import { ProjectOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
 import Body from '../components/Body';
-import Project from "./Project";
 import { Project as ProjectType } from "../types/Project";
 
 const { Content } = Layout;

@@ -14,6 +14,7 @@ import Graph from '../components/Graph';
 import TaskGrid from './Job/TaskGrid';
 import Duration from './Job/Duration';
 import { JobExtra } from "../types/Job";
+import { interval } from "../types/common";
 
 const { Content } = Layout;
 
@@ -27,7 +28,7 @@ type JobState = {
 }
 
 class Job extends Component<JobProps, JobState> {
-    interval: NodeJS.Timeout;
+    interval: interval;
 
     constructor(props: JobProps) {
         super(props);

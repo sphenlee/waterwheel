@@ -48,7 +48,7 @@ type JobGraphState = {
 };
 
 class JobGraph extends Component<JobGraphProps, JobGraphState> {
-    interval: NodeJS.Timeout;
+    interval: number;
 
     constructor(props: JobGraphProps) {
         super(props);

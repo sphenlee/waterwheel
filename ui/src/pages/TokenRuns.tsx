@@ -1,7 +1,7 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
 import { Table, Layout, Descriptions } from 'antd';
-import { ColumnsType } from "antd/lib/table";
+import { ColumnsType } from "antd/es/table";
 import { RightOutlined, DownOutlined } from "@ant-design/icons";
 
 import axios from 'axios';
@@ -12,7 +12,7 @@ dayjs.extend(relativeTime);
 import State from '../components/State';
 import Priority from '../components/Priority';
 import ActivateToken from '../components/ActivateToken';
-import { datetime } from "../types/common";
+import { datetime, interval } from "../types/common";
 import { Task, TaskRun } from "../types/Task";
 import RelDate from '../components/Date';
 
@@ -80,7 +80,7 @@ function expandedRowRender(record: TaskRun) {
 
 class TokenRuns extends Component<TokenRunsProps, TokenRunsState> {
     columns: ColumnsType<TaskRun>;
-    interval: NodeJS.Timeout;
+    interval: interval;
 
     constructor(props: TokenRunsProps) {
         super(props);

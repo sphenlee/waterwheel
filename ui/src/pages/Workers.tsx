@@ -9,8 +9,9 @@ dayjs.extend(relativeTime);
 
 import Body from '../components/Body';
 import WorkerStatus from '../components/WorkerStatus';
-import { ColumnsType } from "antd/lib/table";
+import { ColumnsType } from "antd/es/table";
 import { WorkerState } from "../types/Worker";
+import { interval } from "../types/common";
 
 const { Content } = Layout;
 
@@ -53,7 +54,7 @@ type WorkersState = {
 
 class Workers extends Component<{}, WorkersState> {
     columns: ColumnsType<WorkerState>;
-    interval: NodeJS.Timeout;
+    interval: interval;
 
     constructor(props: {}) {
         super(props);

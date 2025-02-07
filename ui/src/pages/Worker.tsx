@@ -5,7 +5,7 @@ import { Table, Layout, Breadcrumb, Row, Col, Statistic,
 import { PageHeader } from '@ant-design/pro-components';
 import { geekblue } from '@ant-design/colors';
 import { RightOutlined, DownOutlined } from "@ant-design/icons";
-import { ColumnsType } from "antd/lib/table";
+import { ColumnsType } from "antd/es/table";
 
 const { Option } = Select;
 

@@ -6,8 +6,9 @@ import axios from 'axios';
 import Body from '../components/Body';
 import WorkerStatus from '../components/WorkerStatus';
 import RelDate from '../components/Date';
-import { ColumnsType } from "antd/lib/table";
+import { ColumnsType } from "antd/es/table";
 import { SchedulerState } from "../types/Scheduler";
+import { interval } from "../types/common";
 
 const { Content } = Layout;
 
@@ -47,7 +48,7 @@ type SchedulersState = {
 
 class Schedulers extends Component<{}, SchedulersState> {
     columns: ColumnsType<SchedulerState>;
-    interval: NodeJS.Timeout;
+    interval: interval;
 
     constructor(props: {}) {
         super(props);

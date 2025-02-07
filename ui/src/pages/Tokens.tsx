@@ -12,9 +12,10 @@ import Body from '../components/Body';
 import State from '../components/State';
 import Graph from '../components/Graph';
 import TokenRuns from './TokenRuns';
-import { ColumnsType } from "antd/lib/table";
+import { ColumnsType } from "antd/es/table";
 import { JobExtra } from "../types/Job";
 import { Token } from "../types/Token";
+import { interval } from "../types/common";
 
 const { Content } = Layout;
 
@@ -30,7 +31,7 @@ type TokensState = {
 };
 
 class Tokens extends Component<TokensProps, TokensState> {
-    interval: NodeJS.Timeout;
+    interval: interval;
     columns: ColumnsType<Token>;
 
     constructor(props: TokensProps) {

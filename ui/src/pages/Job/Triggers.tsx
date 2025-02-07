@@ -4,7 +4,7 @@ import { Table, Typography, Space, Tooltip, Tag } from 'antd';
 import axios from 'axios';
 import cronstrue from 'cronstrue';
 import prettyMilliseconds from 'pretty-ms';
-import { ColumnsType } from "antd/lib/table";
+import { ColumnsType } from "antd/es/table";
 import { Job, JobTrigger } from "../../types/Job";
 
 const { Text } = Typography;

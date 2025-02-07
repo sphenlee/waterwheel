@@ -2,6 +2,7 @@ import React, { Component, Fragment } from "react";
 import { Link, RouteComponentProps } from "react-router-dom";
 import { Avatar, Layout, Breadcrumb, Row, Col, Statistic, Badge, Tag, Spin, Table,
   Typography } from 'antd';
+import { ColumnsType } from "antd/es/table";
 import { geekblue, lime, red, grey, yellow, orange } from '@ant-design/colors';
 import { PauseOutlined, PartitionOutlined } from '@ant-design/icons';
 import { PageHeader } from '@ant-design/pro-components';
@@ -10,7 +11,8 @@ import axios from 'axios';
 
 import Body from '../components/Body';
 import { ProjectExtra, ProjectJob } from "../types/Project";
-import { ColumnsType } from "antd/lib/table";
+import { interval } from "../types/common";
+
 
 const { Content } = Layout;
 
@@ -81,7 +83,7 @@ function makeColumns(): ColumnsType<ProjectJob> {
 }
 
 class Project extends Component<ProjectProps, ProjectState> {
-    interval: NodeJS.Timeout;
+    interval: interval;
     columns: ColumnsType<ProjectJob>;
 
     constructor(props: ProjectProps) {
