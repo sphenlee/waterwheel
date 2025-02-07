@@ -6,6 +6,7 @@ import { geekblue, lime, red, grey, yellow, orange, purple } from '@ant-design/c
 import axios from 'axios';
 
 import { JobGraph as JobGraphType, JobGraphNode, States } from "../types/Job";
+import { interval } from "../types/common";
 
 const options = {
     width: '100%',
@@ -48,7 +49,7 @@ type JobGraphState = {
 };
 
 class JobGraph extends Component<JobGraphProps, JobGraphState> {
-    interval: number;
+    interval: interval;
 
     constructor(props: JobGraphProps) {
         super(props);

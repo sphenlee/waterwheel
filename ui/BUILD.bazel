@@ -37,7 +37,7 @@ webpack_bundle(
         ":node_modules/@babel/preset-env",
         ":node_modules/@babel/preset-react",
         ":node_modules/@babel/runtime",
-        #":node_modules/@types/node",
+        ":node_modules/@types/node",
         ":node_modules/@types/react-dom",
         ":node_modules/@types/react-router-dom",
         ":node_modules/@types/react",
