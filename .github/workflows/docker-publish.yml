@@ -39,10 +39,10 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Image
-        run: bazel build //:waterwheel_image
+        run: bazel build -c opt //:waterwheel_image
 
       - name: Publish Image
         if: github.event_name != 'pull_request'
-        run: bazel run //:waterwheel_publish
+        run: bazel run -c opt //:waterwheel_publish
           --registry ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           --tag ${{ github.ref_name }}
