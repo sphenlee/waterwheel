@@ -1,4 +1,4 @@
-import React, { Component, Fragment } from "react";
+import React, { Component } from "react";
 import { Link } from "react-router-dom";
 import { Layout, Breadcrumb, Row, Col, Statistic } from 'antd';
 import { geekblue, lime, red, grey, yellow } from '@ant-design/colors';
@@ -6,6 +6,7 @@ import axios from 'axios';
 
 import Body from '../components/Body';
 import { Status } from "../types/Status";
+import { interval } from "../types/common";
 
 const { Content } = Layout;
 
@@ -15,7 +16,7 @@ type HomeState = {
 
 
 class Home extends Component<{}, HomeState> {
-  interval: NodeJS.Timeout;
+  interval: interval;
 
   constructor(props: {}) {
       super(props);

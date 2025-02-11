@@ -41,7 +41,7 @@ class App extends Component {
           </Switch>
 
           <Footer style={{ textAlign: 'center' }}>
-            Waterwheel - {VERSION}
+            Waterwheel - Version TODO
           </Footer>
         </Layout>
       </Router>

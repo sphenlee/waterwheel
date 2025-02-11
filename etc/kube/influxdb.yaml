@@ -1,5 +1,4 @@
-# A Kubernetes setup for a basic stats pipeline
-# Installs influxdb and telegraf
+
 
 ---
 apiVersion: apps/v1

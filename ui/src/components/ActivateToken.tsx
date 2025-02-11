@@ -2,8 +2,8 @@ import React, { Component } from "react";
 import { Button, notification } from 'antd';
 
 import axios from 'axios';
-import { ButtonType } from "antd/lib/button";
-import { SizeType } from "antd/lib/config-provider/SizeContext";
+import { ButtonType } from "antd/es/button";
+import { SizeType } from "antd/es/config-provider/SizeContext";
 
 type ActivateTokenProps = {
     task_id: string;

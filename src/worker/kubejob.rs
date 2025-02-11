@@ -96,11 +96,11 @@ async fn make_job(worker: &Worker, task_req: TaskRequest, task_def: TaskDef) -> 
 
     let meta = serde_json::json!({
         "name": name,
-        "labels": {
-            "worker_id": *WORKER_ID,
-            "task_id": task_req.task_id,
-            "job_id": task_def.job_id,
-            "project_id": task_def.project_id,
+        "annotations": {
+            "ww_worker_id": *WORKER_ID,
+            "ww_task_id": task_req.task_id,
+            "ww_job_id": task_def.job_id,
+            "ww_project_id": task_def.project_id,
         },
     });
 

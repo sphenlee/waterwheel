@@ -4,8 +4,9 @@ import { Table, Select, notification } from 'antd';
 import axios from 'axios';
 
 import State from '../../components/State';
-import { ColumnsType } from "antd/lib/table";
+import { ColumnsType } from "antd/es/table";
 import { Token } from "../../types/Token";
+import { interval } from "../../types/common";
 
 const { Option } = Select;
 
@@ -47,7 +48,7 @@ const defaultFilter: Filter[] = ['running'];
 
 class TokenTable extends Component<TokenTableProps, TokenTableState> {
     columns: ColumnsType<Token>;
-    interval: NodeJS.Timeout;
+    interval: interval;
 
     constructor(props: TokenTableProps) {
         super(props);

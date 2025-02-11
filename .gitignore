@@ -8,3 +8,4 @@ ui/dist/
 *.crt
 *.key
 .musl-cargo-cache/
+bazel-*

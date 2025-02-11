@@ -1,9 +1,10 @@
 import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
-import { Table, Select, notification, Popconfirm, Row, Button, DatePicker, Space, Col, Tooltip } from 'antd';
+import { notification, Row, Button, DatePicker, Space, Col, Tooltip } from 'antd';
 import { geekblue, lime, red, grey, orange, purple } from '@ant-design/colors';
 import axios from 'axios';
 import styled, { CSSProperties } from 'styled-components';
+import { Dayjs } from "dayjs";
 
 import {
   CheckCircleOutlined,
@@ -12,17 +13,13 @@ import {
   ClockCircleOutlined,
   MinusOutlined,
   WarningOutlined,
-  QuestionCircleOutlined,
-  LeftOutlined,
   DoubleRightOutlined,
   StopOutlined,
   PlusSquareOutlined,
   HourglassOutlined,
 } from '@ant-design/icons';
-import { Token, TokenOverview, TokensRow, TokenState } from "../../types/Token";
-import { datetime, uuid } from "../../types/common";
-import { Moment } from "moment";
-import { Task } from "../../types/Task";
+import { TokenOverview, TokenState } from "../../types/Token";
+import { datetime, interval, uuid } from "../../types/common";
 import TokenRuns from "../TokenRuns";
 
 
@@ -103,7 +100,7 @@ type TaskGridState = {
 }
 
 class TaskGrid extends Component<TaskGridProps, TaskGridState> {
-    interval: NodeJS.Timeout;
+    interval: interval;
 
     constructor(props: TaskGridProps) {
         super(props);
@@ -171,7 +168,7 @@ class TaskGrid extends Component<TaskGridProps, TaskGridState> {
         });
     }
 
-    onDatePicked(date: Moment | null) {
+    onDatePicked(date: Dayjs | null) {
         this.setState({
             before: date && date.toISOString()
         });

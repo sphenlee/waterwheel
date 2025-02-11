@@ -1,0 +1,36 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - amqp.yaml
+  - db.yaml
+  - influxdb.yaml
+  - ldap.yaml
+  - opa.yaml
+  - redis.yaml
+  - ww-api.yaml
+  - ww-namespace.yaml
+  - ww-scheduler.yaml
+  - ww-worker-role.yaml
+  - ww-worker.yaml
+
+namespace: waterwheel
+
+configMapGenerator:
+  - name: sealproxy-config
+    files:
+      - sealproxy.yml
+
+  - name: opa-policy
+    files:
+      - policy.rego
+
+  - name: vector-conf
+    files:
+      - vector.toml
+
+secretGenerator:
+  - name: sealproxy-pubkey
+    files:
+      - public.pem
+      - private.pem

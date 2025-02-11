@@ -1,9 +1,8 @@
 import React from 'react';
-import ReactDOM from "react-dom";
-
-import 'antd/dist/antd.css';
+import { createRoot } from "react-dom/client";
 
 import App from "./App";
 
 const wrapper = document.getElementById("container");
-ReactDOM.render(<App />, wrapper);
+const root = createRoot(wrapper!);
+root.render(<App />);

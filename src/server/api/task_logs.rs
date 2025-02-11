@@ -6,22 +6,16 @@ use highnoon::{
 use redis::{
     streams::{StreamReadOptions, StreamReadReply},
     AsyncCommands,
+    FromRedisValue,
 };
 use tracing::{debug, trace};
-
-fn get_as_string(value: &redis::Value) -> highnoon::Result<String> {
-    match value {
-        redis::Value::Data(raw) => Ok(String::from_utf8(raw.clone())?),
-        _ => Err(anyhow::format_err!("data was not binary").into()),
-    }
-}
 
 pub async fn logs(
     req: Request<State>,
     mut tx: WebSocketSender,
     mut _rx: WebSocketReceiver,
 ) -> highnoon::Result<()> {
-    let mut redis = req.state().redis_client.get_tokio_connection().await?;
+    let mut redis = req.state().redis_client.get_multiplexed_tokio_connection().await?;
 
     let task_run_id = req.param("id")?;
     let key = format!("waterwheel-logs.{task_run_id}");
@@ -48,7 +42,8 @@ pub async fn logs(
 
         for entry in &reply.keys[0].ids {
             trace!("got entry with id {}", entry.id);
-            let data = get_as_string(&entry.map["data"])?;
+            let data: String = String::from_redis_value(&entry.map["data"])
+                .map_err(|_e| anyhow::format_err!("data was not binary"))?;
 
             let msg = Message::text(data);
             tx.send(msg).await?;

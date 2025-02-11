@@ -2,12 +2,16 @@ import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
 import { Table, Layout, Breadcrumb } from 'antd';
 import axios from 'axios';
-import Moment from 'react-moment';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+
+dayjs.extend(relativeTime);
 
 import Body from '../components/Body';
 import WorkerStatus from '../components/WorkerStatus';
-import { ColumnsType } from "antd/lib/table";
+import { ColumnsType } from "antd/es/table";
 import { WorkerState } from "../types/Worker";
+import { interval } from "../types/common";
 
 const { Content } = Layout;
 
@@ -38,7 +42,7 @@ function makeColumns(): ColumnsType<WorkerState> {
         },*/{
             title: 'Last Seen',
             dataIndex: 'last_seen_datetime',
-            render: text => <Moment fromNow withTitle>{text}</Moment>
+            render: text => dayjs(text).fromNow()
         }
     ];
 }
@@ -50,7 +54,7 @@ type WorkersState = {
 
 class Workers extends Component<{}, WorkersState> {
     columns: ColumnsType<WorkerState>;
-    interval: NodeJS.Timeout;
+    interval: interval;
 
     constructor(props: {}) {
         super(props);

@@ -1,0 +1,81 @@
+# __________________________________________________________
+# Rust setup
+
+bazel_dep(name = "rules_rust", version = "0.57.1")
+
+git_override(module_name = "rules_rust",
+    commit = "d256c7bb4668bbdfd1e25971531c874c23f4646a",
+    remote = "https://github.com/bazelbuild/rules_rust")
+
+RUST_EDITION = "2021"
+RUST_VERSION = "nightly/2024-10-02"
+
+rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
+rust.toolchain(
+    edition = RUST_EDITION,
+    versions = [RUST_VERSION],
+)
+use_repo(rust, "rust_toolchains")
+register_toolchains("@rust_toolchains//:all")
+
+crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+crate.from_cargo(
+    name = "crates",
+    cargo_lockfile = "//:Cargo.lock",
+    manifests = ["//:Cargo.toml"],
+)
+use_repo(crate, "crates")
+
+# __________________________________________________________
+# Typescript/Webpack setup
+
+
+bazel_dep(name = "aspect_rules_js", version = "2.1.3")
+bazel_dep(name = "rules_nodejs", version = "6.3.3")
+bazel_dep(name = "aspect_rules_webpack", version = "0.16.0")
+
+node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node", dev_dependency = True)
+node.toolchain(node_version = "22.13.0")
+
+npm = use_extension("@aspect_rules_js//npm:extensions.bzl", "npm", dev_dependency = True)
+npm.npm_translate_lock(
+    name = "npm",
+    pnpm_lock = "//ui:pnpm-lock.yaml",
+    npm_package_lock = "//ui:package-lock.json",
+    #verify_node_modules_ignored = "//:.bazelignore",
+)
+use_repo(npm, "npm")
+
+pnpm = use_extension("@aspect_rules_js//npm:extensions.bzl", "pnpm")
+use_repo(pnpm, "pnpm")
+
+# __________________________________________________________
+# OCI setup
+
+bazel_dep(name = "rules_oci", version = "2.2.1")
+bazel_dep(name = "rules_pkg", version = "1.0.1")
+
+oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
+# oci.pull(
+#     name = "distroless_cc",
+#     digest = "sha256:b7550f0b15838de14c564337eef2b804ba593ae55d81ca855421bd52f19bb480",
+#     image = "gcr.io/distroless/cc",
+#     platforms = ["linux/amd64"],
+# )
+# oci.pull(
+#     name = "debian",
+#     digest = "sha256:40b107342c492725bc7aacbe93a49945445191ae364184a6d24fedb28172f6f7",
+#     image = "debian:bookworm-slim",
+#     platforms = ["linux/amd64"],
+# )
+oci.pull(
+    name = "ubuntu",
+    digest = "sha256:72297848456d5d37d1262630108ab308d3e9ec7ed1c3286a32fe09856619a782",
+    image = "ubuntu:24.04",
+    platforms = ["linux/amd64"],
+)
+
+
+# use_repo(oci, "distroless_cc")
+# use_repo(oci, "debian")
+use_repo(oci, "ubuntu")

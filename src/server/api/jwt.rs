@@ -29,6 +29,7 @@ pub struct JwtKeys {
 }
 
 /// Loads the encryption/decryption keys used to verify access to the stash
+/// 
 /// Prefers an RSA key pair if one is provided, otherwise will use an HMAC shared secret
 /// (which is easier to generate and share for local development)
 pub fn load_keys(config: &Config) -> Result<JwtKeys> {

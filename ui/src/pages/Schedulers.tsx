@@ -2,12 +2,13 @@ import React, { Component, Fragment } from "react";
 import { Link } from "react-router-dom";
 import { Table, Layout, Breadcrumb } from 'antd';
 import axios from 'axios';
-import Moment from 'react-moment';
 
 import Body from '../components/Body';
 import WorkerStatus from '../components/WorkerStatus';
-import { ColumnsType } from "antd/lib/table";
+import RelDate from '../components/Date';
+import { ColumnsType } from "antd/es/table";
 import { SchedulerState } from "../types/Scheduler";
+import { interval } from "../types/common";
 
 const { Content } = Layout;
 
@@ -35,7 +36,7 @@ function makeColumns(): ColumnsType<SchedulerState> {
         },{
             title: 'Last Seen',
             dataIndex: 'last_seen_datetime',
-            render: text => <Moment fromNow withTitle>{text}</Moment>
+            render: text => <RelDate>{text}</RelDate>
         }
     ];
 }
@@ -47,7 +48,7 @@ type SchedulersState = {
 
 class Schedulers extends Component<{}, SchedulersState> {
     columns: ColumnsType<SchedulerState>;
-    interval: NodeJS.Timeout;
+    interval: interval;
 
     constructor(props: {}) {
         super(props);

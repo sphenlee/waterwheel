@@ -1,0 +1,12 @@
+[sources.metrics]
+type = "statsd"
+address = "0.0.0.0:8125"
+mode = "udp"
+
+[sinks.influx_metrics]
+type = "influxdb_metrics"
+inputs = [ "metrics" ]
+bucket = "waterwheel"
+org = "waterwheel"
+endpoint = "http://influxdb:8086/"
+token = "${INFLUX_TOKEN}"

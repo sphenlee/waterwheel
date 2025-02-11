@@ -1,5 +1,14 @@
 {
   "uuid": "4fb168e4-b963-431d-85b6-ac108542c036",
   "name": "test_project",
-  "description": "This is a sample project to demonstrate Waterwheel"
+  "description": "This is a sample project to demonstrate Waterwheel",
+
+  "config": {
+    "kubernetes_job_ttl_seconds_after_finished": 60,
+    "kubernetes_job_merge": {
+      "meta": {
+        "namespace": "ww_jobs"
+      }
+    }
+  }
 }

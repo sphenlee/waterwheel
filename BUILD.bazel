@@ -1,0 +1,70 @@
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library",
+    "rust_test", "rust_clippy", "rust_test_suite")
+load("@crates//:defs.bzl", "all_crate_deps", "aliases")
+load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
+load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load", "oci_push")
+
+rust_library(
+    name = "libwaterwheel",
+    crate_name = "waterwheel",
+    srcs = glob(["src/**/*.rs"], exclude=["src/main.rs"]),
+    compile_data = ["src/schema.sql", "src/default_config.toml", "//ui:ui"],
+    aliases = aliases(),
+    deps = all_crate_deps(normal = True),
+    proc_macro_deps = all_crate_deps(proc_macro = True),
+)
+
+rust_binary(
+    name = "waterwheel",
+    srcs = ["src/main.rs"],
+    aliases = aliases(),
+    deps = [":libwaterwheel"] + all_crate_deps(normal = True),
+    data = ["//ui:ui"]
+)
+
+rust_test(
+    name = "unittest",
+    crate = ":libwaterwheel",
+    deps = all_crate_deps(normal_dev = True),
+)
+
+rust_test_suite(
+    name = "inttest",
+    srcs = glob(["tests/**"]),
+    shared_srcs=glob(["tests/common/**"]),
+    deps = [":libwaterwheel" ] + all_crate_deps(normal = True, normal_dev = True),
+)
+
+rust_clippy(
+    name = "clippy",
+    testonly = True,
+    deps = [
+        ":waterwheel",
+        ":libwaterwheel",
+    ],
+)
+
+pkg_tar(
+    name = "waterwheel_layer",
+    srcs = [":waterwheel"],
+)
+
+oci_image(
+    name = "waterwheel_image",
+    base = "@ubuntu",
+    tars = [":waterwheel_layer"],
+    entrypoint = ["/waterwheel"],
+    cmd = ["--help"],
+)
+
+oci_load(
+    name = "waterwheel_load",
+    image = ":waterwheel_image",
+    repo_tags = ["waterwheel:local"],
+)
+
+oci_push(
+    name = "waterwheel_push",
+    image = ":waterwheel_image",
+    repository = "placeholder", # overridden by CLI argument
+)

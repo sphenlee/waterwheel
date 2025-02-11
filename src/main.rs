@@ -18,7 +18,6 @@ async fn main() -> Result<()> {
             clap::Arg::new("config_path")
                 .long("config")
                 .short('c')
-                .takes_value(true)
                 .help("Provide a specific config file"),
         )
         .subcommand(
@@ -36,7 +35,7 @@ async fn main() -> Result<()> {
 
     let args = app.get_matches();
 
-    let config_path = args.value_of("config_path").map(AsRef::as_ref);
+    let config_path = args.get_one::<String>("config_path").map(AsRef::as_ref);
 
     let config = config::load(config_path)?;
     logging::setup(&config)?;

@@ -78,7 +78,7 @@ pub async fn create_trigger(
     .bind(&trigger.cron)
     .bind(duration_from_string(trigger.offset.as_deref())?)
     .bind(trigger.catchup.unwrap_or_default())
-    .fetch_one(&mut *txn)
+    .fetch_one(txn.as_mut())
     .await?;
 
     // TODO - delete removed triggers

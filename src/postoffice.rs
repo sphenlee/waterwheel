@@ -2,7 +2,7 @@ use anyhow::Result;
 use postage::dispatch::{Receiver, Sender};
 use tokio::sync::Mutex;
 
-type AnySendMap = anymap::Map<dyn std::any::Any + Send>;
+type AnySendMap = anymap3::Map<dyn std::any::Any + Send>;
 
 struct Mailbox<T> {
     tx: Sender<T>,

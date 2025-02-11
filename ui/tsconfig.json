@@ -1,9 +1,9 @@
 {
     "compilerOptions": {
-        "module": "CommonJS",
-        "esModuleInterop": true,
+        "module": "ES6",
+        "moduleResolution": "bundler",
         "outDir": "./dist/",
-        "noImplicitAny": true,
+        "noImplicitAny": false,
         "strictNullChecks": true,
         "exactOptionalPropertyTypes": true,
         "removeComments": true,

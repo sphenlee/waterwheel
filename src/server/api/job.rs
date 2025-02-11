@@ -98,7 +98,7 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
         .bind(&job.description)
         .bind(job.paused)
         .bind(serde_json::to_string(&job)?)
-        .execute(&mut txn)
+        .execute(txn.as_mut())
         .await;
 
     match pg_error(res)? {

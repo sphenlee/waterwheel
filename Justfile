@@ -10,39 +10,15 @@ up:
 down:
     docker-compose rm --stop -v --force
 
-# install node dependencies for building the UI
-ui-install:
-    cd ui && npm install
-
-# build the UI in watch mode (recompile on file changes)
-ui-watch:
-    cd ui && npm run watch
-
-# build the UI for a release
-ui-build:
-    cd ui && npm run build
-
-# do a full release build
-build:
-    @# (don't depend on ui-build because webpack writes the output files even
-    @# if there are no changes. This causes cargo to have to rebuild the binary,
-    @# even if no Rust code has changed either)
-    cargo build --release
+# do a full release build (builds the UI too, to bypass this just call `cargo build` directly)
+build: 
+    bazel build -c opt //:waterwheel
 
 # build Waterwheel into a docker image for local use
 package:
-    DOCKER_BUILDKIT=1 docker build . -t waterwheel:local
+    bazel run //:waterwheel_load
 
-# connect to the database interactively
+# connect to the local database interactively
 psql:
     psql ${WATERWHEEL_DB_URL}
 
-# run a cargo command in a musl environment
-musl +ARGS:
-    docker run \
-        -v $PWD/.musl-cargo-cache:/root/.cargo/registry \
-        -v "$PWD:/volume" \
-        --rm \
-        -it \
-        clux/muslrust:nightly \
-        cargo {{ARGS}}

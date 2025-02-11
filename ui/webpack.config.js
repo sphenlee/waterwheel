@@ -1,11 +1,12 @@
 const webpack = require('webpack');
 const HtmlWebPackPlugin = require("html-webpack-plugin");
-const { GitRevisionPlugin } = require('git-revision-webpack-plugin');
-const gitRevisionPlugin = new GitRevisionPlugin({
-      versionCommand: 'describe --always --tags --dirty=-modified'
-  });
+//const { GitRevisionPlugin } = require('git-revision-webpack-plugin');
+//const gitRevisionPlugin = new GitRevisionPlugin({
+//      versionCommand: 'describe --always --tags --dirty=-modified'
+//  });
 
 module.exports = {
+  entry: './src/index.tsx',
   module: {
     rules: [
       {
@@ -25,14 +26,6 @@ module.exports = {
         test: /\.css$/i,
         use: ['style-loader', 'css-loader'],
       },
-      {
-        test: /\.less$/,
-        use: [
-          {loader: "style-loader"},
-          {loader: "css-loader"},
-          {loader: "less-loader"}
-        ]
-      }
     ]
   },
   plugins: [
@@ -40,10 +33,10 @@ module.exports = {
       template: "./src/index.html",
       filename: "./index.html"
     }),
-    new webpack.DefinePlugin({
-        'VERSION': JSON.stringify(gitRevisionPlugin.version()),
-        'COMMITHASH': JSON.stringify(gitRevisionPlugin.commithash()),
-    })
+    //new webpack.DefinePlugin({
+    //    'VERSION': JSON.stringify(gitRevisionPlugin.version()),
+    //    'COMMITHASH': JSON.stringify(gitRevisionPlugin.commithash()),
+    //})
   ],
   resolve: {
     extensions: ['.tsx', '.ts', '.js']

@@ -1,0 +1,58 @@
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+load("@aspect_rules_webpack//webpack:defs.bzl", "webpack_bundle")
+
+npm_link_all_packages(name = "node_modules")
+
+webpack_bundle(
+    name = "ui",
+    srcs = glob([
+            "src/**",
+            "dependency_types/**"
+        ],
+        #exclude=["src/index.tsx"]
+    ) + ["tsconfig.json", ".babelrc"],
+    #entry_point = "src/index.tsx",
+    chdir = "ui/",
+    node_modules = ":node_modules",
+    output_dir = True,
+    webpack_config = "webpack.config.js",
+    deps = [
+        ":node_modules/@ant-design/charts",
+        ":node_modules/@ant-design/colors",
+        ":node_modules/@ant-design/icons",
+        ":node_modules/@ant-design/pro-components",
+        ":node_modules/@ant-design/pro-provider",
+        ":node_modules/@babel/core",
+        ":node_modules/@babel/preset-env",
+        ":node_modules/@babel/preset-react",
+        ":node_modules/@babel/runtime",
+        ":node_modules/@types/node",
+        ":node_modules/@types/react-dom",
+        ":node_modules/@types/react-router-dom",
+        ":node_modules/@types/react",
+        ":node_modules/@types/styled-components",
+        ":node_modules/antd",
+        ":node_modules/axios",
+        ":node_modules/babel-loader",
+        ":node_modules/cronstrue",
+        ":node_modules/css-loader",
+        ":node_modules/dayjs",
+        ":node_modules/html-loader",
+        ":node_modules/html-webpack-plugin",
+        ":node_modules/lodash",
+        ":node_modules/pretty-ms",
+        ":node_modules/react-dom",
+        ":node_modules/react-graph-vis",
+        ":node_modules/react-json-pretty",
+        ":node_modules/react-router-dom",
+        ":node_modules/react-use-websocket",
+        ":node_modules/react",
+        ":node_modules/style-loader",
+        ":node_modules/styled-components",
+        ":node_modules/tslib",
+        ":node_modules/ts-loader",
+        ":node_modules/typescript",
+    ],
+    visibility = ["//visibility:public"]
+)

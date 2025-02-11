@@ -5,7 +5,7 @@ use crate::{
 };
 use anyhow::Result;
 use futures::TryStreamExt;
-use highnoon::StatusCode;
+use reqwest::StatusCode;
 use lapin::{
     options::{
         BasicAckOptions, BasicConsumeOptions, ExchangeDeclareOptions, QueueBindOptions,

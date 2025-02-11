@@ -60,8 +60,8 @@ pub async fn process_requeue(server: Arc<Server>) -> Result<!> {
         )
         .bind(TokenState::Running)
         .bind(TokenState::Cancelled)
-        .bind(&timeout)
-        .fetch_all(&mut txn)
+        .bind(timeout)
+        .fetch_all(txn.as_mut())
         .await?;
 
         for requeue in requeues {
@@ -96,7 +96,7 @@ pub async fn process_requeue(server: Arc<Server>) -> Result<!> {
             )
             .bind(TokenState::Error)
             .bind(requeue.task_run_id)
-            .execute(&mut txn)
+            .execute(txn.as_mut())
             .await?;
 
             sqlx::query(
@@ -108,7 +108,7 @@ pub async fn process_requeue(server: Arc<Server>) -> Result<!> {
             .bind(TokenState::Error)
             .bind(requeue.task_id)
             .bind(requeue.trigger_datetime)
-            .execute(&mut txn)
+            .execute(txn.as_mut())
             .await?;
         }
 

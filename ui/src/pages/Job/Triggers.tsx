@@ -2,13 +2,17 @@ import React, { Component } from "react";
 import { Link } from "react-router-dom";
 import { Table, Typography, Space, Tooltip, Tag } from 'antd';
 import axios from 'axios';
-import Moment from 'react-moment';
 import cronstrue from 'cronstrue';
 import prettyMilliseconds from 'pretty-ms';
-import { ColumnsType } from "antd/lib/table";
+import { ColumnsType } from "antd/es/table";
 import { Job, JobTrigger } from "../../types/Job";
 
 const { Text } = Typography;
+
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+
+dayjs.extend(relativeTime);
 
 function makeColumns(job: Job): ColumnsType<JobTrigger> {
     return [
@@ -44,7 +48,7 @@ function makeColumns(job: Job): ColumnsType<JobTrigger> {
                 <Space>
                     {text}
                     <Text type="secondary">
-                        <Moment fromNow>{text}</Moment>
+                        {dayjs(text).fromNow()}
                     </Text>
                 </Space>
                 :  <Text type="secondary">never</Text>
