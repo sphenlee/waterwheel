@@ -43,6 +43,6 @@ jobs:
 
       - name: Publish Image
         if: github.event_name != 'pull_request'
-        run: bazel run -c opt //:waterwheel_publish
+        run: bazel run -c opt //:waterwheel_publish --
           --registry ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           --tag ${{ github.ref_name }}
