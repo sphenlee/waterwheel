@@ -60,7 +60,7 @@ oci_image(
 oci_load(
     name = "waterwheel_load",
     image = ":waterwheel_image",
-    repo_tags = ["waterwheel:latest"],
+    repo_tags = ["waterwheel:local"],
 )
 
 oci_push(
