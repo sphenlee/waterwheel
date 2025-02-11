@@ -1,7 +1,7 @@
-///! Scheduler Cluster.
-///! Multiple schedulers can form a cluster using the chitchat membership finding library
-///! and then choose which triggers to manage using rendezvous hashing.
-///! Membership changes are expected to be rare and don't need to be handled quickly.
+//! Scheduler Cluster.
+//! Multiple schedulers can form a cluster using the chitchat membership finding library
+//! and then choose which triggers to manage using rendezvous hashing.
+//! Membership changes are expected to be rare and don't need to be handled quickly.
 use anyhow::{Context, Result};
 use chitchat::{
     transport::UdpTransport, ChitchatConfig, ChitchatHandle, ChitchatId, FailureDetectorConfig,

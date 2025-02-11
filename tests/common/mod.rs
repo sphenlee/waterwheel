@@ -2,7 +2,7 @@ use highnoon::Result;
 use std::{future::Future, sync::{atomic, Once}};
 use waterwheel::config::{self, Config};
 use testcontainers_modules::{
-    postgres::Postgres, rabbitmq::RabbitMq, redis::{Redis, REDIS_PORT}, testcontainers::{self, runners::AsyncRunner}
+    postgres::Postgres, rabbitmq::RabbitMq, redis::{Redis, REDIS_PORT}, testcontainers::{runners::AsyncRunner}
 };
 
 const DEFAULT_LOG: &str = "warn,waterwheel=trace,highnoon=info,testcontainers=info,lapin=off";

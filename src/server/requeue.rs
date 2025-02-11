@@ -60,7 +60,7 @@ pub async fn process_requeue(server: Arc<Server>) -> Result<!> {
         )
         .bind(TokenState::Running)
         .bind(TokenState::Cancelled)
-        .bind(&timeout)
+        .bind(timeout)
         .fetch_all(txn.as_mut())
         .await?;
 

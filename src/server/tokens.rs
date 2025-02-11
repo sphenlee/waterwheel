@@ -96,7 +96,8 @@ pub async fn process_tokens(server: Arc<Server>) -> Result<!> {
     unreachable!("ProcessToken channel was closed!")
 }
 
-/// Adds a token to a task node
+/// Adds a token to a task node.
+/// 
 /// Usually you need to update some other state at the same time so it takes in a begun transaction
 /// so you can do the other update before committing (eg. update the trigger's last trigger time, or
 /// update the state of the upstream task to be 'done')

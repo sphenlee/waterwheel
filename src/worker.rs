@@ -76,7 +76,7 @@ impl Worker {
         let this = Arc::new(self);
 
         for i in 0..this.config.max_tasks {
-            spawn_retry(&format!("worker-{i}"), this.clone(), work::process_work);
+            spawn_retry(format!("worker-{i}"), this.clone(), work::process_work);
         }
 
         spawn_or_crash(
