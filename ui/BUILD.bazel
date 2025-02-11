@@ -4,16 +4,6 @@ load("@aspect_rules_webpack//webpack:defs.bzl", "webpack_bundle")
 
 npm_link_all_packages(name = "node_modules")
 
-# js_library(
-#     name = "webpack-config",
-#     srcs = ["webpack.config.js"],
-#     deps = [
-#         ":node_modules/ts-loader",
-#         ":node_modules/html-webpack-plugin",
-#         ":node_modules/css-loader",
-#     ],
-# )
-
 webpack_bundle(
     name = "ui",
     srcs = glob([

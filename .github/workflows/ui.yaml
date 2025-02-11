@@ -11,12 +11,12 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - uses: actions/setup-node@v4
+    - name: Setup Bazel
+      uses: bazel-contrib/setup-bazel@0.13.0
       with:
-        node-version-file: 'ui/.nvmrc'
-
-    - name: Install NPM Packages
-      run: cd ui && npm install
+        bazelisk-cache: true
+        disk-cache: ${{ github.workflow }}
+        repository-cache: true
 
     - name: Build UI
-      run: cd ui && npm run build
+      run: bazel build //ui:ui

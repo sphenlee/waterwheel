@@ -1,4 +1,4 @@
-FROM node:14 AS ui-build
+FROM node:22 AS ui-build
 
 WORKDIR /usr/src/app
 COPY . .
@@ -10,7 +10,7 @@ RUN --mount=type=cache,target=/usr/src/app/ui/node_modules \
     && cp -r /usr/src/app/ui/dist /usr/src/ui-build
 
 # ---
-FROM rust:1.81.0-bullseye AS build
+FROM rust:1.81.0-bookworm AS build
 
 WORKDIR /usr/src/app
 
@@ -24,7 +24,9 @@ RUN --mount=type=cache,target=/usr/local/rustup \
     && mv /usr/src/app/target/release/waterwheel /usr/bin
 
 # ---
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y libssl-dev
 
 COPY --from=build /usr/bin/waterwheel /usr/bin
 

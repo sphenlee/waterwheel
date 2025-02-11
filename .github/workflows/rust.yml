@@ -11,16 +11,18 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Install latest nightly
-      uses: dtolnay/rust-toolchain@stable
+    - name: Setup Bazel
+      uses: bazel-contrib/setup-bazel@0.13.0
       with:
-        components: rustfmt, clippy
+        bazelisk-cache: true
+        disk-cache: ${{ github.workflow }}
+        repository-cache: true
 
     - name: Build
-      run: cargo build
+      run: bazel build //:waterwheel
 
     - name: Clippy
-      run: cargo clippy
+      run: bazel run //:clippy
 
     - name: Test
-      run: cargo test
+      run: bazel test //:unittest //:inttest

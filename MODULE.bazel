@@ -49,3 +49,33 @@ use_repo(npm, "npm")
 pnpm = use_extension("@aspect_rules_js//npm:extensions.bzl", "pnpm")
 use_repo(pnpm, "pnpm")
 
+# __________________________________________________________
+# OCI setup
+
+bazel_dep(name = "rules_oci", version = "2.2.1")
+bazel_dep(name = "rules_pkg", version = "1.0.1")
+
+oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
+# oci.pull(
+#     name = "distroless_cc",
+#     digest = "sha256:b7550f0b15838de14c564337eef2b804ba593ae55d81ca855421bd52f19bb480",
+#     image = "gcr.io/distroless/cc",
+#     platforms = ["linux/amd64"],
+# )
+# oci.pull(
+#     name = "debian",
+#     digest = "sha256:40b107342c492725bc7aacbe93a49945445191ae364184a6d24fedb28172f6f7",
+#     image = "debian:bookworm-slim",
+#     platforms = ["linux/amd64"],
+# )
+oci.pull(
+    name = "ubuntu",
+    digest = "sha256:72297848456d5d37d1262630108ab308d3e9ec7ed1c3286a32fe09856619a782",
+    image = "ubuntu:24.04",
+    platforms = ["linux/amd64"],
+)
+
+
+# use_repo(oci, "distroless_cc")
+# use_repo(oci, "debian")
+use_repo(oci, "ubuntu")
