@@ -1,4 +1,4 @@
-name: UI Build
+name: Build
 
 on: [ push ]
 
@@ -18,5 +18,11 @@ jobs:
         disk-cache: ${{ github.workflow }}
         repository-cache: true
 
-    - name: Build UI
-      run: bazel build //ui:ui
+    - name: Build
+      run: bazel build //:waterwheel
+
+    - name: Clippy
+      run: bazel build //:clippy
+
+    - name: Test
+      run: bazel test //:unittest //:inttest
