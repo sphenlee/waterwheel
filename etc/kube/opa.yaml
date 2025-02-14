@@ -18,6 +18,8 @@ spec:
         - args:
             - run
             - --server
+            - -a
+            - 0.0.0.0:8181
             - -b
             - /policy
           image: openpolicyagent/opa
@@ -37,7 +39,6 @@ spec:
                 path: policy.rego
             name: opa-policy
           name: opa-policy
-status: {}
 
 ---
 apiVersion: v1
@@ -53,6 +54,3 @@ spec:
       targetPort: 8181
   selector:
     app: opa
-status:
-  loadBalancer: {}
-
