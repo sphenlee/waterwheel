@@ -4,17 +4,22 @@ import json
 import yaml
 import pathlib
 import os
+import urllib3
 
-NEEDS_LOGIN = True
-WATERWHEEL_HOST = os.environ.get('WATERWHEEL_ADDR', 'http://localhost:8080')
+# minikube uses a self-signed certificate; ignore the insecure warnings
+urllib3.disable_warnings()
+
+WATERWHEEL_HOST = os.environ.get('WATERWHEEL_ADDR', 'http://localhost:8080/').rstrip('/')
 
 session = requests.session()
 session.verify = None
 
-if NEEDS_LOGIN:
+resp = session.get(WATERWHEEL_HOST + '/api/status')
+if resp.status_code == codes.unauthorized:
     print('login')
     resp = session.post(WATERWHEEL_HOST + '/login', data={'username': 'fry', 'password': 'fry'})
-    print(resp.status_code, resp.text)
+    resp.raise_for_status()
+else:
     resp.raise_for_status()
 
 print('create project')
