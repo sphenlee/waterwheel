@@ -6,10 +6,10 @@ running in Kubernetes.
 
 This example will use `minikube`.
 
-1. First build a release package of Waterwheel:
+1. First build a Docker image and load into the local Docker host:
 
    ```
-   just package
+   bazel build //:waterwheel_load
    ```
 
 1. Start minikube:

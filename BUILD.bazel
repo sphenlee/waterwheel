@@ -1,5 +1,5 @@
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library",
-    "rust_test", "rust_clippy", "rust_test_suite")
+    "rust_test", "rust_clippy", "rust_test_suite", "rustfmt_test")
 load("@crates//:defs.bzl", "all_crate_deps", "aliases")
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load", "oci_push")
@@ -33,6 +33,11 @@ rust_test_suite(
     srcs = glob(["tests/**"]),
     shared_srcs=glob(["tests/common/**"]),
     deps = [":libwaterwheel" ] + all_crate_deps(normal = True, normal_dev = True),
+)
+
+rustfmt_test(
+    name = "fmt",
+    targets = [":libwaterwheel", ":waterwheel", ":unittest"]
 )
 
 rust_clippy(

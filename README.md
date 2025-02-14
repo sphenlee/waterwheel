@@ -32,20 +32,14 @@ Now launch the services (Postgres and RabbitMQ):
 just up
 ```
 
-The web interface is built with bazel
-
-```
-bazel build //ui
-```
-
 In two separate terminals build and launch Waterwheel server and worker:
 
 ```
 # run the server
-cargo run server
+bazel run //:waterwheel server
 
 # in a separate terminal
-cargo run worker
+bazel run //:waterwheel worker
 ```
 
 Building a Release binary
@@ -54,13 +48,13 @@ Building a Release binary
 Build a release binary using bazel:
 
 ```
-just build
+bazel build -c opt //:waterwheel
 ```
 
-Build a docker image for local use:
+Build a docker image and load into the local Docker service:
 
 ```
-just package
+bazel run //:waterwheel_load
 ```
 
 > Other commands are available in the Justfile. Run `just help` for a list.
