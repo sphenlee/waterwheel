@@ -3,11 +3,11 @@ uuid: '1a054cf0-fe77-44e7-a55e-ff34458bea3d'
 project: test_project
 name: complex dag
 description: a sample job with a complex dag
-paused: false
+paused: true
 
 triggers:
   - name: daily
-    start: '2022-01-01T00:00:00Z'
+    start: '2025-01-01T00:00:00Z'
     period: '1d'
 
 tasks:

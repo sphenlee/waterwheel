@@ -3,11 +3,11 @@
   "project": "test_project",
   "name": "simple_job",
   "description": "a simple job to test that waterwheel is working",
-  "paused": false,
+  "paused": true,
   "triggers": [
     {
       "name": "daily",
-      "start": "2022-01-01T00:00:00Z",
+      "start": "2025-01-01T00:00:00Z",
       "period": "1d"
     }
   ],

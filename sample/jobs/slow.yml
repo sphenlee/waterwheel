@@ -3,11 +3,11 @@ uuid: 'ea67523f-dcc5-423d-810f-aa4a0ed1080e'
 project: test_project
 name: slow_job
 description: a job with tasks that have more realistic duations
-paused: false
+paused: true
 
 triggers:
   - name: daily
-    start: '2022-01-01T00:00:00Z'
+    start: '2025-01-01T00:00:00Z'
     period: '1d'
 
 tasks:

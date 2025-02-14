@@ -3,11 +3,11 @@ uuid: '65a09aa1-f923-4bf6-99f3-2cee7888e159'
 project: test_project
 name: sample job
 description: a sample job for testing custom docker images
-paused: false
+paused: true
 
 triggers:
   - name: daily
-    start: '2022-01-01T00:00:00Z'
+    start: '2025-01-01T00:00:00Z'
     period: '1d'
 
 tasks:
