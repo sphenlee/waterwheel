@@ -8,7 +8,7 @@ rust_library(
     name = "libwaterwheel",
     crate_name = "waterwheel",
     srcs = glob(["src/**/*.rs"], exclude=["src/main.rs"]),
-    compile_data = ["src/schema.sql", "src/default_config.toml", "//ui:ui"],
+    compile_data = ["src/schema.sql", "src/default_config.toml"],
     aliases = aliases(),
     deps = all_crate_deps(normal = True),
     proc_macro_deps = all_crate_deps(proc_macro = True),
@@ -19,7 +19,7 @@ rust_binary(
     srcs = ["src/main.rs"],
     aliases = aliases(),
     deps = [":libwaterwheel"] + all_crate_deps(normal = True),
-    data = ["//ui:ui"]
+    data = ["//ui:dist"]
 )
 
 rust_test(
@@ -54,10 +54,16 @@ pkg_tar(
     srcs = [":waterwheel"],
 )
 
+pkg_tar(
+    name = "ui_layer",
+    package_dir = "ui/",
+    srcs = ["//ui:dist"],
+)
+
 oci_image(
     name = "waterwheel_image",
     base = "@ubuntu",
-    tars = [":waterwheel_layer"],
+    tars = [":ui_layer", ":waterwheel_layer"],
     entrypoint = ["/waterwheel"],
     cmd = ["--help"],
 )

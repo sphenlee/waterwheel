@@ -4,8 +4,13 @@ load("@aspect_rules_webpack//webpack:defs.bzl", "webpack_bundle")
 
 npm_link_all_packages(name = "node_modules")
 
+alias(
+    name = "pnpm",
+    actual = "@pnpm//:pnpm",
+)
+
 webpack_bundle(
-    name = "ui",
+    name = "dist",
     srcs = glob([
             "src/**",
             "dependency_types/**"

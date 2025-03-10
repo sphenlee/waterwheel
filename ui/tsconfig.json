@@ -2,7 +2,6 @@
     "compilerOptions": {
         "module": "ES6",
         "moduleResolution": "bundler",
-        "outDir": "./dist/",
         "noImplicitAny": false,
         "strictNullChecks": true,
         "exactOptionalPropertyTypes": true,
