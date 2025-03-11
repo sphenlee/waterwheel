@@ -1,5 +1,5 @@
 use crate::{amqp, config::Config, db, metrics, server::api::jwt::JwtKeys};
-use anyhow::{Context, Result};
+use anyhow::Result;
 use cadence::StatsdClient;
 use lapin::Channel;
 use sqlx::PgPool;
@@ -43,8 +43,6 @@ impl highnoon::State for State {
 const UI_RELATIVE_PATH: &str = "ui/dist/";
 
 pub async fn make_app(config: Config) -> Result<highnoon::App<State>> {
-    std::fs::metadata(UI_RELATIVE_PATH).context("ui resources not found")?;
-
     let amqp_conn = amqp::amqp_connect(&config).await?;
     let db_pool = db::create_pool(&config).await?;
     let statsd = metrics::new_client(&config)?;
