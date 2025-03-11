@@ -2,6 +2,20 @@
 help:
     @cat README.md
 
+# update the image tag for the waterweel image
+updateTag TAG:
+    kustomize edit set image waterwheel=*:{{TAG}}
+
+# build and package waterwheel and load into minikube
+package:
+    #! /bin/sh
+    set -x
+    bazel run //:waterwheel_load
+    NAME=$(names)
+    docker tag waterwheel:local waterwheel:$NAME
+    minikube image load waterwheel:$NAME
+    kustomize edit set image waterwheel=*:$NAME
+
 # apply all the kubernetes yaml
 apply:
     kubectl apply -k .

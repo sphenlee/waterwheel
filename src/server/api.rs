@@ -3,7 +3,7 @@ use anyhow::Result;
 use cadence::StatsdClient;
 use lapin::Channel;
 use sqlx::PgPool;
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 use tracing::{debug, warn};
 
 pub mod auth;
@@ -40,18 +40,7 @@ impl highnoon::State for State {
     }
 }
 
-#[allow(unused)]
-macro_rules! get_file {
-    ($data:expr ; $mime:expr) => {
-        |_req| async {
-            use highnoon::{headers::ContentType, Mime, Response};
-
-            Response::ok()
-                .body($data)
-                .header(ContentType::from($mime.parse::<Mime>().unwrap()))
-        }
-    };
-}
+const UI_RELATIVE_PATH: &str = "ui/dist/";
 
 pub async fn make_app(config: Config) -> Result<highnoon::App<State>> {
     let amqp_conn = amqp::amqp_connect(&config).await?;
@@ -183,28 +172,13 @@ pub async fn make_app(config: Config) -> Result<highnoon::App<State>> {
 
     // web UI
 
-    #[cfg(debug_assertions)]
-    {
-        let index = |_req| async {
-            let body = highnoon::Response::ok().path("ui/ui/index.html").await?;
-            Ok(body)
-        };
-        app.at("/static/*").static_files("ui/ui/");
-        app.at("/**").get(index);
-        app.at("/").get(index);
-    }
-
-    #[cfg(not(debug_assertions))]
-    {
-        static JS: &str = include_str!("../../ui/ui/main.js");
-        static HTML: &str = include_str!("../../ui/ui/index.html");
-
-        app.at("/static/main.js")
-            .get(get_file!(JS; "text/javascript"));
-        app.at("/").get(get_file!(HTML; "text/html;charset=utf-8"));
-        app.at("/**")
-            .get(get_file!(HTML; "text/html;charset=utf-8"));
-    }
+    let index = |_req: highnoon::Request<State>| async {
+        let body = highnoon::Response::ok().path(Path::new(UI_RELATIVE_PATH).join("index.html")).await?;
+        Ok(body)
+    };
+    app.at("/static/*").static_files(UI_RELATIVE_PATH);
+    app.at("/**").get(index);
+    app.at("/").get(index);
 
     Ok(app)
 }

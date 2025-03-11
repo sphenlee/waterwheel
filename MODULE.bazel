@@ -41,8 +41,6 @@ npm = use_extension("@aspect_rules_js//npm:extensions.bzl", "npm", dev_dependenc
 npm.npm_translate_lock(
     name = "npm",
     pnpm_lock = "//ui:pnpm-lock.yaml",
-    npm_package_lock = "//ui:package-lock.json",
-    #verify_node_modules_ignored = "//:.bazelignore",
 )
 use_repo(npm, "npm")
 

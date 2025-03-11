@@ -3,7 +3,7 @@ uuid: 'f58dc3a0-023e-400a-8e07-81ba05dc85f8'
 project: test_project
 name: cross job dependency
 description: a sample job for testing dependencies between jobs
-paused: false
+paused: true
 
 triggers: []
 

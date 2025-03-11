@@ -5,18 +5,18 @@ name: depends_on_past
 description: |
   a job demonstrating how to simulate a "depends on past" relationship
 
-paused: false
+paused: true
 
 triggers:
   - name: initial
     # initial trigger is set to occur only once
-    start: '2022-01-01T00:00:00Z'
-    end: '2022-01-02T00:00:00Z'
+    start: '2025-01-01T00:00:00Z'
+    end: '2025-01-02T00:00:00Z'
     period: '1d'
 
   - name: daily
     # daily trigger starts at the same time but is recurring
-    start: '2022-01-01T00:00:00Z'
+    start: '2025-01-01T00:00:00Z'
     period: '1d'
 
 tasks:
