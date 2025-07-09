@@ -7,8 +7,8 @@ git_override(module_name = "rules_rust",
     commit = "d256c7bb4668bbdfd1e25971531c874c23f4646a",
     remote = "https://github.com/bazelbuild/rules_rust")
 
-RUST_EDITION = "2021"
-RUST_VERSION = "nightly/2024-10-02"
+RUST_EDITION = "2024"
+RUST_VERSION = "nightly/2025-06-01"
 
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(
