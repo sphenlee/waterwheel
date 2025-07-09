@@ -1,11 +1,7 @@
 # __________________________________________________________
 # Rust setup
 
-bazel_dep(name = "rules_rust", version = "0.57.1")
-
-git_override(module_name = "rules_rust",
-    commit = "d256c7bb4668bbdfd1e25971531c874c23f4646a",
-    remote = "https://github.com/bazelbuild/rules_rust")
+bazel_dep(name = "rules_rust", version = "0.62.0")
 
 RUST_EDITION = "2024"
 RUST_VERSION = "nightly/2025-06-01"
