@@ -7,7 +7,6 @@ use chitchat::{
     transport::UdpTransport, ChitchatConfig, ChitchatHandle, ChitchatId, FailureDetectorConfig,
 };
 use chrono::Utc;
-use futures::StreamExt as _;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tracing::{debug, info};
 use crate::{config::Config, server::Server};
@@ -46,8 +45,10 @@ pub async fn start_cluster(config: &Config, node_id: &str) -> Result<ChitchatHan
             .context("parsing cluster_gossip_bind")?,
         seed_nodes: config.cluster_seed_nodes.clone(),
         failure_detector_config: FailureDetectorConfig::default(),
-        marked_for_deletion_grace_period: 0,
+        marked_for_deletion_grace_period: Duration::from_secs(3600), // 1h
         gossip_interval: Duration::from_secs(1),
+        extra_liveness_predicate: None,
+        catchup_callback: None,
     };
 
     let chitchat_handle = chitchat::spawn_chitchat(config, vec![], &UdpTransport).await?;
@@ -59,9 +60,11 @@ pub async fn watch_live_nodes(server: Arc<Server>) -> Result<!> {
     let chitchat = server.get_chitchat().await;
 
     let mut watcher = chitchat.lock().await.live_nodes_watcher();
+    
 
-    while let Some(live_nodes) = watcher.next().await {
+    while let Ok(()) = watcher.changed().await {
         info!("cluster membership changed");
+        let live_nodes = watcher.borrow_and_update();
 
         server
             .on_cluster_membership_change
@@ -69,8 +72,8 @@ pub async fn watch_live_nodes(server: Arc<Server>) -> Result<!> {
                 rendezvous.clear();
                 rendezvous.add_node(server.node_id.clone());
 
-                for item in live_nodes {
-                    rendezvous.add_node(item.0.node_id);
+                for item in live_nodes.iter() {
+                    rendezvous.add_node(item.0.node_id.clone());
                 }
             });
 
