@@ -10,7 +10,7 @@ use kube::{
     api::{Api, DeleteParams, LogParams, PostParams},
     Client, Config, ResourceExt,
 };
-use rand::seq::SliceRandom;
+use rand::seq::IndexedRandom;
 use redis::{streams::StreamMaxlen, AsyncCommands};
 use std::{convert::TryFrom, time::Duration};
 use tracing::{trace, warn};
@@ -129,7 +129,7 @@ pub async fn run_kube(worker: &Worker, task_req: TaskRequest, task_def: TaskDef)
 
 // TODO - make this a util, we should use this grist in a few other places too
 fn make_grist() -> String {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     std::iter::from_fn(move || {
         let byte = b"ghjklmnpqrstuvwxyz"
             .choose(&mut rng)

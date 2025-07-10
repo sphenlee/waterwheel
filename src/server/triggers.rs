@@ -10,7 +10,7 @@ use chrono::{DateTime, Duration, Utc};
 use cron::Schedule;
 use futures::TryStreamExt;
 use postage::{prelude::*, stream::TryRecvError};
-use rand::{seq::SliceRandom, thread_rng};
+use rand::{seq::SliceRandom, rng};
 use serde::{Deserialize, Serialize};
 use sqlx::{Connection, PgPool, Postgres, Transaction};
 use std::{
@@ -334,7 +334,7 @@ async fn catchup_trigger(
         Catchup::Latest => {
             tokens_to_tx.sort_by_key(|token| std::cmp::Reverse(token.trigger_datetime))
         }
-        Catchup::Random => tokens_to_tx.shuffle(&mut thread_rng()),
+        Catchup::Random => tokens_to_tx.shuffle(&mut rng()),
     }
 
     send_to_token_processor(server, tokens_to_tx, TaskPriority::BackFill).await?;
