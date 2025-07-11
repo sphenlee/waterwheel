@@ -4,16 +4,16 @@ use chrono::SecondsFormat;
 use colored::Colorize;
 use std::fmt::{Debug, Result as FmtResult};
 use tracing::{
-    field::{Field, Visit},
     Event, Level, Subscriber,
+    field::{Field, Visit},
 };
 use tracing_log::NormalizeEvent;
 use tracing_subscriber::{
+    EnvFilter,
     field::RecordFields,
-    fmt::{self, format::Writer, FmtContext, FormatEvent, FormatFields, FormattedFields},
+    fmt::{self, FmtContext, FormatEvent, FormatFields, FormattedFields, format::Writer},
     prelude::*,
     registry::LookupSpan,
-    EnvFilter,
 };
 
 fn level_color(level: Level, msg: String) -> impl std::fmt::Display {

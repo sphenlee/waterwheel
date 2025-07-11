@@ -1,11 +1,11 @@
 use crate::{
     config::Config,
-    server::api::{job::get_job_project_id, request_ext::RequestExt, State},
+    server::api::{State, job::get_job_project_id, request_ext::RequestExt},
 };
 use anyhow::Result;
 use highnoon::{
-    headers::{authorization::Bearer, Authorization},
     StatusCode,
+    headers::{Authorization, authorization::Bearer},
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -90,7 +90,9 @@ async fn authorize(
     let opa = if let Some(opa) = config.opa_sidecar_addr.as_ref() {
         opa
     } else {
-        error!("OPA sidecar address is unset (to disable authz you must set `WATERWHEEL_NO_AUTHZ=true`)");
+        error!(
+            "OPA sidecar address is unset (to disable authz you must set `WATERWHEEL_NO_AUTHZ=true`)"
+        );
         return Ok(false);
     };
 
@@ -159,11 +161,12 @@ impl Check {
         let mut object = self.object;
 
         if let Some(job_id) = object.job_id
-            && object.project_id.is_none() {
-                let pool = req.get_pool();
-                let project_id = get_job_project_id(&pool, job_id).await?;
-                object.project_id = Some(project_id);
-            }
+            && object.project_id.is_none()
+        {
+            let pool = req.get_pool();
+            let project_id = get_job_project_id(&pool, job_id).await?;
+            object.project_id = Some(project_id);
+        }
 
         let http = derive_http(req)?;
         // NOTE - this potentially logs credentials so don't leave it uncommented

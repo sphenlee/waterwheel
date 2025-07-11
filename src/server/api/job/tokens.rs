@@ -1,6 +1,6 @@
 use crate::{
     messages::{ProcessToken, Token, TokenState},
-    server::api::{auth, request_ext::RequestExt, updates, State},
+    server::api::{State, auth, request_ext::RequestExt, updates},
 };
 use chrono::{DateTime, Utc};
 use highnoon::{Json, Request, Responder};

@@ -1,8 +1,7 @@
 use crate::server::api::{
-    auth,
+    State, auth,
     request_ext::RequestExt,
-    types::{duration_from_string, Job, Trigger},
-    State,
+    types::{Job, Trigger, duration_from_string},
 };
 use chrono::{DateTime, Utc};
 use highnoon::{Json, Request, Responder};

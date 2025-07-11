@@ -1,7 +1,7 @@
 use crate::{
-    messages::{ProcessToken, TaskPriority, Token},
-    server::{api::types::Catchup, tokens::increment_token, trigger_time::TriggerTime, Server},
-    util::format_duration_approx,
+    messages::{ProcessToken, TaskPriority, Token, TriggerUpdate},
+    server::{Server, api::types::Catchup, tokens::increment_token, trigger_time::TriggerTime},
+    util::{deref, first, format_duration_approx},
 };
 use anyhow::Result;
 use binary_heap_plus::{BinaryHeap, MinComparator};
@@ -10,19 +10,17 @@ use chrono::{DateTime, Duration, Utc};
 use cron::Schedule;
 use futures::TryStreamExt;
 use postage::{prelude::*, stream::TryRecvError};
-use rand::{seq::SliceRandom, rng};
+use rand::{rng, seq::SliceRandom};
 use serde::{Deserialize, Serialize};
 use sqlx::{Connection, PgPool, Postgres, Transaction};
 use std::{
+    collections::HashSet,
     str::FromStr,
-    sync::{atomic::Ordering, Arc},
+    sync::{Arc, atomic::Ordering},
 };
-use std::collections::HashSet;
 use tokio::time;
 use tracing::{debug, info, trace, warn};
 use uuid::Uuid;
-use crate::messages::TriggerUpdate;
-use crate::util::{deref, first};
 
 type Queue = BinaryHeap<TriggerTime, MinComparator>;
 
@@ -276,20 +274,21 @@ async fn catchup_trigger(
 
     if trigger.catchup != Catchup::None
         && let Some(earliest) = trigger.earliest_trigger_datetime
-            && trigger.start_datetime < earliest {
-                // start date moved backwards
-                debug!(trigger_id=?trigger.id,
-                    "start date has moved backwards: {} -> {}",
-                    earliest, trigger.start_datetime
-                );
+        && trigger.start_datetime < earliest
+    {
+        // start date moved backwards
+        debug!(trigger_id=?trigger.id,
+            "start date has moved backwards: {} -> {}",
+            earliest, trigger.start_datetime
+        );
 
-                let mut next = trigger.start_datetime;
-                while next < earliest {
-                    let mut tokens = do_activate_trigger(&pool, &mut txn, trigger.at(next)).await?;
-                    tokens_to_tx.append(&mut tokens);
-                    next = next + &period;
-                }
-            }
+        let mut next = trigger.start_datetime;
+        while next < earliest {
+            let mut tokens = do_activate_trigger(&pool, &mut txn, trigger.at(next)).await?;
+            tokens_to_tx.append(&mut tokens);
+            next = next + &period;
+        }
+    }
 
     // catchup any periods since the last trigger
     let now = Utc::now();

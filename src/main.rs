@@ -1,7 +1,7 @@
 use anyhow::Result;
 use waterwheel::{
     config, logging,
-    server::{api, Server},
+    server::{Server, api},
     worker::Worker,
 };
 

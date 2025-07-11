@@ -1,15 +1,16 @@
-use std::sync::Arc;
-use anyhow::{format_err, Result};
+use crate::{
+    messages::{TaskPriority, Token},
+    server::{Server, execute::ExecuteToken},
+    util::format_duration_approx,
+};
+use anyhow::{Result, format_err};
 use binary_heap_plus::{BinaryHeap, MinComparator};
 use chrono::{DateTime, Duration, Utc};
 use postage::prelude::*;
+use std::sync::Arc;
 use tokio::select;
 use tracing::{debug, info, trace, warn};
 use uuid::Uuid;
-use crate::messages::{TaskPriority, Token};
-use crate::server::execute::ExecuteToken;
-use crate::server::Server;
-use crate::util::format_duration_approx;
 
 type RetryQueue = BinaryHeap<Retry, MinComparator>;
 
@@ -74,7 +75,7 @@ pub async fn process_retries(server: Arc<Server>) -> Result<!> {
 async fn process_submit_retry(
     server: &Server,
     queue: &mut RetryQueue,
-    submit_retry: SubmitRetry
+    submit_retry: SubmitRetry,
 ) -> Result<()> {
     match submit_retry {
         SubmitRetry::Add(retry) => {
@@ -85,7 +86,6 @@ async fn process_submit_retry(
     }
     Ok(())
 }
-
 
 #[derive(sqlx::FromRow)]
 struct RetryInfo {
@@ -105,7 +105,8 @@ async fn do_retry(server: &Server, retry: Retry) -> Result<()> {
             priority,
             attempt
         FROM task_run
-        WHERE id = $1")
+        WHERE id = $1",
+    )
     .bind(retry.task_run_id)
     .fetch_one(&server.db_pool)
     .await?;
@@ -130,7 +131,8 @@ async fn do_retry(server: &Server, retry: Retry) -> Result<()> {
 
     sqlx::query(
         "DELETE FROM retry
-        WHERE task_run_id = $1")
+        WHERE task_run_id = $1",
+    )
     .bind(retry.task_run_id)
     .execute(&server.db_pool)
     .await?;
@@ -140,11 +142,9 @@ async fn do_retry(server: &Server, retry: Retry) -> Result<()> {
 
 async fn reload_retries(server: &Server, queue: &mut RetryQueue) -> Result<()> {
     debug!("loading retries from database");
-    let retries = sqlx::query_as::<_, Retry>(
-        "SELECT retry_at_datetime, task_run_id FROM retry"
-    )
-    .fetch_all(&server.db_pool)
-    .await?;
+    let retries = sqlx::query_as::<_, Retry>("SELECT retry_at_datetime, task_run_id FROM retry")
+        .fetch_all(&server.db_pool)
+        .await?;
 
     let me = &*server.node_id;
     let rendezvous = server.on_cluster_membership_change.borrow();
@@ -159,10 +159,9 @@ async fn reload_retries(server: &Server, queue: &mut RetryQueue) -> Result<()> {
     Ok(())
 }
 
-
 pub async fn retry_cluster_changes(server: Arc<Server>) -> Result<!> {
     let mut cluster_rx = server.on_cluster_membership_change.subscribe();
-        //server.post_office.receive_mail::<ClusterMembershipChange>().await?;
+    //server.post_office.receive_mail::<ClusterMembershipChange>().await?;
     let mut retry_tx = server.post_office.post_mail::<SubmitRetry>().await?;
 
     loop {

@@ -1,10 +1,9 @@
 use crate::{
     server::api::{
-        auth,
-        job::reference::{parse_reference, resolve_reference, Reference, ReferenceKind},
+        State, auth,
+        job::reference::{Reference, ReferenceKind, parse_reference, resolve_reference},
         request_ext::RequestExt,
         types::{Job, Task},
-        State,
     },
     util::{is_pg_integrity_error, pg_error},
 };
@@ -191,9 +190,7 @@ async fn create_trigger_edge(
             debug!("pg integrity error: {}", e.message());
             Err(highnoon::Error::http((
                 highnoon::StatusCode::BAD_REQUEST,
-                format!(
-                    "invalid trigger reference (does this trigger exist?): {reference}"
-                ),
+                format!("invalid trigger reference (does this trigger exist?): {reference}"),
             )))
         } else {
             Err(e.into())
@@ -240,9 +237,7 @@ async fn create_task_edge(
             debug!("pg integrity error: {}", e.message());
             Err(highnoon::Error::http((
                 highnoon::StatusCode::BAD_REQUEST,
-                format!(
-                    "invalid task reference (does this task exist?): {reference}"
-                ),
+                format!("invalid task reference (does this task exist?): {reference}"),
             )))
         } else {
             Err(e.into())

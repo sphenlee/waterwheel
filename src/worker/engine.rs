@@ -1,6 +1,6 @@
 use crate::{
     messages::{TaskDef, TaskRequest},
-    worker::{docker::DockerEngine, kube::KubeEngine, kubejob::KubeJobEngine, Worker},
+    worker::{Worker, docker::DockerEngine, kube::KubeEngine, kubejob::KubeJobEngine},
 };
 use anyhow::Result;
 use std::str::FromStr;
@@ -64,7 +64,7 @@ pub trait TaskEngineImpl {
 mod null {
     use crate::{
         messages::{TaskDef, TaskRequest},
-        worker::{engine::TaskEngineImpl, Worker},
+        worker::{Worker, engine::TaskEngineImpl},
     };
 
     pub struct NullEngine;

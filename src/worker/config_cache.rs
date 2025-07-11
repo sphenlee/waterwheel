@@ -5,15 +5,15 @@ use crate::{
 };
 use anyhow::Result;
 use futures::TryStreamExt;
-use reqwest::StatusCode;
 use lapin::{
+    ExchangeKind,
     options::{
         BasicAckOptions, BasicConsumeOptions, ExchangeDeclareOptions, QueueBindOptions,
         QueueDeclareOptions,
     },
     types::FieldTable,
-    ExchangeKind,
 };
+use reqwest::StatusCode;
 use serde_json::Value as JsonValue;
 use std::{sync::Arc, time::Duration};
 use tracing::{error, trace, warn};

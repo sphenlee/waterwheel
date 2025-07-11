@@ -4,9 +4,9 @@ use crate::{
 };
 use anyhow::Result;
 use lapin::{
+    BasicProperties, Channel, ExchangeKind,
     options::{BasicPublishOptions, ExchangeDeclareOptions},
     types::FieldTable,
-    BasicProperties, Channel, ExchangeKind,
 };
 
 pub async fn setup(chan: &Channel) -> Result<()> {

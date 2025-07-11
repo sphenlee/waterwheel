@@ -1,6 +1,6 @@
 use crate::{
     messages::{ProcessToken, TaskPriority, Token},
-    server::{execute::ExecuteToken, Server},
+    server::{Server, execute::ExecuteToken},
 };
 use anyhow::Result;
 use futures::TryStreamExt;
@@ -97,7 +97,7 @@ pub async fn process_tokens(server: Arc<Server>) -> Result<!> {
 }
 
 /// Adds a token to a task node.
-/// 
+///
 /// Usually you need to update some other state at the same time so it takes in a begun transaction
 /// so you can do the other update before committing (eg. update the trigger's last trigger time, or
 /// update the state of the upstream task to be 'done')

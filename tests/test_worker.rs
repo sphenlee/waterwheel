@@ -1,20 +1,20 @@
 use chrono::{DateTime, Utc};
 use futures::TryStreamExt;
 use lapin::{
+    BasicProperties,
     options::{BasicConsumeOptions, BasicPublishOptions},
     types::FieldTable,
-    BasicProperties,
 };
 use pretty_assertions::assert_eq;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::{sync::Arc, time::Duration};
 use tokio::time::timeout;
 use uuid::Uuid;
 use waterwheel::{
     messages::TaskDef,
-    worker::{engine::TaskEngine, heartbeat, work, Worker},
+    server::api,
+    worker::{Worker, engine::TaskEngine, heartbeat, work},
 };
-use waterwheel::server::api;
 
 mod common;
 

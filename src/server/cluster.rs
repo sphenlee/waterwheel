@@ -2,14 +2,14 @@
 //! Multiple schedulers can form a cluster using the chitchat membership finding library
 //! and then choose which triggers to manage using rendezvous hashing.
 //! Membership changes are expected to be rare and don't need to be handled quickly.
+use crate::{config::Config, server::Server};
 use anyhow::{Context, Result};
 use chitchat::{
-    transport::UdpTransport, ChitchatConfig, ChitchatHandle, ChitchatId, FailureDetectorConfig,
+    ChitchatConfig, ChitchatHandle, ChitchatId, FailureDetectorConfig, transport::UdpTransport,
 };
 use chrono::Utc;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tracing::{debug, info};
-use crate::{config::Config, server::Server};
 
 pub fn get_node_id() -> Result<String> {
     let hostname = gethostname::gethostname().to_string_lossy().into_owned();
@@ -60,7 +60,6 @@ pub async fn watch_live_nodes(server: Arc<Server>) -> Result<!> {
     let chitchat = server.get_chitchat().await;
 
     let mut watcher = chitchat.lock().await.live_nodes_watcher();
-    
 
     while let Ok(()) = watcher.changed().await {
         info!("cluster membership changed");

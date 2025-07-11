@@ -173,7 +173,9 @@ pub async fn make_app(config: Config) -> Result<highnoon::App<State>> {
     // web UI
 
     let index = |_req: highnoon::Request<State>| async {
-        let body = highnoon::Response::ok().path(Path::new(UI_RELATIVE_PATH).join("index.html")).await?;
+        let body = highnoon::Response::ok()
+            .path(Path::new(UI_RELATIVE_PATH).join("index.html"))
+            .await?;
         Ok(body)
     };
     app.at("/static/*").static_files(UI_RELATIVE_PATH);
