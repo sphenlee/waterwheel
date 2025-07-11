@@ -1,5 +1,6 @@
 target/
 .idea/
+.vscode/
 .env
 .cargo/
 ui/node_modules/
@@ -7,5 +8,4 @@ ui/dist/
 *.pem
 *.crt
 *.key
-.musl-cargo-cache/
 bazel-*
