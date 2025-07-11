@@ -45,7 +45,7 @@ serde = "1.0.210"
 serde_json = "1.0.128"
 serde_yaml = "=0.9.33"
 sqlx = { version = "0.8.2", features = ["postgres", "chrono", "uuid", "json", "runtime-tokio-rustls"] }
-thiserror = "1.0.64"
+thiserror = "2.0.12"
 tokio = { version = "1.40.0", features = [ "full", "rt-multi-thread" ] }
 tokio-amqp = "2.0.0"
 tracing = "0.1.40"

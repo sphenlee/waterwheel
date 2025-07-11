@@ -5121,7 +5121,7 @@ dependencies = [
  "serde_yaml",
  "sqlx",
  "testcontainers-modules",
- "thiserror 1.0.69",
+ "thiserror 2.0.12",
  "tokio",
  "tokio-amqp",
  "tracing",
