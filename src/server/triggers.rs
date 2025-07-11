@@ -274,9 +274,9 @@ async fn catchup_trigger(
 
     let period = trigger.period()?;
 
-    if trigger.catchup != Catchup::None {
-        if let Some(earliest) = trigger.earliest_trigger_datetime {
-            if trigger.start_datetime < earliest {
+    if trigger.catchup != Catchup::None
+        && let Some(earliest) = trigger.earliest_trigger_datetime
+            && trigger.start_datetime < earliest {
                 // start date moved backwards
                 debug!(trigger_id=?trigger.id,
                     "start date has moved backwards: {} -> {}",
@@ -290,8 +290,6 @@ async fn catchup_trigger(
                     next = next + &period;
                 }
             }
-        }
-    }
 
     // catchup any periods since the last trigger
     let now = Utc::now();

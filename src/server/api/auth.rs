@@ -158,13 +158,12 @@ impl Check {
         let principal = derive_principal(req)?;
         let mut object = self.object;
 
-        if let Some(job_id) = object.job_id {
-            if object.project_id.is_none() {
+        if let Some(job_id) = object.job_id
+            && object.project_id.is_none() {
                 let pool = req.get_pool();
                 let project_id = get_job_project_id(&pool, job_id).await?;
                 object.project_id = Some(project_id);
             }
-        }
 
         let http = derive_http(req)?;
         // NOTE - this potentially logs credentials so don't leave it uncommented

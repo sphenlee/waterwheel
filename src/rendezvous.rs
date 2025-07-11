@@ -43,12 +43,12 @@ impl<Node: AsRef<[u8]>> Rendezvous<Node> {
         where
             Item: AsRef<[u8]> + ?Sized,
     {
-        let target = self
+        
+
+        self
             .nodes
             .iter()
-            .max_by_key(|node| Rendezvous::score_for_node(node, item));
-
-        target
+            .max_by_key(|node| Rendezvous::score_for_node(node, item))
     }
 }
 
