@@ -1,7 +1,7 @@
 use crate::{
     messages::ConfigUpdate,
     server::{
-        api::{auth, config_cache, request_ext::RequestExt, types::Job, updates, State},
+        api::{State, auth, config_cache, request_ext::RequestExt, types::Job, updates},
         body_parser::read_from_body,
     },
     util::{is_pg_integrity_error, pg_error},

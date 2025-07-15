@@ -1,13 +1,13 @@
 use crate::{
     messages::{TaskDef, TaskRequest},
-    worker::{config_cache::get_project_config, engine::TaskEngineImpl, env, Worker, WORKER_ID},
+    worker::{WORKER_ID, Worker, config_cache::get_project_config, engine::TaskEngineImpl, env},
 };
 use anyhow::Result;
 use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::batch::v1::Job;
 use kube::{
-    api::{Api, PostParams},
     Client, Config, ResourceExt,
+    api::{Api, PostParams},
 };
 use std::convert::TryFrom;
 use tracing::{trace, warn};

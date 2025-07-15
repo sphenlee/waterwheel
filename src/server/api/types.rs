@@ -46,8 +46,6 @@ pub enum Catchup {
     Random,
 }
 
-
-
 #[derive(Deserialize, Serialize)]
 pub struct Trigger {
     pub name: String,
@@ -112,8 +110,11 @@ mod test {
         );
 
         let res = duration_from_string(Some("1x"));
-        assert_eq!(res.unwrap_err().to_string().as_str(), "unknown time unit \"x\", \
-            supported units: ns, us, ms, sec, min, hours, days, weeks, months, years (and few variations)");
+        assert_eq!(
+            res.unwrap_err().to_string().as_str(),
+            "unknown time unit \"x\", \
+            supported units: ns, us, ms, sec, min, hours, days, weeks, months, years (and few variations)"
+        );
 
         let res = duration_from_string(Some(""));
         assert_eq!(res.unwrap_err().to_string().as_str(), "value was empty");

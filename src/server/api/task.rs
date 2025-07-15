@@ -1,12 +1,12 @@
 use crate::{
     messages::{ProcessToken, TaskDef, TaskPriority, Token},
-    server::api::{auth, jwt, request_ext::RequestExt, updates, State},
+    server::api::{State, auth, jwt, request_ext::RequestExt, updates},
 };
 use chrono::{DateTime, Utc};
 use futures::TryStreamExt;
 use highnoon::{Json, Request, Responder, Response, StatusCode};
-use std::time::Duration;
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 use uuid::Uuid;
 
 #[derive(Deserialize)]
@@ -171,7 +171,9 @@ impl From<DbTaskDef> for TaskDef {
             args: other.args,
             env: other.env,
             paused: other.paused,
-            timeout: other.timeout_secs.map(|secs| Duration::from_secs(secs as u64)),
+            timeout: other
+                .timeout_secs
+                .map(|secs| Duration::from_secs(secs as u64)),
         }
     }
 }

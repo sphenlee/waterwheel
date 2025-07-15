@@ -1,8 +1,8 @@
 use crate::{
     messages::{TaskPriority, Token, TokenState},
-    server::{execute::ExecuteToken, Server},
+    server::{Server, execute::ExecuteToken},
 };
-use anyhow::{format_err, Result};
+use anyhow::{Result, format_err};
 use chrono::{DateTime, Utc};
 use postage::prelude::*;
 use sqlx::postgres::types::PgInterval;
@@ -28,8 +28,7 @@ pub async fn process_requeue(server: Arc<Server>) -> Result<!> {
         .try_into()
         .map_err(|err| format_err!("error converting duration to pg_interval: {:?}", err))?;
 
-    let mut ticker =
-        tokio::time::interval(Duration::from_secs(server.config.requeue_interval));
+    let mut ticker = tokio::time::interval(Duration::from_secs(server.config.requeue_interval));
 
     ticker.tick().await; // first tick happens immediately
 

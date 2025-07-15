@@ -36,10 +36,10 @@ In two separate terminals build and launch Waterwheel server and worker:
 
 ```
 # run the server
-bazel run //:waterwheel server
+bazel run waterwheel server
 
 # in a separate terminal
-bazel run //:waterwheel worker
+bazel run waterwheel worker
 ```
 
 Building a Release binary
@@ -48,13 +48,13 @@ Building a Release binary
 Build a release binary using bazel:
 
 ```
-bazel build -c opt //:waterwheel
+bazel build -c opt waterwheel
 ```
 
 Build a docker image and load into the local Docker service:
 
 ```
-bazel run //:waterwheel_load
+bazel run waterwheel_load
 ```
 
 > Other commands are available in the Justfile. Run `just help` for a list.

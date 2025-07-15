@@ -30,8 +30,8 @@ impl<Node> Rendezvous<Node> {
 
 impl<Node: AsRef<[u8]>> Rendezvous<Node> {
     fn score_for_node<Item>(node: &Node, item: &Item) -> u64
-        where
-            Item: AsRef<[u8]> + ?Sized,
+    where
+        Item: AsRef<[u8]> + ?Sized,
     {
         let mut hasher = xxhash_rust::xxh3::Xxh3::default();
         hasher.update(node.as_ref());
@@ -40,30 +40,28 @@ impl<Node: AsRef<[u8]>> Rendezvous<Node> {
     }
 
     pub fn node_for_item<Item>(&self, item: &Item) -> Option<&Node>
-        where
-            Item: AsRef<[u8]> + ?Sized,
+    where
+        Item: AsRef<[u8]> + ?Sized,
     {
-        let target = self
-            .nodes
+        self.nodes
             .iter()
-            .max_by_key(|node| Rendezvous::score_for_node(node, item));
-
-        target
+            .max_by_key(|node| Rendezvous::score_for_node(node, item))
     }
 }
 
 impl<Node> Rendezvous<Node>
-where Node: AsRef<[u8]>
+where
+    Node: AsRef<[u8]>,
 {
     pub fn item_is_mine<Item, Me>(&self, me: &Me, item: &Item) -> bool
-        where
-            Item: AsRef<[u8]> + ?Sized,
-            Node: Borrow<Me>,
-            Me: PartialEq<Me> + ?Sized,
+    where
+        Item: AsRef<[u8]> + ?Sized,
+        Node: Borrow<Me>,
+        Me: PartialEq<Me> + ?Sized,
     {
         match self.node_for_item(item) {
             None => false,
-            Some(item) => item.borrow() == me
+            Some(item) => item.borrow() == me,
         }
     }
 }

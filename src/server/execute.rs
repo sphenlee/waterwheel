@@ -6,9 +6,9 @@ use anyhow::Result;
 use cadence::CountedExt;
 use chrono::Utc;
 use lapin::{
+    BasicProperties, ExchangeKind,
     options::{BasicPublishOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions},
     types::FieldTable,
-    BasicProperties, ExchangeKind,
 };
 use postage::prelude::*;
 use sqlx::Connection;

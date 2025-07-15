@@ -1,10 +1,9 @@
-use std::fmt::Formatter;
 use crate::worker::engine::TaskEngine;
 use anyhow::{Context, Result};
-use config::{builder::DefaultState, ConfigBuilder, Environment, File, FileFormat};
+use config::{ConfigBuilder, Environment, File, FileFormat, builder::DefaultState};
 use reqwest::Url;
-use std::path::Path;
 use serde::{Deserialize, Deserializer, de};
+use std::{fmt::Formatter, path::Path};
 
 struct DurationError(humantime::DurationError);
 
@@ -17,9 +16,8 @@ impl de::Expected for DurationError {
 fn serde_human_time<'de, D: Deserializer<'de>>(d: D) -> std::result::Result<u64, D::Error> {
     let raw: String = Deserialize::deserialize(d)?;
     let secs = humantime::parse_duration(&raw)
-        .map_err(|err| {
-            de::Error::invalid_value(de::Unexpected::Str(&raw), &DurationError(err))
-        })?.as_secs();
+        .map_err(|err| de::Error::invalid_value(de::Unexpected::Str(&raw), &DurationError(err)))?
+        .as_secs();
     Ok(secs)
 }
 
@@ -49,24 +47,24 @@ pub struct Config {
     pub cluster_gossip_addr: String,
     pub cluster_seed_nodes: Vec<String>,
 
-    #[serde(deserialize_with="serde_human_time")]
+    #[serde(deserialize_with = "serde_human_time")]
     pub requeue_interval: u64,
 
     pub requeue_missed_heartbeats: u32,
 
-    #[serde(deserialize_with="serde_human_time")]
+    #[serde(deserialize_with = "serde_human_time")]
     pub default_task_timeout: u64,
 
-    #[serde(deserialize_with="serde_human_time")]
+    #[serde(deserialize_with = "serde_human_time")]
     pub default_task_retry_delay: u64,
 
-    #[serde(deserialize_with="serde_human_time")]
+    #[serde(deserialize_with = "serde_human_time")]
     pub task_heartbeat: u64,
 
-    #[serde(deserialize_with="serde_human_time")]
+    #[serde(deserialize_with = "serde_human_time")]
     pub log_retention: u64,
 
-    #[serde(deserialize_with="serde_human_time")]
+    #[serde(deserialize_with = "serde_human_time")]
     pub amqp_consumer_timeout: u64,
 }
 

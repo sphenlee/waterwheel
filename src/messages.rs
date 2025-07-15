@@ -1,8 +1,7 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
-use std::time::Duration;
+use std::{str::FromStr, time::Duration};
 use tracing::error;
 use uuid::Uuid;
 
@@ -42,10 +41,7 @@ impl TokenState {
     }
 
     pub fn is_retryable(&self) -> bool {
-        matches!(
-            self,
-            TokenState::Failure | TokenState::Timeout
-        )
+        matches!(self, TokenState::Failure | TokenState::Timeout)
     }
 
     pub fn from_result(result: Result<bool>) -> Self {
@@ -92,9 +88,7 @@ impl FromStr for TokenState {
             "error" => Ok(TokenState::Error),
             "cancelled" => Ok(TokenState::Cancelled),
             "retry" => Ok(TokenState::Retry),
-            _ => Err(TokenStateParseError(format!(
-                "invalid token state: '{s}'"
-            ))),
+            _ => Err(TokenStateParseError(format!("invalid token state: '{s}'"))),
         }
     }
 }

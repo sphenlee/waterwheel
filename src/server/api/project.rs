@@ -1,4 +1,4 @@
-use super::{auth, config_cache, request_ext::RequestExt, State};
+use super::{State, auth, config_cache, request_ext::RequestExt};
 use crate::{
     messages::ConfigUpdate,
     server::api::jwt,

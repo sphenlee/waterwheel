@@ -1,7 +1,7 @@
-use crate::{server::Server, GIT_VERSION};
+use crate::{GIT_VERSION, server::Server};
 use anyhow::Result;
 use sqlx::PgPool;
-use std::sync::{atomic::Ordering, Arc};
+use std::sync::{Arc, atomic::Ordering};
 use tracing::trace;
 
 pub async fn post_heartbeat(server: &Server, pool: &PgPool) -> Result<()> {

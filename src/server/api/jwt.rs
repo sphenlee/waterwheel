@@ -1,5 +1,5 @@
 use crate::{config::Config, server::api::State};
-use anyhow::{format_err, Result};
+use anyhow::{Result, format_err};
 use highnoon::{Error, Request, StatusCode};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use serde::{Deserialize, Serialize};
@@ -29,18 +29,18 @@ pub struct JwtKeys {
 }
 
 /// Loads the encryption/decryption keys used to verify access to the stash
-/// 
+///
 /// Prefers an RSA key pair if one is provided, otherwise will use an HMAC shared secret
 /// (which is easier to generate and share for local development)
 pub fn load_keys(config: &Config) -> Result<JwtKeys> {
     match config.public_key.as_deref() {
         Some(pub_key_file) => {
-            let priv_key_file = config
-                .private_key
-                .as_deref()
-                .ok_or_else(|| format_err!(
+            let priv_key_file = config.private_key.as_deref().ok_or_else(|| {
+                format_err!(
                     "RSA private key not set (either both public and private keys must be set, \
-                    or the HMAC secret must be set)"))?;
+                    or the HMAC secret must be set)"
+                )
+            })?;
 
             load_rsa_keys(pub_key_file, priv_key_file)
         }
@@ -111,7 +111,7 @@ pub fn validate_stash_jwt(keys: &JwtKeys, jwt: &str) -> Result<String> {
 }
 
 pub fn validate_config_jwt(req: &Request<State>, id: Uuid) -> highnoon::Result<String> {
-    use highnoon::headers::{authorization::Bearer, Authorization};
+    use highnoon::headers::{Authorization, authorization::Bearer};
 
     let bearer = req
         .header::<Authorization<Bearer>>()

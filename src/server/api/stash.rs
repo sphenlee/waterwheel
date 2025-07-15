@@ -1,8 +1,8 @@
 use super::State;
 use crate::server::api::jwt;
 use highnoon::{
-    headers::{authorization::Bearer, Authorization},
     Error, Request, Responder, StatusCode,
+    headers::{Authorization, authorization::Bearer},
 };
 
 pub mod global;

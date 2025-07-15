@@ -1,12 +1,11 @@
 use super::State;
 use highnoon::{
-    ws::{WebSocketReceiver, WebSocketSender},
     Message, Request,
+    ws::{WebSocketReceiver, WebSocketSender},
 };
 use redis::{
+    AsyncCommands, FromRedisValue,
     streams::{StreamReadOptions, StreamReadReply},
-    AsyncCommands,
-    FromRedisValue,
 };
 use tracing::{debug, trace};
 
@@ -15,7 +14,11 @@ pub async fn logs(
     mut tx: WebSocketSender,
     mut _rx: WebSocketReceiver,
 ) -> highnoon::Result<()> {
-    let mut redis = req.state().redis_client.get_multiplexed_tokio_connection().await?;
+    let mut redis = req
+        .state()
+        .redis_client
+        .get_multiplexed_tokio_connection()
+        .await?;
 
     let task_run_id = req.param("id")?;
     let key = format!("waterwheel-logs.{task_run_id}");

@@ -1,4 +1,4 @@
-use crate::{messages::WorkerHeartbeat, worker::Worker, GIT_VERSION};
+use crate::{GIT_VERSION, messages::WorkerHeartbeat, worker::Worker};
 use anyhow::Result;
 use std::sync::Arc;
 

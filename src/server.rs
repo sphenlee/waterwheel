@@ -1,5 +1,11 @@
 use crate::{
-    amqp::amqp_connect, config::Config, db, metrics, postoffice::PostOffice, util::spawn_or_crash,
+    amqp::amqp_connect,
+    config::Config,
+    db, metrics,
+    postoffice::PostOffice,
+    rendezvous::Rendezvous,
+    server::{retries::retry_cluster_changes, triggers::trigger_cluster_changes},
+    util::spawn_or_crash,
 };
 use anyhow::Result;
 use api::{jwt, jwt::JwtKeys};
@@ -7,12 +13,9 @@ use cadence::StatsdClient;
 use chitchat::{Chitchat, ChitchatHandle};
 use lapin::Connection;
 use sqlx::PgPool;
-use std::sync::{atomic::AtomicUsize, Arc};
+use std::sync::{Arc, atomic::AtomicUsize};
 use tokio::sync::Mutex;
 use uuid::Uuid;
-use crate::rendezvous::Rendezvous;
-use crate::server::retries::retry_cluster_changes;
-use crate::server::triggers::trigger_cluster_changes;
 
 pub mod api;
 pub mod body_parser;
@@ -21,11 +24,11 @@ mod execute;
 mod heartbeat;
 mod progress;
 mod requeue;
+mod retries;
 pub mod tokens;
 mod trigger_time;
 pub mod triggers;
 mod updates;
-mod retries;
 
 pub struct Server {
     pub scheduler_id: Uuid,
@@ -82,7 +85,7 @@ impl Server {
         spawn_or_crash(
             "trigger_cluster_changes",
             self.clone(),
-            trigger_cluster_changes
+            trigger_cluster_changes,
         );
         spawn_or_crash(
             "token_updates",
@@ -90,17 +93,12 @@ impl Server {
             updates::process_token_updates,
         );
         spawn_or_crash("process_requeue", self.clone(), requeue::process_requeue);
-        spawn_or_crash(
-            "retry_cluster_changes",
-            self.clone(),
-            retry_cluster_changes
-        );
+        spawn_or_crash("retry_cluster_changes", self.clone(), retry_cluster_changes);
         spawn_or_crash("process_retries", self.clone(), retries::process_retries);
 
         // this much be launched last - otherwise other tasks can miss the initial cluster
         // membership change event
         spawn_or_crash("watch_live_nodes", self.clone(), cluster::watch_live_nodes);
-
 
         api::serve(self.config.clone()).await?;
 

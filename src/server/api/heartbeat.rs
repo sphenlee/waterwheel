@@ -1,6 +1,6 @@
 use crate::{
     messages::WorkerHeartbeat,
-    server::api::{request_ext::RequestExt, State},
+    server::api::{State, request_ext::RequestExt},
 };
 use highnoon::{Request, Responder, StatusCode};
 use tracing::trace;

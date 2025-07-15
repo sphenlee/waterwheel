@@ -1,17 +1,17 @@
 use crate::{
     messages::{TaskDef, TaskRequest},
-    worker::{config_cache::get_project_config, engine::TaskEngineImpl, env, Worker, WORKER_ID},
+    worker::{WORKER_ID, Worker, config_cache::get_project_config, engine::TaskEngineImpl, env},
 };
 use anyhow::Result;
 use futures::{AsyncBufReadExt, StreamExt, TryStreamExt};
 use itertools::Itertools;
 use k8s_openapi::api::core::v1::Pod;
 use kube::{
-    api::{Api, DeleteParams, LogParams, PostParams},
     Client, Config, ResourceExt,
+    api::{Api, DeleteParams, LogParams, PostParams},
 };
-use rand::seq::SliceRandom;
-use redis::{streams::StreamMaxlen, AsyncCommands};
+use rand::seq::IndexedRandom;
+use redis::{AsyncCommands, streams::StreamMaxlen};
 use std::{convert::TryFrom, time::Duration};
 use tracing::{trace, warn};
 
@@ -88,23 +88,23 @@ pub async fn run_kube(worker: &Worker, task_req: TaskRequest, task_def: TaskDef)
         .lines();
 
     let key = format!("waterwheel-logs.{}", task_req.task_run_id);
-    let mut redis = worker.redis_client.get_multiplexed_tokio_connection().await?;
+    let mut redis = worker
+        .redis_client
+        .get_multiplexed_tokio_connection()
+        .await?;
 
     trace!("sending kubernetes pod logs to {}", key);
     while let Some(line) = logs.try_next().await? {
         trace!("got log line ({} bytes)", line.len());
         let _: () = redis
-            .xadd_maxlen(
-                &key,
-                StreamMaxlen::Approx(1024),
-                "*",
-                &[("data", line)],
-            )
+            .xadd_maxlen(&key, StreamMaxlen::Approx(1024), "*", &[("data", line)])
             .await?;
         trace!("sent to redis");
     }
 
-    let _: redis::Value = redis.expire(&key, worker.config.log_retention.try_into()?).await?;
+    let _: redis::Value = redis
+        .expire(&key, worker.config.log_retention.try_into()?)
+        .await?;
     drop(redis);
 
     trace!(pod_name=%name, "deleting pod");
@@ -129,7 +129,7 @@ pub async fn run_kube(worker: &Worker, task_req: TaskRequest, task_def: TaskDef)
 
 // TODO - make this a util, we should use this grist in a few other places too
 fn make_grist() -> String {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     std::iter::from_fn(move || {
         let byte = b"ghjklmnpqrstuvwxyz"
             .choose(&mut rng)

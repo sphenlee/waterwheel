@@ -1,6 +1,6 @@
 use highnoon::StatusCode;
 use pretty_assertions::assert_eq;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use waterwheel::server::api::make_app;
 
 mod common;

@@ -1,4 +1,4 @@
-use crate::server::api::{auth, request_ext::RequestExt, State};
+use crate::server::api::{State, auth, request_ext::RequestExt};
 use chrono::{DateTime, Utc};
 use highnoon::{Json, Request, Responder};
 use serde::Serialize;

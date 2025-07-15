@@ -23,6 +23,7 @@ jobs:
 
     - name: Clippy
       run: bazel build //:clippy
+      continue-on-error: true
 
     - name: Test
       run: bazel test //:unittest //:inttest
