@@ -46,7 +46,7 @@ use_repo(pnpm, "pnpm")
 # __________________________________________________________
 # OCI setup
 
-bazel_dep(name = "rules_oci", version = "2.2.1")
+bazel_dep(name = "rules_oci", version = "2.2.6")
 bazel_dep(name = "rules_pkg", version = "1.0.1")
 
 oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
