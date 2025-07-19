@@ -39,7 +39,7 @@
     "@ant-design/pro-provider": "^2.15.3",
     "antd": "^5.24.1",
     "axios": "^1.7.9",
-    "cronstrue": "^2.54.0",
+    "cronstrue": "^3.0.0",
     "dayjs": "^1.11.13",
     "lodash": "^4.17.21",
     "pretty-ms": "^9.2.0",
