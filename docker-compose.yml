@@ -5,7 +5,7 @@ version: '3.1'
 
 services:
   amqp:
-    image: rabbitmq:3.12-management-alpine
+    image: rabbitmq:3.13-management-alpine
     #environment:
       #- RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit consumer_timeout 86400000 # 24h
     ports:
