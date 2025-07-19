@@ -47,7 +47,7 @@ use_repo(pnpm, "pnpm")
 # OCI setup
 
 bazel_dep(name = "rules_oci", version = "2.2.6")
-bazel_dep(name = "rules_pkg", version = "1.0.1")
+bazel_dep(name = "rules_pkg", version = "1.1.0")
 
 oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
 # oci.pull(
