@@ -27,8 +27,8 @@ dependencies:
     specifier: ^1.7.9
     version: 1.10.0
   cronstrue:
-    specifier: ^2.54.0
-    version: 2.54.0
+    specifier: ^3.0.0
+    version: 3.1.0
   dayjs:
     specifier: ^1.11.13
     version: 1.11.13
@@ -3026,8 +3026,8 @@ packages:
       browserslist: 4.25.1
     dev: true
 
-  /cronstrue@2.54.0:
-    resolution: {integrity: sha512-vyp5NklDxA5MjPfQgkn0bA+0vRQe7Q9keX7RPdV6rMgd7LtDvbuKgnT+3T5ZAX16anSP5HmahcRp8mziXsLfaw==}
+  /cronstrue@3.1.0:
+    resolution: {integrity: sha512-Utuwaml2Zwr5mQ74xZkIZPQvJ/lQ3IwKqP5pg7cXOaShqaLyrnzeNtJEi4Eyw/X5wvvS6hGdaio9M/CrEisPoA==}
     hasBin: true
     dev: false
 
