@@ -9,6 +9,10 @@ use waterwheel::{
 async fn main() -> Result<()> {
     dotenvy::dotenv().ok();
 
+    rustls::crypto::aws_lc_rs::default_provider()
+        .install_default()
+        .expect("installing default crypto provider failed");
+
     let app = clap::Command::new("waterwheel")
         .author("Steve Lee <sphen.lee@gmail.com>")
         .version(waterwheel::GIT_VERSION)
