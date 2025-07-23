@@ -7,7 +7,7 @@ settings:
 dependencies:
   '@ant-design/charts':
     specifier: ^2.2.6
-    version: 2.6.0(react-dom@19.1.0)(react@19.1.0)(workerize-loader@2.0.2)
+    version: 2.6.1(react-dom@19.1.0)(react@19.1.0)(workerize-loader@2.0.2)
   '@ant-design/colors':
     specifier: ^7.2.0
     version: 7.2.1
@@ -154,14 +154,14 @@ packages:
       react-dom: 19.1.0(react@19.1.0)
     dev: false
 
-  /@ant-design/charts@2.6.0(react-dom@19.1.0)(react@19.1.0)(workerize-loader@2.0.2):
-    resolution: {integrity: sha512-q3AVp35W5tc4b0ApdMVNntsxp3ZnUus4LhZvjhB1EX6Iqe9cf6kjFOU0DdKLTL+3AsaP9B+ynwQr+yz5O/o1wQ==}
+  /@ant-design/charts@2.6.1(react-dom@19.1.0)(react@19.1.0)(workerize-loader@2.0.2):
+    resolution: {integrity: sha512-IIIFgg49VCO01mc7t2+wlMQnFNwjV0KqO2n9fhMwif/+r0W0ELOzdMbNkrzkZPEWp9p5YhN6cnlnkGeUt488cg==}
     peerDependencies:
       react: '>=16.8.4'
       react-dom: '>=16.8.4'
     dependencies:
       '@ant-design/graphs': 2.1.0(react-dom@19.1.0)(react@19.1.0)(workerize-loader@2.0.2)
-      '@ant-design/plots': 2.6.0(react-dom@19.1.0)(react@19.1.0)
+      '@ant-design/plots': 2.6.1(react-dom@19.1.0)(react@19.1.0)
       lodash: 4.17.21
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
@@ -276,8 +276,8 @@ packages:
       react-dom: 19.1.0(react@19.1.0)
     dev: false
 
-  /@ant-design/plots@2.6.0(react-dom@19.1.0)(react@19.1.0):
-    resolution: {integrity: sha512-l6sZLPoKPKWG6kdvHe+H7vUqNQk2i1xjsiBQe/8ABZ9KDRDnig+LzHBjHnVl0fvqmzDPI3O3RFEccl1tfA1i4A==}
+  /@ant-design/plots@2.6.1(react-dom@19.1.0)(react@19.1.0):
+    resolution: {integrity: sha512-X46qm2QcXJVV6hL+pcqtj9TsLEkOrow+uq7zDRQKbXWg9Um525GRnbF7PdaS89Rwoo3RdhrA3+T97VbQVYD0wQ==}
     peerDependencies:
       react: '>=16.8.4'
       react-dom: '>=16.8.4'
@@ -285,7 +285,7 @@ packages:
       '@ant-design/charts-util': 0.0.2(react-dom@19.1.0)(react@19.1.0)
       '@antv/event-emitter': 0.1.3
       '@antv/g': 6.1.27
-      '@antv/g2': 5.3.4
+      '@antv/g2': 5.3.5
       '@antv/g2-extension-plot': 0.2.2
       lodash: 4.17.21
       react: 19.1.0
@@ -565,8 +565,8 @@ packages:
       tslib: 2.8.1
     dev: false
 
-  /@antv/component@2.1.4:
-    resolution: {integrity: sha512-B6xhxYCk57VkyPViWSR5nry8d3Qog51rcFhfuNHJp5S1kKkGqojkzt6aP/45llF/jHNnBLdxnPNQFlCIxZERDQ==}
+  /@antv/component@2.1.5:
+    resolution: {integrity: sha512-+Pqu6CLkGTvYZw+UQK03B/yiR0h2Zu65tyUGUQkNuPv49Zwe4WqDZqqu94bqT1F07OAAVjeXLCTvhBb954DLXQ==}
     dependencies:
       '@antv/g': 6.1.27
       '@antv/scale': 0.4.16
@@ -760,15 +760,15 @@ packages:
   /@antv/g2-extension-plot@0.2.2:
     resolution: {integrity: sha512-KJXCXO7as+h0hDqirGXf1omrNuYzQmY3VmBmp7lIvkepbQ7sz3pPwy895r1FWETGF3vTk5UeFcAF5yzzBHWgbw==}
     dependencies:
-      '@antv/g2': 5.3.4
+      '@antv/g2': 5.3.5
       '@antv/util': 3.3.11
       '@antv/vendor': 1.0.11
     dev: false
 
-  /@antv/g2@5.3.4:
-    resolution: {integrity: sha512-IztyYa2EVp4ukrqQWU9ZntAQLY0IKK3stmNOLY/FPda3ZyiQ/jlfjRWQ/Hadejfq/nrtVlrHxWeZqNfz5HHJ2g==}
+  /@antv/g2@5.3.5:
+    resolution: {integrity: sha512-Q2TPfWTf2fMwe02Uqk4Uvgy/RGXpGQXfSMPHKLkwTUh6WrFImpgzU4mHhUewKVu5ppPGGfvlwIbZcHeBnNb5ug==}
     dependencies:
-      '@antv/component': 2.1.4
+      '@antv/component': 2.1.5
       '@antv/coord': 0.4.7
       '@antv/event-emitter': 0.1.3
       '@antv/expr': 1.0.2
@@ -800,7 +800,7 @@ packages:
     resolution: {integrity: sha512-GRmK8oTVEgxjKbbhThIhnPOV1NcySLcSIGEod9RX/tbX4ME8txESb0zP0fDkuum26GLqvXgmIIIxRBE3m8VYPw==}
     dependencies:
       '@antv/algorithm': 0.1.26
-      '@antv/component': 2.1.4
+      '@antv/component': 2.1.5
       '@antv/event-emitter': 0.1.3
       '@antv/g': 6.1.27
       '@antv/g-canvas': 2.0.47
