@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import { Layout, Breadcrumb } from 'antd';
 
@@ -21,30 +21,30 @@ import Workers from './pages/Workers';
 class App extends Component {
   render() {
     return (
-      <Router>
+      <BrowserRouter>
         <Layout>
           <TopMenu />
 
-          <Switch>
-            <Route path="/projects/:id" component={Project} />
-            <Route path="/projects" component={Projects} />
-            <Route path="/jobs/:id/tokens/:trigger_datetime" component={Tokens} />
-            <Route path="/jobs/:job_id/triggers/:trigger_id" component={Triggers} />
-            <Route path="/jobs/:id/:tab" component={Job} />
-            <Route path="/jobs/:id" component={Job} />
-            <Route path="/logs/:task_run_id" component={TaskLogs} />
-            <Route path="/schedulers" component={Schedulers} />
-            <Route path="/workers/:id" component={Worker} />
-            <Route path="/workers" component={Workers} />
-            <Route path="/login" component={Login} />
-            <Route path="/" component={Home} />
-          </Switch>
+          <Routes>
+            <Route path="/projects/:id" element={<Project />}/>
+            <Route path="/projects" element={<Projects/>} />
+            <Route path="/jobs/:id/tokens/:trigger_datetime" element={<Tokens/>} />
+            <Route path="/jobs/:job_id/triggers/:trigger_id" element={<Triggers/>} />
+            <Route path="/jobs/:id/:tab" element={<Job/>} />
+            <Route path="/jobs/:id" element={<Job/>} />
+            <Route path="/logs/:task_run_id" element={<TaskLogs/>} />
+            <Route path="/schedulers" element={<Schedulers/>} />
+            <Route path="/workers/:id" element={<Worker/>} />
+            <Route path="/workers" element={<Workers/>} />
+            <Route path="/login" element={<Login/>} />
+            <Route path="/" element={<Home/>} />
+          </Routes>
 
           <Footer style={{ textAlign: 'center' }}>
             Waterwheel - Version TODO
           </Footer>
         </Layout>
-      </Router>
+      </BrowserRouter>
     );
   }
 }

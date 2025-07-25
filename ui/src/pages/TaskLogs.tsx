@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { Link, RouteComponentProps } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Layout, Breadcrumb } from 'antd';
 import { PageHeader } from '@ant-design/pro-components';
 
@@ -8,14 +8,15 @@ import Log from '../components/Log';
 
 const { Content } = Layout;
 
-type TaskLogsProps = RouteComponentProps<{
+type TaskLogsProps = {};
+type TaskLogsParams = {
      task_run_id: string;
-}>;
+};
 
 class TaskLogs extends Component<TaskLogsProps> {
   render() {
-    const { history, match } = this.props;
-    const { task_run_id } = match.params;
+    const navigate = useNavigate();
+    const { task_run_id } = useParams() as TaskLogsParams;
 
     return (
       <Layout>
@@ -28,7 +29,7 @@ class TaskLogs extends Component<TaskLogsProps> {
           </Breadcrumb>
           <Body>
             <PageHeader
-                onBack={() => history.goBack()}
+                onBack={() => navigate(-1)}
                 title={`Logs for ${task_run_id}`}
                 subTitle={"TODO - include the project/job/task details here"}
             />

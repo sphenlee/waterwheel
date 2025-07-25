@@ -1,5 +1,5 @@
 import React, { Component, Fragment } from "react";
-import { Link, RouteComponentProps } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Table, Layout, Breadcrumb, Badge, Spin} from 'antd';
 import { PageHeader } from '@ant-design/pro-components';
 import { geekblue, lime, red, grey, yellow } from '@ant-design/colors';
@@ -42,10 +42,11 @@ function makeColumns(job_id: string): ColumnsType<TriggerTime> {
     ];
 }
 
-type TriggersProps = RouteComponentProps<{
+type TriggersProps = {};
+type TriggersParams = {
     job_id: string;
     trigger_id: string;
-}>;
+};
 type TriggersState = {
     trigger?: Trigger;
 };
@@ -57,7 +58,8 @@ class Triggers extends Component<TriggersProps, TriggersState> {
     constructor(props: TriggersProps) {
         super(props);
 
-        this.columns = makeColumns(props.match.params.job_id);
+        const { job_id } = useParams() as TriggersParams;
+        this.columns = makeColumns(job_id);
 
         this.state = {};
     }
@@ -74,7 +76,7 @@ class Triggers extends Component<TriggersProps, TriggersState> {
     }
 
     componentDidMount() {
-        const { job_id, trigger_id } = this.props.match.params;
+        const { job_id, trigger_id } = useParams() as TriggersParams;
 
         this.fetchTrigger(job_id, trigger_id);
 
@@ -86,14 +88,14 @@ class Triggers extends Component<TriggersProps, TriggersState> {
     }
 
     render() {
-        const { history, match } = this.props;
-        const { job_id, trigger_id } = match.params;
+        const navigate = useNavigate();
+        const { job_id, trigger_id } = useParams() as TriggersParams;
         const { trigger } = this.state;
 
         const content = trigger ? (
             <>
                 <PageHeader
-                    onBack={() => history.goBack()}
+                    onBack={() => navigate(-1)}
                     title={trigger.trigger_name}
                     subTitle={`Trigger in ${trigger.job_name}`}
                 />

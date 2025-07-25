@@ -202,8 +202,8 @@
     },
     "@@aspect_rules_js+//npm:extensions.bzl%pnpm": {
       "general": {
-        "bzlTransitiveDigest": "cb2n6vlwcMDKlPL2QwPjLU+TGKI+8C8BnvEhpUMS+7k=",
-        "usagesDigest": "mwADVMnAQ670PGjYQ9zohjQ+L4x0iBj09DOLCO3P53M=",
+        "bzlTransitiveDigest": "9oywF+ZTN4bbcZicyFkbPbv+pPKN/adM1uRTImi0/Bg=",
+        "usagesDigest": "HJ2KEjgLZHrqPOYHxk/hwpTAclUF0OYOXsC5/NMCT64=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {},
@@ -232,6 +232,7 @@
               "extra_build_content": "load(\"@aspect_rules_js//js:defs.bzl\", \"js_binary\")\njs_binary(name = \"pnpm\", data = glob([\"package/**\"]), entry_point = \"package/dist/pnpm.cjs\", visibility = [\"//visibility:public\"])",
               "generate_bzl_library_targets": false,
               "extract_full_archive": true,
+              "exclude_package_contents": [],
               "system_tar": "auto"
             }
           },
@@ -255,11 +256,17 @@
               "package_visibility": [
                 "//visibility:public"
               ],
-              "replace_package": ""
+              "replace_package": "",
+              "exclude_package_contents": []
             }
           }
         },
         "recordedRepoMappingEntries": [
+          [
+            "aspect_bazel_lib+",
+            "aspect_bazel_lib",
+            "aspect_bazel_lib+"
+          ],
           [
             "aspect_bazel_lib+",
             "bazel_skylib",
@@ -274,6 +281,11 @@
             "aspect_rules_js+",
             "aspect_bazel_lib",
             "aspect_bazel_lib+"
+          ],
+          [
+            "aspect_rules_js+",
+            "aspect_rules_js",
+            "aspect_rules_js+"
           ],
           [
             "aspect_rules_js+",

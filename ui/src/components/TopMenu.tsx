@@ -1,8 +1,8 @@
 import React, { Component } from "react";
-import { Link, RouteComponentProps, withRouter } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Layout, Menu } from 'antd';
 
-class TopMenu extends Component<RouteComponentProps> {
+class TopMenu extends Component {
   render() {
     return (
       <Layout.Header className="header">
@@ -30,4 +30,4 @@ class TopMenu extends Component<RouteComponentProps> {
   }
 }
 
-export default withRouter(TopMenu);
+export default TopMenu;
