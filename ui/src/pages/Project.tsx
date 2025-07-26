@@ -1,5 +1,5 @@
 import React, { Component, Fragment } from "react";
-import { Link, RouteComponentProps } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Avatar, Layout, Breadcrumb, Row, Col, Statistic, Badge, Tag, Spin, Table,
   Typography } from 'antd';
 import { ColumnsType } from "antd/es/table";
@@ -16,9 +16,10 @@ import { interval } from "../types/common";
 
 const { Content } = Layout;
 
-type ProjectProps = RouteComponentProps<{
+type ProjectProps = {};
+type ProjectParams = {
     id: string;
-}>;
+};
 
 type ProjectState = {
     proj?: ProjectExtra;
@@ -94,11 +95,11 @@ class Project extends Component<ProjectProps, ProjectState> {
     }
 
     async fetchProject() {
-        const {match} = this.props;
+        const {id} = useParams() as ProjectParams;
         
         try {
-            let proj = await axios.get<ProjectExtra>(`/api/projects/${match.params.id}`);
-            let jobs = await axios.get<ProjectJob[]>(`/api/projects/${match.params.id}/jobs`);
+            let proj = await axios.get<ProjectExtra>(`/api/projects/${id}`);
+            let jobs = await axios.get<ProjectJob[]>(`/api/projects/${id}/jobs`);
             this.setState({
                 proj: proj.data,
                 jobs: jobs.data,
@@ -123,13 +124,13 @@ class Project extends Component<ProjectProps, ProjectState> {
 
 
     render() {
-        const { history } = this.props;
+        const navigate = useNavigate();
         const { proj, jobs } = this.state;
 
         const content = proj ? (
             <>
                 <PageHeader
-                    onBack={() => history.replace("/projects")}
+                    onBack={() => navigate("/projects")}
                     title={proj.name}
                     subTitle={proj.description}
                 />

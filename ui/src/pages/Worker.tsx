@@ -1,5 +1,5 @@
 import React, { Component, Fragment } from "react";
-import { Link, RouteComponentProps } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Table, Layout, Breadcrumb, Row, Col, Statistic,
     Descriptions, Button, Select, Spin } from 'antd';
 import { PageHeader } from '@ant-design/pro-components';
@@ -110,9 +110,10 @@ function expandedRowRender(record: WorkerTask) {
 }
 
 
-type WorkerProps = RouteComponentProps<{
+type WorkerProps = {};
+type WorkerParams = {
     id: string;
-}>;
+};
 type WorkerState = {
     worker?: WorkerType;
     filter: string[];
@@ -147,21 +148,21 @@ class Worker extends Component<WorkerProps, WorkerState> {
     }
 
     componentDidMount() {
-        const { id } = this.props.match.params;
+        const { id } = useParams() as WorkerParams;
 
         this.fetchWorker(id);
     }
 
 
     render() {
-        const { history, match } = this.props;
-        const { id } = match.params;
+        const navigate = useNavigate();
+        const { id } = useParams() as WorkerParams;
         const { worker } = this.state;
 
         const content = worker ? (
             <>
                 <PageHeader
-                    onBack={() => history.goBack()}
+                    onBack={() => navigate(-1)}
                     title={`Worker ${id}`}
                     subTitle={
                         <Fragment>

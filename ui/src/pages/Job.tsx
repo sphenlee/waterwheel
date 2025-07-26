@@ -1,5 +1,5 @@
 import React, { Component, Fragment } from "react";
-import { Link, RouteComponentProps } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Layout, Breadcrumb, Tabs, Row, Col, Statistic, Spin, Tag } from 'antd';
 import { PageHeader } from '@ant-design/pro-components';
 import { geekblue, lime, red, grey, yellow, orange } from '@ant-design/colors';
@@ -18,10 +18,11 @@ import { interval } from "../types/common";
 
 const { Content } = Layout;
 
-type JobProps = RouteComponentProps<{
+type JobProps = {};
+type JobParams = {
     id: string;
     tab: string;
-}>;
+};
 
 type JobState = {
     job?: JobExtra;
@@ -46,7 +47,7 @@ class Job extends Component<JobProps, JobState> {
     }
 
     componentDidMount() {
-        const { id } = this.props.match.params;
+        const { id } = useParams() as JobParams;
 
         this.fetchJob(id)
 
@@ -58,24 +59,24 @@ class Job extends Component<JobProps, JobState> {
     }
 
     render() {
-        const { history, match } = this.props;
+        const navigate = useNavigate();
         const { job } = this.state;
 
-        const job_id = match.params.id;
-        const tab = match.params.tab || 'overview';
+        const { id: job_id, tab = 'overview' } = useParams() as JobParams;
+        
 
         const content = job ? (
             <>
                 <PageHeader
-                    onBack={() => history.goBack()}
+                    onBack={() => navigate(-1)}
                     title={job.name}
                     subTitle={job.description}
                     tags={job.paused ? <Tag color="warning" icon={<PauseOutlined />}>paused</Tag> : <></>}
                 />
                 <Tabs
                     activeKey={tab}
-                    onChange={(activeKey) => history.replace(`/jobs/${job_id}/${activeKey}`)}
-                    destroyInactiveTabPane={true}
+                    onChange={(activeKey) => navigate(`/jobs/${job_id}/${activeKey}`, { replace: true })}
+                    destroyOnHidden={true}
                     items={[
                         {
                             label: "Overview",

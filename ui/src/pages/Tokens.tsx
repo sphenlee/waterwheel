@@ -1,5 +1,5 @@
 import React, { Component, Fragment } from "react";
-import { Link, RouteComponentProps } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Table, Layout, Breadcrumb, Button, notification, Popconfirm,
         Row, Col, Drawer, Spin } from 'antd';
 import { PageHeader } from '@ant-design/pro-components';
@@ -19,10 +19,11 @@ import { interval } from "../types/common";
 
 const { Content } = Layout;
 
-type TokensProps = RouteComponentProps<{
+type TokensProps = {};
+type TokensParams = {
     id: string;
     trigger_datetime: string;
-}>;
+};
 
 type TokensState = {
     job?: JobExtra;
@@ -37,7 +38,9 @@ class Tokens extends Component<TokensProps, TokensState> {
     constructor(props: TokensProps) {
         super(props);
 
-        this.columns = this.makeColumns(props.match.params.id);
+        const { id } = useParams() as TokensParams;
+
+        this.columns = this.makeColumns(id!);
 
         this.state = {
             tokens: [],
@@ -100,7 +103,7 @@ class Tokens extends Component<TokensProps, TokensState> {
     }
 
     async clearAllTokens() {
-        const {id, trigger_datetime} = this.props.match.params;
+        const {id, trigger_datetime} = useParams() as TokensParams;
 
         if(!this.state.job) {
             console.warn(
@@ -142,7 +145,7 @@ class Tokens extends Component<TokensProps, TokensState> {
     }
 
     componentDidMount() {
-        const {id, trigger_datetime} = this.props.match.params;
+        const {id, trigger_datetime} = useParams() as TokensParams;
 
         this.fetchJob(id);
         this.fetchTokens(id, trigger_datetime);
@@ -155,15 +158,15 @@ class Tokens extends Component<TokensProps, TokensState> {
     }
 
     render() {
-        const { history, match } = this.props;
-        const {id, trigger_datetime} = match.params;
+        const navigate = useNavigate();
+        const {id, trigger_datetime} = useParams() as TokensParams;
         const { job, tokens, drawer_task_id } = this.state;
 
 
         const content = job ? (
             <>
                 <PageHeader
-                    onBack={() => history.goBack()}
+                    onBack={() => navigate(-1)}
                     title={`${job.name} @ ${trigger_datetime}`}
                     subTitle={job.description}
                     extra={[
@@ -217,7 +220,7 @@ class Tokens extends Component<TokensProps, TokensState> {
                         // size="large"
                         height={736} // todo - remove after upgrading
                         onClose={() => this.drawerClose()}
-                        visible={drawer_task_id !== null}>
+                        open={drawer_task_id !== null}>
                     <TokenRuns
                         task_id={drawer_task_id}
                         trigger_datetime={trigger_datetime} />

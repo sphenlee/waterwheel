@@ -47,7 +47,7 @@
     "react-dom": "^19.0.0",
     "react-graph-vis": "^1.0.7",
     "react-json-pretty": "^2.2.0",
-    "react-router-dom": "^5.3.4",
+    "react-router-dom": "^6.30",
     "react-use-websocket": "^4.13.0",
     "styled-components": "^6.1.15"
   }
