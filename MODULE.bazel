@@ -26,7 +26,7 @@ use_repo(crate, "crates")
 # Typescript/Webpack setup
 
 
-bazel_dep(name = "aspect_rules_js", version = "2.4.0")
+bazel_dep(name = "aspect_rules_js", version = "2.4.1")
 bazel_dep(name = "rules_nodejs", version = "6.4.0")
 bazel_dep(name = "aspect_rules_webpack", version = "0.17.0")
 
