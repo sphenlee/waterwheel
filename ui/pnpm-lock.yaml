@@ -52,7 +52,7 @@ dependencies:
     version: 2.2.0(react-dom@19.1.0)(react@19.1.0)
   react-router-dom:
     specifier: ^6.30
-    version: 6.30.0(react-dom@19.1.0)(react@19.1.0)
+    version: 6.30.1(react-dom@19.1.0)(react@19.1.0)
   react-use-websocket:
     specifier: ^4.13.0
     version: 4.13.0
@@ -4710,8 +4710,8 @@ packages:
     resolution: {integrity: sha512-fBASbA6LnOU9dOU2eW7aQ8xmYBSXUIWr+UmF9b1efZBazGNO+rcXT/icdKnYm2pTwcRylVUYwW7H1PHfLekVzA==}
     dev: false
 
-  /react-router-dom@6.30.0(react-dom@19.1.0)(react@19.1.0):
-    resolution: {integrity: sha512-x30B78HV5tFk8ex0ITwzC9TTZMua4jGyA9IUlH1JLQYQTFyxr/ZxwOJq7evg1JX1qGVUcvhsmQSKdPncQrjTgA==}
+  /react-router-dom@6.30.1(react-dom@19.1.0)(react@19.1.0):
+    resolution: {integrity: sha512-llKsgOkZdbPU1Eg3zK8lCn+sjD9wMRZZPuzmdWWX5SUs8OFkN5HnFVC0u5KMeMaC9aoancFI/KoLuKPqN+hxHw==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
       react: '>=16.8'
@@ -4720,11 +4720,11 @@ packages:
       '@remix-run/router': 1.23.0
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
-      react-router: 6.30.0(react@19.1.0)
+      react-router: 6.30.1(react@19.1.0)
     dev: false
 
-  /react-router@6.30.0(react@19.1.0):
-    resolution: {integrity: sha512-D3X8FyH9nBcTSHGdEKurK7r8OYE1kKFn3d/CF+CoxbSHkxU7o37+Uh7eAHRXr6k2tSExXYO++07PeXJtA/dEhQ==}
+  /react-router@6.30.1(react@19.1.0):
+    resolution: {integrity: sha512-X1m21aEmxGXqENEPG3T6u0Th7g0aS4ZmoNynhbs+Cn+q+QGTLt+d5IQ2bHAXKzKcxGJjxACpVbnYQSCRcfxHlQ==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
       react: '>=16.8'
