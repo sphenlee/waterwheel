@@ -1,7 +1,7 @@
 # __________________________________________________________
 # Rust setup
 
-bazel_dep(name = "rules_rust", version = "0.62.0")
+bazel_dep(name = "rules_rust", version = "0.63.0")
 
 RUST_EDITION = "2024"
 RUST_VERSION = "nightly/2025-06-01"
