@@ -2490,9 +2490,9 @@ dependencies = [
 
 [[package]]
 name = "lapin"
-version = "3.0.0"
+version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "792d823427d788859cf36d471a9983e52e07e1267fb50ec07ecb240ef4ecd8af"
+checksum = "2c5b3c44974fc4f1d1e7acd52fa6471a536b62976a7ade892d56a2694f7773e0"
 dependencies = [
  "amq-protocol 8.1.2",
  "async-global-executor-trait",
@@ -2535,7 +2535,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07033963ba89ebaf1584d767badaa2e8fcec21aedea6b8c0346d487d49c28667"
 dependencies = [
  "cfg-if",
- "windows-targets 0.53.2",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -5116,7 +5116,7 @@ dependencies = [
  "kube",
  "kube-core",
  "kube-runtime",
- "lapin 3.0.0",
+ "lapin 3.1.0",
  "lru_time_cache",
  "mime",
  "once_cell",
