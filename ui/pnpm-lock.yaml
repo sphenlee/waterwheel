@@ -75,7 +75,7 @@ devDependencies:
     version: 7.27.6
   '@types/node':
     specifier: ^22.13.4
-    version: 22.16.5
+    version: 22.17.2
   '@types/react':
     specifier: ^19.0.0
     version: 19.1.8
@@ -2470,8 +2470,8 @@ packages:
   /@types/json-schema@7.0.15:
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
 
-  /@types/node@22.16.5:
-    resolution: {integrity: sha512-bJFoMATwIGaxxx8VJPeM8TonI8t579oRvgAuT8zFugJsJZgzqv0Fu8Mhp68iecjzG7cnN3mO2dJQ5uUM2EFrgQ==}
+  /@types/node@22.17.2:
+    resolution: {integrity: sha512-gL6z5N9Jm9mhY+U2KXZpteb+09zyffliRkZyZOHODGATyC5B1Jt/7TzuuiLkFsSUMLbS1OLmlj/E+/3KF4Q/4w==}
     dependencies:
       undici-types: 6.21.0
 
@@ -3732,7 +3732,7 @@ packages:
     resolution: {integrity: sha512-7vuh85V5cdDofPyxn58nrPjBktZo0u9x1g8WtjQol+jZDaE+fhN+cIvTj11GndBnMnyfrUOG1sZQxCdjKh+DKg==}
     engines: {node: '>= 10.13.0'}
     dependencies:
-      '@types/node': 22.16.5
+      '@types/node': 22.17.2
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
