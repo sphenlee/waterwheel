@@ -1,4 +1,4 @@
-import React, { Component, Fragment } from "react";
+import React, { Component, Fragment, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Table, Layout, Breadcrumb, Row, Col, Statistic,
     Descriptions, Button, Select, Spin } from 'antd';
@@ -109,141 +109,113 @@ function expandedRowRender(record: WorkerTask) {
     );
 }
 
-
-type WorkerProps = {};
 type WorkerParams = {
     id: string;
 };
-type WorkerState = {
-    worker?: WorkerType;
-    filter: string[];
-};
 
-class Worker extends Component<WorkerProps, WorkerState> {
-    columns: ColumnsType<WorkerTask>;
+const columns = makeColumns();
 
-    constructor(props: WorkerProps) {
-        super(props);
-
-        this.columns = makeColumns();
-
-        this.state = {
-            filter: defaultFilter,
-        }
-    }
-
-    async fetchWorker(id: string) {
+function Worker() {
+    const [worker, setWorker] = useState<WorkerType | null>();
+    const [filter, setFilter] = useState<string[]>([]);
+    const { id } = useParams() as WorkerParams;
+    const navigate = useNavigate();
+    
+    async function fetchWorker() {
         try {
             let resp = await axios.get<WorkerType>(`/api/workers/${id}`, {
                 params: {
-                    state: this.state.filter.join(',')
+                    state: filter.join(',')
                 }
             });
-            this.setState({
-                worker: resp.data,
-            });
+            setWorker(resp.data);
         } catch(e) {
             console.log(e);
         }
     }
 
-    componentDidMount() {
-        const { id } = useParams() as WorkerParams;
-
-        this.fetchWorker(id);
-    }
-
-
-    render() {
-        const navigate = useNavigate();
-        const { id } = useParams() as WorkerParams;
-        const { worker } = this.state;
-
-        const content = worker ? (
-            <>
-                <PageHeader
-                    onBack={() => navigate(-1)}
-                    title={`Worker ${id}`}
-                    subTitle={
-                        <Fragment>
-                            <WorkerStatus status={worker.status} />
-                            Version: {worker.version}
-                        </Fragment>
-                    }
-                    extra={
-                        <Button onClick={() => this.fetchWorker(id)}>
-                            Refresh
-                        </Button>
-                    }
+    useEffect(() => {
+        fetchWorker();
+    }, [filter]);    
+    
+    const content = worker ? (
+        <>
+            <PageHeader
+                onBack={() => navigate(-1)}
+                title={`Worker ${id}`}
+                subTitle={
+                    <Fragment>
+                        <WorkerStatus status={worker.status} />
+                        Version: {worker.version}
+                    </Fragment>
+                }
+                extra={
+                    <Button onClick={fetchWorker}>
+                        Refresh
+                    </Button>
+                }
+            />
+            <Row gutter={[16, 32]}>
+                <Col span={6}>
+                    <Statistic title="Running Tasks"
+                        valueStyle={{color: geekblue[5]}}
+                        value={worker.running_tasks} />
+                </Col>
+                <Col span={6}>
+                    <Statistic title="Total Tasks"
+                        valueStyle={{color: geekblue[5]}}
+                        value={worker.total_tasks} />
+                </Col>
+                <Col span={6}>
+                    <Statistic title="Last Seen"
+                        value={worker.last_seen_datetime}
+                        formatter={(val) => <RelDate>{dayjs(val).fromNow()}</RelDate>}
+                        />
+                </Col>
+                <Col span={24} />
+            </Row>
+            <Select
+                mode="multiple"
+                defaultValue={defaultFilter}
+                style={{ width: 350 }}
+                onChange={setFilter}
+            >
+                <Option value="active">Active</Option>
+                <Option value="running">Running</Option>
+                <Option value="success">Success</Option>
+                <Option value="failure">Failure</Option>
+                <Option value="error">Error</Option>
+            </Select>
+            <Table key="1"
+                rowKey="task_run_id"
+                columns={columns}
+                dataSource={worker.tasks}
+                expandable={{
+                    expandedRowRender: record => expandedRowRender(record),
+                    expandRowByClick: true,
+                    expandIcon: ({ expanded, onExpand, record }) =>
+                        expanded ? (
+                            <DownOutlined onClick={e => onExpand(record, e)} />
+                        ) : (
+                            <RightOutlined onClick={e => onExpand(record, e)} />
+                        )
+                }}
                 />
-                <Row gutter={[16, 32]}>
-                    <Col span={6}>
-                        <Statistic title="Running Tasks"
-                            valueStyle={{color: geekblue[5]}}
-                            value={worker.running_tasks} />
-                    </Col>
-                    <Col span={6}>
-                        <Statistic title="Total Tasks"
-                            valueStyle={{color: geekblue[5]}}
-                            value={worker.total_tasks} />
-                    </Col>
-                    <Col span={6}>
-                        <Statistic title="Last Seen"
-                            value={worker.last_seen_datetime}
-                            formatter={(val) => <RelDate>{dayjs(val).fromNow()}</RelDate>}
-                            />
-                    </Col>
-                    <Col span={24} />
-                </Row>
-                <Select
-                    mode="multiple"
-                    defaultValue={defaultFilter}
-                    style={{ width: 350 }}
-                    onChange={(value) => {
-                    this.setState({
-                        filter: value
-                    }, () => {
-                        this.fetchWorker(id);    
-                    });
-                    }}
-                >
-                    <Option value="active">Active</Option>
-                    <Option value="running">Running</Option>
-                    <Option value="success">Success</Option>
-                    <Option value="failure">Failure</Option>
-                    <Option value="error">Error</Option>
-                </Select>
-                <Table key="1"
-                    rowKey="task_run_id"
-                    columns={this.columns}
-                    dataSource={worker.tasks}
-                    expandable={{
-                        expandedRowRender: record => expandedRowRender(record),
-                        expandRowByClick: true,
-                        expandIcon: ({ expanded, onExpand, record }) =>
-                            expanded ? (
-                                <DownOutlined onClick={e => onExpand(record, e)} />
-                            ) : (
-                                <RightOutlined onClick={e => onExpand(record, e)} />
-                            )
-                    }}
-                    />
-            </>
-        ) : <Spin size="large" />;
+        </>
+    ) : <Spin size="large" />;
 
-        return (
-            <Layout>
-                <Content style={{padding: '50px'}}>
-                    <Breadcrumb style={{paddingBottom: '12px'}}>
-                        <Breadcrumb.Item><Link to="/">Home</Link></Breadcrumb.Item>
-                        <Breadcrumb.Item><Link to="/workers">Workers</Link></Breadcrumb.Item>
-                        <Breadcrumb.Item><Link to={`/workers/${id}`}>{id}</Link></Breadcrumb.Item>
-                    </Breadcrumb>
-                    <Body>{content}</Body>
-                </Content>
-            </Layout>
-        );
-    }
+    return (
+        <Layout>
+            <Content style={{padding: '50px'}}>
+                <Breadcrumb style={{paddingBottom: '12px'}}>
+                    <Breadcrumb.Item><Link to="/">Home</Link></Breadcrumb.Item>
+                    <Breadcrumb.Item><Link to="/workers">Workers</Link></Breadcrumb.Item>
+                    <Breadcrumb.Item><Link to={`/workers/${id}`}>{id}</Link></Breadcrumb.Item>
+                </Breadcrumb>
+                <Body>{content}</Body>
+            </Content>
+        </Layout>
+    );
 }
 
 export default Worker;

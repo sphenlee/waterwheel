@@ -1,4 +1,4 @@
-import React, { Component, Fragment } from "react";
+import React, { Component, Fragment, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Table, Layout, Breadcrumb, Badge, Spin} from 'antd';
 import { PageHeader } from '@ant-design/pro-components';
@@ -12,7 +12,6 @@ import { Trigger, TriggerTime } from "../types/Job";
 import { interval } from "../types/common";
 
 const { Content } = Layout;
-
 
 
 function makeColumns(job_id: string): ColumnsType<TriggerTime> {
@@ -42,82 +41,59 @@ function makeColumns(job_id: string): ColumnsType<TriggerTime> {
     ];
 }
 
-type TriggersProps = {};
 type TriggersParams = {
     job_id: string;
     trigger_id: string;
 };
-type TriggersState = {
-    trigger?: Trigger;
-};
 
-class Triggers extends Component<TriggersProps, TriggersState> {
-    columns: ColumnsType<TriggerTime>;
-    interval: interval;
+function Triggers() {
+    const [trigger, setTrigger] = useState<Trigger>();
+    const { job_id, trigger_id } = useParams() as TriggersParams;
+    const navigate = useNavigate();
 
-    constructor(props: TriggersProps) {
-        super(props);
-
-        const { job_id } = useParams() as TriggersParams;
-        this.columns = makeColumns(job_id);
-
-        this.state = {};
-    }
-
-    async fetchTrigger(job_id: string, trigger_id: string) {
+    const columns = makeColumns(job_id);
+    
+    async function fetchTrigger() {
         try {
             let resp = await axios.get<Trigger>(`/api/triggers/${trigger_id}`);
-            this.setState({
-                trigger: resp.data,
-            });
+            setTrigger(resp.data);
         } catch(e) {
             console.log(e);
         }
     }
 
-    componentDidMount() {
-        const { job_id, trigger_id } = useParams() as TriggersParams;
+    useEffect(() => {
+        fetchTrigger();
+        const interval = setInterval(fetchTrigger, 5000);
+        return () => clearInterval(interval);
+    }, []);     
+        
 
-        this.fetchTrigger(job_id, trigger_id);
+    const content = trigger ? (
+        <>
+            <PageHeader
+                onBack={() => navigate(-1)}
+                title={trigger.trigger_name}
+                subTitle={`Trigger in ${trigger.job_name}`}
+            />
+            <Table<TriggerTime> columns={columns} dataSource={trigger.times} pagination={{position: ['bottomLeft']}}/>
+        </>
+    ) : <Spin size="large" />;
 
-        this.interval = setInterval(() => this.fetchTrigger(job_id, trigger_id), 5000);
-    }
-
-    componentWillUnmount() {
-        clearInterval(this.interval);
-    }
-
-    render() {
-        const navigate = useNavigate();
-        const { job_id, trigger_id } = useParams() as TriggersParams;
-        const { trigger } = this.state;
-
-        const content = trigger ? (
-            <>
-                <PageHeader
-                    onBack={() => navigate(-1)}
-                    title={trigger.trigger_name}
-                    subTitle={`Trigger in ${trigger.job_name}`}
-                />
-                <Table<TriggerTime> columns={this.columns} dataSource={trigger.times} pagination={{position: ['bottomLeft']}}/>
-            </>
-        ) : <Spin size="large" />;
-
-        return (
-            <Layout>
-                <Content style={{padding: '50px'}}>
-                    <Breadcrumb style={{paddingBottom: '12px'}}>
-                        <Breadcrumb.Item><Link to="/">Home</Link></Breadcrumb.Item>
-                        <Breadcrumb.Item><Link to="/projects">Projects</Link></Breadcrumb.Item>
-                        <Breadcrumb.Item><Link to={`/projects/${trigger?.project_id}`}>{trigger?.project_name}</Link></Breadcrumb.Item>
-                        <Breadcrumb.Item><Link to={`/jobs/${job_id}`}>{trigger?.job_name}</Link></Breadcrumb.Item>
-                        <Breadcrumb.Item><Link to={`/jobs/${job_id}/triggers/${trigger_id}`}>{trigger?.trigger_name}</Link></Breadcrumb.Item>
-                    </Breadcrumb>
-                    <Body>{content}</Body>
-                </Content>
-            </Layout>
-        );
-    }
+    return (
+        <Layout>
+            <Content style={{padding: '50px'}}>
+                <Breadcrumb style={{paddingBottom: '12px'}}>
+                    <Breadcrumb.Item><Link to="/">Home</Link></Breadcrumb.Item>
+                    <Breadcrumb.Item><Link to="/projects">Projects</Link></Breadcrumb.Item>
+                    <Breadcrumb.Item><Link to={`/projects/${trigger?.project_id}`}>{trigger?.project_name}</Link></Breadcrumb.Item>
+                    <Breadcrumb.Item><Link to={`/jobs/${job_id}`}>{trigger?.job_name}</Link></Breadcrumb.Item>
+                    <Breadcrumb.Item><Link to={`/jobs/${job_id}/triggers/${trigger_id}`}>{trigger?.trigger_name}</Link></Breadcrumb.Item>
+                </Breadcrumb>
+                <Body>{content}</Body>
+            </Content>
+        </Layout>
+    );
 }
 
 export default Triggers;
