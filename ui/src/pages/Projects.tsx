@@ -1,4 +1,4 @@
-import React, { Component, Fragment } from "react";
+import React, { Component, Fragment, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { List, Avatar, Layout, Breadcrumb, Row, Col } from 'antd';
 import { ProjectOutlined } from '@ant-design/icons';
@@ -15,74 +15,60 @@ type ProjectsState = {
 };
 
 
-class Projects extends Component<{}, ProjectsState> {
-    constructor(props: {}) {
-        super(props);
+function Projects() {
+    const [loading, setLoading] = useState(false);
+    const [data, setData] = useState([] as ProjectType[]);
 
-        this.state = {
-            loading: false,
-            data: []
-        };
-    }
-
-    async fetchProjects() {
+    async function fetchProjects() {
         try {
-            this.setState({
-                loading: true
-            });
+            setLoading(true);
             let resp = await axios.get<ProjectType[]>('/api/projects');
-            this.setState({
-                loading: false,
-                data: resp.data
-            });
+            setData(resp.data);
+            setLoading(false);
         } catch(e) {
             console.log(e);
-            this.setState({
-                loading: false,
-                data:[]
-            });
+            setData([]);
+            setLoading(false);
         }
     }
 
-    componentDidMount() {
-        this.fetchProjects()
-    }
-
-    render() {
-        return (
-            <Layout>
-                <Content style={{padding: '50px'}}>
-                    <Breadcrumb style={{paddingBottom: '12px'}}>
-                        <Breadcrumb.Item><Link to="/">Home</Link></Breadcrumb.Item>
-                        <Breadcrumb.Item><Link to="/projects">Projects</Link></Breadcrumb.Item>
-                    </Breadcrumb>
-                    <Body>
-                        <Row>
-                            <Col span={12}>
-                                <List
-                                    itemLayout="vertical"
-                                    bordered={true}
-                                    dataSource={this.state.data}
-                                    loading={this.state.loading}
-                                    renderItem={(item: ProjectType) => (
-                                        <List.Item>
-                                            <List.Item.Meta
-                                                avatar={<Avatar icon={<ProjectOutlined />} shape="square"></Avatar>}
-                                                title={<Link to={`/projects/${item.id}`}>
-                                                    {item.name}
-                                                </Link>}
-                                                description={item.description}
-                                            />
-                                        </List.Item>
-                                    )}
-                                />
-                            </Col>
-                        </Row>
-                    </Body>
-                </Content>
-            </Layout>
-        );
-    }
+    useEffect(() => {
+        fetchProjects();
+    }, []);
+    
+    return (
+        <Layout>
+            <Content style={{padding: '50px'}}>
+                <Breadcrumb style={{paddingBottom: '12px'}}>
+                    <Breadcrumb.Item><Link to="/">Home</Link></Breadcrumb.Item>
+                    <Breadcrumb.Item><Link to="/projects">Projects</Link></Breadcrumb.Item>
+                </Breadcrumb>
+                <Body>
+                    <Row>
+                        <Col span={12}>
+                            <List
+                                itemLayout="vertical"
+                                bordered={true}
+                                dataSource={data}
+                                loading={loading}
+                                renderItem={(item: ProjectType) => (
+                                    <List.Item>
+                                        <List.Item.Meta
+                                            avatar={<Avatar icon={<ProjectOutlined />} shape="square"></Avatar>}
+                                            title={<Link to={`/projects/${item.id}`}>
+                                                {item.name}
+                                            </Link>}
+                                            description={item.description}
+                                        />
+                                    </List.Item>
+                                )}
+                            />
+                        </Col>
+                    </Row>
+                </Body>
+            </Content>
+        </Layout>
+    );
 }
 
 export default Projects;

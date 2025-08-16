@@ -1,4 +1,4 @@
-import React, { Component, Fragment } from "react";
+import React, { Component, Fragment, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Table, Layout, Descriptions } from 'antd';
 import { ColumnsType } from "antd/es/table";
@@ -25,15 +25,6 @@ function Json({json}: {json: any}) {
         return <pre>{JSON.stringify(json)}</pre>;
     }
 }
-
-type TokenRunsProps = {
-    task_id: string | null;
-    trigger_datetime: datetime | null;
-};
-type TokenRunsState = {
-    runs: TaskRun[];
-    task?: Task;
-};
 
 function expandedRowRender(record: TaskRun) {
     return (
@@ -77,140 +68,112 @@ function expandedRowRender(record: TaskRun) {
     );
 }
 
-
-class TokenRuns extends Component<TokenRunsProps, TokenRunsState> {
-    columns: ColumnsType<TaskRun>;
-    interval: interval;
-
-    constructor(props: TokenRunsProps) {
-        super(props);
-
-        this.columns = this.makeColumns();
-
-        this.state = {
-            runs: [],
+function makeColumns(): ColumnsType<TaskRun> {
+    return [
+        /*{
+        title: 'Id',
+        dataIndex: 'task_run_id',
+        key: 'task_run_id',
+        },*/{
+        title: 'Attempt',
+        dataIndex: 'attempt',
+        key: 'attempt',
+        },{
+        title: 'State',
+        dataIndex: 'state',
+        render: text => <State state={text} />,
+        },{
+        title: 'Priority',
+        dataIndex: 'priority',
+        render: text => <Priority priority={text} />,
+        },{
+        title: 'Logs',
+        dataIndex: 'task_run_id',
+        render: text => <Link to={`/logs/${text}`}>logs</Link>,
         }
-    }
+    ];
+}
 
-    makeColumns(): ColumnsType<TaskRun> {
-        return [
-          /*{
-            title: 'Id',
-            dataIndex: 'task_run_id',
-            key: 'task_run_id',
-          },*/{
-            title: 'Attempt',
-            dataIndex: 'attempt',
-            key: 'attempt',
-          },{
-            title: 'State',
-            dataIndex: 'state',
-            render: text => <State state={text} />,
-          },{
-            title: 'Priority',
-            dataIndex: 'priority',
-            render: text => <Priority priority={text} />,
-          },{
-            title: 'Logs',
-            dataIndex: 'task_run_id',
-            render: text => <Link to={`/logs/${text}`}>logs</Link>,
-          }
-        ];
-    }
+const columns = makeColumns();
 
-    async fetchRuns(task_id: string, trigger_datetime: string) {
+function TokenRuns({task_id, trigger_datetime}) {
+    const [runs, setRuns] = useState([] as TaskRun[]);
+    const [task, setTask] = useState<Task>();
+    
+    async function fetchRuns() {
         try {
-            let resp1 = await axios.get<TaskRun[]>(`/api/tasks/${task_id}/runs/${trigger_datetime}`);
+            const [runs, task] = await Promise.all([
+                axios.get<TaskRun[]>(`/api/tasks/${task_id}/runs/${trigger_datetime}`),
+                axios.get<Task>(`/api/tasks/${task_id}`)
+            ]);
 
-            let resp2 = await axios.get<Task>(`/api/tasks/${task_id}`);
-            this.setState({
-                runs: resp1.data,
-                task: resp2.data,
-            });
+            setRuns(runs.data);            
+            setTask(task.data);
         } catch(e) {
             console.log(e);
         }
     }
 
-    componentDidMount() {
-        const {task_id, trigger_datetime} = this.props;
+    useEffect(() => {
+        fetchRuns();
+        const interval = setInterval(() => fetchRuns(), 2000);
+    
+        return () => clearInterval(interval);
+    });
 
-        if (task_id !== null && trigger_datetime !== null) {
-            this.interval = setInterval(() => this.fetchRuns(task_id, trigger_datetime), 2000);
-            this.fetchRuns(task_id, trigger_datetime);
-        }
+    
+    if (!task) {
+        return '';
     }
 
-    componentDidUpdate(prevProps: TokenRunsProps) {
-        if (this.props.task_id !== prevProps.task_id
-            || this.props.trigger_datetime !== prevProps.trigger_datetime)
-        {
-            this.componentWillUnmount();
-            this.componentDidMount();
-        }
-    }
+    return (
+        <Fragment>
+            <h2>{`${task.task_name} @ ${trigger_datetime}`}</h2>
 
-    componentWillUnmount() {
-        clearInterval(this.interval);
-    }
-
-    render() {
-        const { task_id, trigger_datetime, } = this.props;
-        const { runs, task } = this.state;
-
-        if (!task) {
-            return '';
-        }
-
-        return (
-            <Fragment>
-                <h2>{`${task.task_name} @ ${trigger_datetime}`}</h2>
-
-                <ActivateToken
-                    type="primary"
-                    size="middle"
-                    task_id={task_id ?? ''}
-                    trigger_datetime={trigger_datetime ?? ''} />
+            <ActivateToken
+                type="primary"
+                size="middle"
+                task_id={task_id ?? ''}
+                trigger_datetime={trigger_datetime ?? ''} />
 
 
-                <Descriptions
-                        size="small"
-                        bordered
-                        labelStyle={{
-                            fontWeight: "bold"
-                        }}
-                        contentStyle={{
-                            background: "#fff"
-                        }}>
-                    <Descriptions.Item label="Image" span={3}>
-                        <pre>{task?.image}</pre>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Args" span={3}>
-                        <Json json={task?.args} />
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Env" span={3}>
-                        <Json json={task?.env ?? {}} />
-                    </Descriptions.Item>
-                </Descriptions>
-
-                <Table columns={this.columns}
-                    rowKey="task_run_id"
-                    dataSource={runs}
-                    pagination={{position: ['bottomLeft']}}
-                    expandable={{
-                        expandedRowRender: record => expandedRowRender(record),
-                        expandRowByClick: true,
-                        expandIcon: ({ expanded, onExpand, record }) =>
-                            expanded ? (
-                                <DownOutlined onClick={e => onExpand(record, e)} />
-                            ) : (
-                                <RightOutlined onClick={e => onExpand(record, e)} />
-                            )
+            <Descriptions
+                    size="small"
+                    bordered
+                    labelStyle={{
+                        fontWeight: "bold"
                     }}
-                    />
-            </Fragment>
-        );
-    }
+                    contentStyle={{
+                        background: "#fff"
+                    }}>
+                <Descriptions.Item label="Image" span={3}>
+                    <pre>{task?.image}</pre>
+                </Descriptions.Item>
+                <Descriptions.Item label="Args" span={3}>
+                    <Json json={task?.args} />
+                </Descriptions.Item>
+                <Descriptions.Item label="Env" span={3}>
+                    <Json json={task?.env ?? {}} />
+                </Descriptions.Item>
+            </Descriptions>
+
+            <Table columns={columns}
+                rowKey="task_run_id"
+                dataSource={runs}
+                pagination={{position: ['bottomLeft']}}
+                expandable={{
+                    expandedRowRender: record => expandedRowRender(record),
+                    expandRowByClick: true,
+                    expandIcon: ({ expanded, onExpand, record }) =>
+                        expanded ? (
+                            <DownOutlined onClick={e => onExpand(record, e)} />
+                        ) : (
+                            <RightOutlined onClick={e => onExpand(record, e)} />
+                        )
+                }}
+                />
+        </Fragment>
+    );
 }
 
 export default TokenRuns;

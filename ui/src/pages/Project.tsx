@@ -1,4 +1,4 @@
-import React, { Component, Fragment } from "react";
+import React, { Component, Fragment, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Avatar, Layout, Breadcrumb, Row, Col, Statistic, Badge, Tag, Spin, Table,
   Typography } from 'antd';
@@ -12,6 +12,7 @@ import axios from 'axios';
 import Body from '../components/Body';
 import { ProjectExtra, ProjectJob } from "../types/Project";
 import { interval } from "../types/common";
+import { JobExtra } from "../types/Job";
 
 
 const { Content } = Layout;
@@ -83,114 +84,97 @@ function makeColumns(): ColumnsType<ProjectJob> {
     ];
 }
 
-class Project extends Component<ProjectProps, ProjectState> {
-    interval: interval;
-    columns: ColumnsType<ProjectJob>;
+const columns = makeColumns();
 
-    constructor(props: ProjectProps) {
-        super(props);
+function Project() {
+    const [proj, setProj] = useState({} as ProjectExtra);
+    const [jobs, setJobs] = useState([] as ProjectJob[])
+    const {id} = useParams() as ProjectParams;
+    const navigate = useNavigate();
 
-        this.state = {};
-        this.columns = makeColumns();
-    }
-
-    async fetchProject() {
-        const {id} = useParams() as ProjectParams;
-        
+    async function fetchProject() {        
         try {
             let proj = await axios.get<ProjectExtra>(`/api/projects/${id}`);
+            setProj(proj.data);
             let jobs = await axios.get<ProjectJob[]>(`/api/projects/${id}/jobs`);
-            this.setState({
-                proj: proj.data,
-                jobs: jobs.data,
-            });
+            setJobs(jobs.data);
         } catch(e) {
             console.log(e);
-            this.setState({
-                jobs: []
-            });
+            setJobs([]);
         }
     }
 
-    componentDidMount() {
-        this.fetchProject()
+    useEffect(() => {
+        fetchProject();
+        
+        const interval = setInterval(() => fetchProject(), 5000);
 
-        this.interval = setInterval(() => this.fetchProject(), 5000);
-    }
+        return () => clearInterval(interval);
+    }, []);
 
-    componentWillUnmount() {
-        clearInterval(this.interval);
-    }
+    const content = proj ? (
+        <>
+            <PageHeader
+                onBack={() => navigate("/projects")}
+                title={proj.name}
+                subTitle={proj.description}
+            />
+            <Row gutter={[16, 32]}>
+                <Col span={4}>
+                    <Statistic title="Jobs" value={proj.num_jobs} />
+                </Col>
+                <Col span={4}>
+                    <Statistic title="Running Tasks"
+                        valueStyle={{color: geekblue[5]}}
+                        value={proj.running_tasks} />
+                </Col>
+                <Col span={4}>
+                    <Statistic title="Waiting Tasks"
+                        valueStyle={{color: grey[5]}}
+                        value={proj.waiting_tasks} />
+                </Col>
+                <Col span={4}>
+                    <Statistic title="Succeeded Tasks (last hour)"
+                        valueStyle={{color: lime[5]}}
+                        value={proj.succeeded_tasks_last_hour} />
+                </Col>
+                <Col span={4}>
+                    <Statistic title="Failed Tasks (last hour)"
+                        valueStyle={{color: red[5]}}
+                        value={proj.failed_tasks_last_hour} />
+                </Col>
+                <Col span={4}>
+                    <Statistic title="Error Tasks (last hour)"
+                        valueStyle={{color: orange[5]}}
+                        value={proj.error_tasks_last_hour} />
+                </Col>
+                <Col span={4} />
+            </Row>
+            <Row>
+                <Col span={24}>
+                    <Table rowKey="job_id"
+                        columns={columns}
+                        dataSource={jobs ?? []}
+                        loading={jobs === null}
+                        pagination={{position: ['bottomLeft']}}
+                        />
+                </Col>
+            </Row>
+        </>
+    ) : <Spin size="large" />;
 
-
-    render() {
-        const navigate = useNavigate();
-        const { proj, jobs } = this.state;
-
-        const content = proj ? (
-            <>
-                <PageHeader
-                    onBack={() => navigate("/projects")}
-                    title={proj.name}
-                    subTitle={proj.description}
-                />
-                <Row gutter={[16, 32]}>
-                    <Col span={4}>
-                        <Statistic title="Jobs" value={proj.num_jobs} />
-                    </Col>
-                    <Col span={4}>
-                        <Statistic title="Running Tasks"
-                            valueStyle={{color: geekblue[5]}}
-                            value={proj.running_tasks} />
-                    </Col>
-                    <Col span={4}>
-                        <Statistic title="Waiting Tasks"
-                            valueStyle={{color: grey[5]}}
-                            value={proj.waiting_tasks} />
-                    </Col>
-                    <Col span={4}>
-                        <Statistic title="Succeeded Tasks (last hour)"
-                            valueStyle={{color: lime[5]}}
-                            value={proj.succeeded_tasks_last_hour} />
-                    </Col>
-                    <Col span={4}>
-                        <Statistic title="Failed Tasks (last hour)"
-                            valueStyle={{color: red[5]}}
-                            value={proj.failed_tasks_last_hour} />
-                    </Col>
-                    <Col span={4}>
-                        <Statistic title="Error Tasks (last hour)"
-                            valueStyle={{color: orange[5]}}
-                            value={proj.error_tasks_last_hour} />
-                    </Col>
-                    <Col span={4} />
-                </Row>
-                <Row>
-                    <Col span={24}>
-                        <Table rowKey="job_id"
-                            columns={this.columns}
-                            dataSource={jobs ?? []}
-                            loading={jobs === null}
-                            pagination={{position: ['bottomLeft']}}
-                            />
-                    </Col>
-                </Row>
-            </>
-        ) : <Spin size="large" />;
-
-        return (
-            <Layout>
-                <Content style={{padding: '50px'}}>
-                    <Breadcrumb style={{paddingBottom: '12px'}}>
-                        <Breadcrumb.Item><Link to="/">Home</Link></Breadcrumb.Item>
-                        <Breadcrumb.Item><Link to="/projects">Projects</Link></Breadcrumb.Item>
-                        <Breadcrumb.Item><Link to={`/projects/${proj?.id}`}>{proj?.name || "..."}</Link></Breadcrumb.Item>
-                    </Breadcrumb>
-                    <Body>{content}</Body>
-                </Content>
-            </Layout>
-        );
-    }
+    return (
+        <Layout>
+            <Content style={{padding: '50px'}}>
+                <Breadcrumb style={{paddingBottom: '12px'}}>
+                    <Breadcrumb.Item><Link to="/">Home</Link></Breadcrumb.Item>
+                    <Breadcrumb.Item><Link to="/projects">Projects</Link></Breadcrumb.Item>
+                    <Breadcrumb.Item><Link to={`/projects/${proj?.id}`}>{proj?.name || "..."}</Link></Breadcrumb.Item>
+                </Breadcrumb>
+                <Body>{content}</Body>
+            </Content>
+        </Layout>
+    );
 }
 
 export default Project;
