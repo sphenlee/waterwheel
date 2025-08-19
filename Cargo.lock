@@ -72,13 +72,13 @@ dependencies = [
 
 [[package]]
 name = "amq-protocol"
-version = "8.1.2"
+version = "8.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a56406d1cfd9933844a083206bf10fe3748c753bf43c64d4f4453d87181c14f6"
+checksum = "355603365d2217f7fbc03f0be085ea1440498957890f04276402012cdde445f5"
 dependencies = [
- "amq-protocol-tcp 8.1.2",
- "amq-protocol-types 8.1.2",
- "amq-protocol-uri 8.1.2",
+ "amq-protocol-tcp 8.3.1",
+ "amq-protocol-types 8.3.1",
+ "amq-protocol-uri 8.3.1",
  "cookie-factory",
  "nom 8.0.0",
  "serde",
@@ -97,12 +97,16 @@ dependencies = [
 
 [[package]]
 name = "amq-protocol-tcp"
-version = "8.1.2"
+version = "8.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c95840a64f5529882346cf7710d0c8d6b6e6fb4ecd3fed0883d1ae97c42efc14"
+checksum = "8d7b97a85e08671697e724a6b7f1459ff81603613695e3151764a9529c6fec15"
 dependencies = [
- "amq-protocol-uri 8.1.2",
- "tcp-stream 0.30.1",
+ "amq-protocol-uri 8.3.1",
+ "async-trait",
+ "cfg-if",
+ "executor-trait",
+ "reactor-trait 2.7.0",
+ "tcp-stream 0.30.9",
  "tracing",
 ]
 
@@ -120,9 +124,9 @@ dependencies = [
 
 [[package]]
 name = "amq-protocol-types"
-version = "8.1.2"
+version = "8.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a7bc568496f6fd598f44bf5c7e9f8157111634a54c114cb9c087e05d282c91a"
+checksum = "a2984a816dba991b5922503921d8f94650792bdeac47c27c83830710d2567f63"
 dependencies = [
  "cookie-factory",
  "nom 8.0.0",
@@ -143,11 +147,11 @@ dependencies = [
 
 [[package]]
 name = "amq-protocol-uri"
-version = "8.1.2"
+version = "8.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1d80bcd4af9f0fd2bad6def25c66d55130178749cc98000fd3de2b44991b5ed"
+checksum = "f31db8e69d1456ec8ecf6ee598707179cf1d95f34f7d30037b16ad43f0cddcff"
 dependencies = [
- "amq-protocol-types 8.1.2",
+ "amq-protocol-types 8.3.1",
  "percent-encoding",
  "url",
 ]
@@ -410,14 +414,14 @@ dependencies = [
 
 [[package]]
 name = "async-reactor-trait"
-version = "2.0.0"
+version = "2.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "35ce4c5a0627f1b37c346233c34ef2263e6a58812f7c071b71d3712511421422"
+checksum = "08d5a566cc5ddb94c9f34cd434ac2e16c59d731c3725dce80551677d3393954a"
 dependencies = [
  "async-io 2.4.1",
  "async-trait",
  "futures-core",
- "reactor-trait 2.0.0",
+ "reactor-trait 2.7.0",
 ]
 
 [[package]]
@@ -1519,6 +1523,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "futures-rustls"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8f2f12607f92c69b12ed746fabf9ca4f5c482cba46679c1a75b874ed7c26adb"
+dependencies = [
+ "futures-io",
+ "rustls",
+ "rustls-pki-types",
+]
+
+[[package]]
 name = "futures-sink"
 version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2490,21 +2505,20 @@ dependencies = [
 
 [[package]]
 name = "lapin"
-version = "3.0.0"
+version = "3.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "792d823427d788859cf36d471a9983e52e07e1267fb50ec07ecb240ef4ecd8af"
+checksum = "bad5ae535873471fc68e6e25a90f92ab0a65f5bd10979b9f1c407ab4a3aaeaa3"
 dependencies = [
- "amq-protocol 8.1.2",
+ "amq-protocol 8.3.1",
  "async-global-executor-trait",
- "async-reactor-trait 2.0.0",
+ "async-reactor-trait 2.7.0",
  "async-trait",
  "executor-trait",
  "flume",
  "futures-core",
  "futures-io",
- "reactor-trait 2.0.0",
+ "reactor-trait 2.7.0",
  "tracing",
- "waker-fn",
 ]
 
 [[package]]
@@ -2535,7 +2549,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07033963ba89ebaf1584d767badaa2e8fcec21aedea6b8c0346d487d49c28667"
 dependencies = [
  "cfg-if",
- "windows-targets 0.53.2",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -2833,6 +2847,29 @@ version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3cae83056e7cb770211494a0ecf66d9fa7eba7d00977e5bb91f0e925b40b937f"
 dependencies = [
+ "cbc",
+ "cms",
+ "der",
+ "des",
+ "hex",
+ "hmac",
+ "pkcs12",
+ "pkcs5",
+ "rand 0.9.2",
+ "rc2",
+ "sha1",
+ "sha2",
+ "thiserror 2.0.12",
+ "x509-parser",
+]
+
+[[package]]
+name = "p12-keystore"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e8d55319bae67f92141ce4da80c5392acd3d1323bd8312c1ffdfb018927d07d7"
+dependencies = [
+ "base64 0.22.1",
  "cbc",
  "cms",
  "der",
@@ -3258,7 +3295,7 @@ dependencies = [
  "once_cell",
  "socket2 0.5.10",
  "tracing",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -3357,12 +3394,14 @@ dependencies = [
 
 [[package]]
 name = "reactor-trait"
-version = "2.0.0"
+version = "2.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b2eb4ff39ed91c79034b2856a73b07bc8afd752c981bc4433bcbeff531e275a"
+checksum = "51d05d2072db44c9e2769ee9e700ec5e56330500b1753ab114d4eeeecacf81db"
 dependencies = [
  "async-io 2.4.1",
  "async-trait",
+ "executor-trait",
+ "flume",
  "futures-core",
  "futures-io",
 ]
@@ -3600,7 +3639,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.4.15",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -3613,7 +3652,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.9.4",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -3647,10 +3686,12 @@ dependencies = [
 
 [[package]]
 name = "rustls-connector"
-version = "0.21.7"
+version = "0.21.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b68f41384a0c195494f07c9bf5d020dcfca869d3b1492c9391bbc267bd9904fd"
+checksum = "10eb7ce243317e6b6a342ef6bff8c2e0d46d78120a9aeb2ee39693a569615c96"
 dependencies = [
+ "futures-io",
+ "futures-rustls",
  "log",
  "rustls",
  "rustls-native-certs 0.8.1",
@@ -4392,20 +4433,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "495b0abdce3dc1f8fd27240651c9e68890c14e9d9c61527b1ce44d8a5a7bd3d5"
 dependencies = [
  "cfg-if",
- "p12-keystore",
+ "p12-keystore 0.1.5",
  "rustls-connector 0.20.2",
  "rustls-pemfile",
 ]
 
 [[package]]
 name = "tcp-stream"
-version = "0.30.1"
+version = "0.30.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0217559d8c5a883d66838180671a74007e785689364ebe9627d517af936eaa9"
+checksum = "282ebecea8280bce8b7a0695b5dc93a19839dd445cbba70d3e07c9f6e12c4653"
 dependencies = [
  "cfg-if",
- "p12-keystore",
- "rustls-connector 0.21.7",
+ "futures-io",
+ "p12-keystore 0.2.0",
+ "reactor-trait 2.7.0",
+ "rustls-connector 0.21.11",
  "rustls-pemfile",
 ]
 
@@ -5116,7 +5159,7 @@ dependencies = [
  "kube",
  "kube-core",
  "kube-runtime",
- "lapin 3.0.0",
+ "lapin 3.2.1",
  "lru_time_cache",
  "mime",
  "once_cell",
