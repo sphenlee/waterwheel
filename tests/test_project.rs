@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use highnoon::StatusCode;
 use lapin::{
     options::{BasicGetOptions, QueueBindOptions, QueueDeclareOptions},
@@ -5,6 +7,7 @@ use lapin::{
 };
 use pretty_assertions::assert_eq;
 use serde_json::{Value, json};
+use tokio::time::timeout;
 use waterwheel::server::{Server, api::make_app};
 
 mod common;
@@ -53,9 +56,11 @@ pub async fn test_project() -> highnoon::Result<()> {
         assert_eq!(resp.status(), StatusCode::CREATED);
 
         // CHECK FOR CONFIG UPDATE MESSAGE
-        let msg = amqp_chan
-            .basic_get(queue.name().as_str(), BasicGetOptions::default())
-            .await?
+        let get = amqp_chan
+            .basic_get(queue.name().as_str(), BasicGetOptions::default());
+
+        let msg = timeout(Duration::from_secs(30), get)
+            .await??
             .expect("no message on the config update queue");
         let data = String::from_utf8(msg.delivery.data)?;
         assert_eq!(
