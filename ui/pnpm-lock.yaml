@@ -7,7 +7,7 @@ settings:
 dependencies:
   '@ant-design/charts':
     specifier: ^2.2.6
-    version: 2.6.1(react-dom@19.2.0)(react@19.2.0)(workerize-loader@2.0.2)
+    version: 2.6.6(react-dom@19.2.0)(react@19.2.0)(workerize-loader@2.0.2)
   '@ant-design/colors':
     specifier: ^7.2.0
     version: 7.2.1
@@ -16,7 +16,7 @@ dependencies:
     version: 6.0.0(react-dom@19.2.0)(react@19.2.0)
   '@ant-design/pro-components':
     specifier: ^2.8.6
-    version: 2.8.10(antd@5.27.1)(rc-field-form@2.7.0)(react-dom@19.2.0)(react@19.2.0)
+    version: 2.8.10(antd@5.27.1)(rc-field-form@2.7.1)(react-dom@19.2.0)(react@19.2.0)
   '@ant-design/pro-provider':
     specifier: ^2.15.3
     version: 2.16.2(antd@5.27.1)(react-dom@19.2.0)(react@19.2.0)
@@ -154,14 +154,14 @@ packages:
       react-dom: 19.2.0(react@19.2.0)
     dev: false
 
-  /@ant-design/charts@2.6.1(react-dom@19.2.0)(react@19.2.0)(workerize-loader@2.0.2):
-    resolution: {integrity: sha512-IIIFgg49VCO01mc7t2+wlMQnFNwjV0KqO2n9fhMwif/+r0W0ELOzdMbNkrzkZPEWp9p5YhN6cnlnkGeUt488cg==}
+  /@ant-design/charts@2.6.6(react-dom@19.2.0)(react@19.2.0)(workerize-loader@2.0.2):
+    resolution: {integrity: sha512-Mw2XqB9c7JoENyewJmtxU+5TU2sW5VEyct2f6n4HjJ/6hBo4ht3qdu965G3UrNLyiRctd47Qje32u+8DeFZ6Bg==}
     peerDependencies:
       react: '>=16.8.4'
       react-dom: '>=16.8.4'
     dependencies:
-      '@ant-design/graphs': 2.1.0(react-dom@19.2.0)(react@19.2.0)(workerize-loader@2.0.2)
-      '@ant-design/plots': 2.6.1(react-dom@19.2.0)(react@19.2.0)
+      '@ant-design/graphs': 2.1.1(react-dom@19.2.0)(react@19.2.0)(workerize-loader@2.0.2)
+      '@ant-design/plots': 2.6.6(react-dom@19.2.0)(react@19.2.0)
       lodash: 4.17.21
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
@@ -223,15 +223,15 @@ packages:
     engines: {node: '>=8.x'}
     dev: false
 
-  /@ant-design/graphs@2.1.0(react-dom@19.2.0)(react@19.2.0)(workerize-loader@2.0.2):
-    resolution: {integrity: sha512-JavZyJVDRyO5wjReqz3CRYhml5MMpOe+fT4ucebdkfOfWYTlOG+W9vxtNSITJmCGHUVphQkQo9r1CPkZysDT0g==}
+  /@ant-design/graphs@2.1.1(react-dom@19.2.0)(react@19.2.0)(workerize-loader@2.0.2):
+    resolution: {integrity: sha512-qT3Oo8BWeoAmZEy9gfR6uIk+rczbNJ3sWXKonoOD5koATWv7dY0kgvS1JnhdM1QW4FkfPPJTeQVSlRRUtvWDwA==}
     peerDependencies:
       react: '>=16.8.4'
       react-dom: '>=16.8.4'
     dependencies:
       '@ant-design/charts-util': 0.0.1-alpha.7(react-dom@19.2.0)(react@19.2.0)
-      '@antv/g6': 5.0.49(workerize-loader@2.0.2)
-      '@antv/g6-extension-react': 0.2.4(@antv/g6@5.0.49)(react-dom@19.2.0)(react@19.2.0)
+      '@antv/g6': 5.0.50(workerize-loader@2.0.2)
+      '@antv/g6-extension-react': 0.2.6(@antv/g6@5.0.50)(react-dom@19.2.0)(react@19.2.0)
       '@antv/graphin': 3.0.5(react-dom@19.2.0)(react@19.2.0)(workerize-loader@2.0.2)
       lodash: 4.17.21
       react: 19.2.0
@@ -276,16 +276,16 @@ packages:
       react-dom: 19.2.0(react@19.2.0)
     dev: false
 
-  /@ant-design/plots@2.6.1(react-dom@19.2.0)(react@19.2.0):
-    resolution: {integrity: sha512-X46qm2QcXJVV6hL+pcqtj9TsLEkOrow+uq7zDRQKbXWg9Um525GRnbF7PdaS89Rwoo3RdhrA3+T97VbQVYD0wQ==}
+  /@ant-design/plots@2.6.6(react-dom@19.2.0)(react@19.2.0):
+    resolution: {integrity: sha512-yUcvW/b7FPiIKwCpC0AOYQhHVKFCOpthlizsJx2Tuq7OEzTCLSWjRjT8o8sEWo3CCtIAtAuLY4GOfGdGGz1f0A==}
     peerDependencies:
       react: '>=16.8.4'
       react-dom: '>=16.8.4'
     dependencies:
       '@ant-design/charts-util': 0.0.2(react-dom@19.2.0)(react@19.2.0)
       '@antv/event-emitter': 0.1.3
-      '@antv/g': 6.1.27
-      '@antv/g2': 5.3.5
+      '@antv/g': 6.1.28
+      '@antv/g2': 5.4.4
       '@antv/g2-extension-plot': 0.2.2
       lodash: 4.17.21
       react: 19.2.0
@@ -312,7 +312,7 @@ packages:
       - react-dom
     dev: false
 
-  /@ant-design/pro-components@2.8.10(antd@5.27.1)(rc-field-form@2.7.0)(react-dom@19.2.0)(react@19.2.0):
+  /@ant-design/pro-components@2.8.10(antd@5.27.1)(rc-field-form@2.7.1)(react-dom@19.2.0)(react@19.2.0):
     resolution: {integrity: sha512-QHnnIXdmC5GTAtm6i8eeJy5yT9npPlFyxpDm+duiDrTRKRFaAQBduArxlH3DA/hoRCCypzPONxfK9BQNIhIyZA==}
     peerDependencies:
       antd: ^4.24.15 || ^5.11.2
@@ -320,14 +320,14 @@ packages:
       react-dom: '>=17.0.0'
     dependencies:
       '@ant-design/pro-card': 2.10.0(antd@5.27.1)(react-dom@19.2.0)(react@19.2.0)
-      '@ant-design/pro-descriptions': 2.6.10(antd@5.27.1)(rc-field-form@2.7.0)(react-dom@19.2.0)(react@19.2.0)
+      '@ant-design/pro-descriptions': 2.6.10(antd@5.27.1)(rc-field-form@2.7.1)(react-dom@19.2.0)(react@19.2.0)
       '@ant-design/pro-field': 3.1.0(antd@5.27.1)(react-dom@19.2.0)(react@19.2.0)
-      '@ant-design/pro-form': 2.32.0(antd@5.27.1)(rc-field-form@2.7.0)(react-dom@19.2.0)(react@19.2.0)
+      '@ant-design/pro-form': 2.32.0(antd@5.27.1)(rc-field-form@2.7.1)(react-dom@19.2.0)(react@19.2.0)
       '@ant-design/pro-layout': 7.22.7(antd@5.27.1)(react-dom@19.2.0)(react@19.2.0)
-      '@ant-design/pro-list': 2.6.10(antd@5.27.1)(rc-field-form@2.7.0)(react-dom@19.2.0)(react@19.2.0)
+      '@ant-design/pro-list': 2.6.10(antd@5.27.1)(rc-field-form@2.7.1)(react-dom@19.2.0)(react@19.2.0)
       '@ant-design/pro-provider': 2.16.2(antd@5.27.1)(react-dom@19.2.0)(react@19.2.0)
       '@ant-design/pro-skeleton': 2.2.1(antd@5.27.1)(react-dom@19.2.0)(react@19.2.0)
-      '@ant-design/pro-table': 3.21.0(antd@5.27.1)(rc-field-form@2.7.0)(react-dom@19.2.0)(react@19.2.0)
+      '@ant-design/pro-table': 3.21.0(antd@5.27.1)(rc-field-form@2.7.1)(react-dom@19.2.0)(react@19.2.0)
       '@ant-design/pro-utils': 2.18.0(antd@5.27.1)(react-dom@19.2.0)(react@19.2.0)
       '@babel/runtime': 7.28.3
       antd: 5.27.1(react-dom@19.2.0)(react@19.2.0)
@@ -337,14 +337,14 @@ packages:
       - rc-field-form
     dev: false
 
-  /@ant-design/pro-descriptions@2.6.10(antd@5.27.1)(rc-field-form@2.7.0)(react-dom@19.2.0)(react@19.2.0):
+  /@ant-design/pro-descriptions@2.6.10(antd@5.27.1)(rc-field-form@2.7.1)(react-dom@19.2.0)(react@19.2.0):
     resolution: {integrity: sha512-+4MbiOfumnWlW0Awm4m8JML5o3lR649FD24AaivCmr8BQvIAAXdTITnDMXEg8BqvdP4KOvNsStZrvYfqoev33A==}
     peerDependencies:
       antd: ^4.24.15 || ^5.11.2
       react: '>=17.0.0'
     dependencies:
       '@ant-design/pro-field': 3.1.0(antd@5.27.1)(react-dom@19.2.0)(react@19.2.0)
-      '@ant-design/pro-form': 2.32.0(antd@5.27.1)(rc-field-form@2.7.0)(react-dom@19.2.0)(react@19.2.0)
+      '@ant-design/pro-form': 2.32.0(antd@5.27.1)(rc-field-form@2.7.1)(react-dom@19.2.0)(react@19.2.0)
       '@ant-design/pro-provider': 2.16.2(antd@5.27.1)(react-dom@19.2.0)(react@19.2.0)
       '@ant-design/pro-skeleton': 2.2.1(antd@5.27.1)(react-dom@19.2.0)(react@19.2.0)
       '@ant-design/pro-utils': 2.18.0(antd@5.27.1)(react-dom@19.2.0)(react@19.2.0)
@@ -381,7 +381,7 @@ packages:
       - react-dom
     dev: false
 
-  /@ant-design/pro-form@2.32.0(antd@5.27.1)(rc-field-form@2.7.0)(react-dom@19.2.0)(react@19.2.0):
+  /@ant-design/pro-form@2.32.0(antd@5.27.1)(rc-field-form@2.7.1)(react-dom@19.2.0)(react@19.2.0):
     resolution: {integrity: sha512-GZnVAMeYv+YHJb17lJ7rX5PYuQPvEA6EotQnPbHi9tGLN3PfexcAd21rqzuO+OrulU2x7TEMDIxtY9MzvvOGbg==}
     peerDependencies:
       antd: ^4.24.15 || ^5.11.2
@@ -401,7 +401,7 @@ packages:
       dayjs: 1.11.13
       lodash: 4.17.21
       lodash-es: 4.17.21
-      rc-field-form: 2.7.0(react-dom@19.2.0)(react@19.2.0)
+      rc-field-form: 2.7.1(react-dom@19.2.0)(react@19.2.0)
       rc-resize-observer: 1.4.3(react-dom@19.2.0)(react@19.2.0)
       rc-util: 5.44.4(react-dom@19.2.0)(react@19.2.0)
       react: 19.2.0
@@ -435,7 +435,7 @@ packages:
       warning: 4.0.3
     dev: false
 
-  /@ant-design/pro-list@2.6.10(antd@5.27.1)(rc-field-form@2.7.0)(react-dom@19.2.0)(react@19.2.0):
+  /@ant-design/pro-list@2.6.10(antd@5.27.1)(rc-field-form@2.7.1)(react-dom@19.2.0)(react@19.2.0):
     resolution: {integrity: sha512-xSWwnqCr+hPEYR4qY7nFUaxO5RQBxNlFaPNmobP2i+Im31slk9JuAusgWeIYO0mNhLJuLbxd8CCma2AZij3fBQ==}
     peerDependencies:
       antd: ^4.24.15 || ^5.11.2
@@ -446,7 +446,7 @@ packages:
       '@ant-design/icons': 5.6.1(react-dom@19.2.0)(react@19.2.0)
       '@ant-design/pro-card': 2.10.0(antd@5.27.1)(react-dom@19.2.0)(react@19.2.0)
       '@ant-design/pro-field': 3.1.0(antd@5.27.1)(react-dom@19.2.0)(react@19.2.0)
-      '@ant-design/pro-table': 3.21.0(antd@5.27.1)(rc-field-form@2.7.0)(react-dom@19.2.0)(react@19.2.0)
+      '@ant-design/pro-table': 3.21.0(antd@5.27.1)(rc-field-form@2.7.1)(react-dom@19.2.0)(react@19.2.0)
       '@ant-design/pro-utils': 2.18.0(antd@5.27.1)(react-dom@19.2.0)(react@19.2.0)
       '@babel/runtime': 7.28.3
       antd: 5.27.1(react-dom@19.2.0)(react@19.2.0)
@@ -491,7 +491,7 @@ packages:
       react-dom: 19.2.0(react@19.2.0)
     dev: false
 
-  /@ant-design/pro-table@3.21.0(antd@5.27.1)(rc-field-form@2.7.0)(react-dom@19.2.0)(react@19.2.0):
+  /@ant-design/pro-table@3.21.0(antd@5.27.1)(rc-field-form@2.7.1)(react-dom@19.2.0)(react@19.2.0):
     resolution: {integrity: sha512-sI81d3FYRv5sXamUc+M5CsHZ9CchuUQgOAPzo5H4oPAVL5h+mkYGRsBzPsxQX7khTNpWjrAtPoRm5ipx3vvWog==}
     peerDependencies:
       antd: ^4.24.15 || ^5.11.2
@@ -503,7 +503,7 @@ packages:
       '@ant-design/icons': 5.6.1(react-dom@19.2.0)(react@19.2.0)
       '@ant-design/pro-card': 2.10.0(antd@5.27.1)(react-dom@19.2.0)(react@19.2.0)
       '@ant-design/pro-field': 3.1.0(antd@5.27.1)(react-dom@19.2.0)(react@19.2.0)
-      '@ant-design/pro-form': 2.32.0(antd@5.27.1)(rc-field-form@2.7.0)(react-dom@19.2.0)(react@19.2.0)
+      '@ant-design/pro-form': 2.32.0(antd@5.27.1)(rc-field-form@2.7.1)(react-dom@19.2.0)(react@19.2.0)
       '@ant-design/pro-provider': 2.16.2(antd@5.27.1)(react-dom@19.2.0)(react@19.2.0)
       '@ant-design/pro-utils': 2.18.0(antd@5.27.1)(react-dom@19.2.0)(react@19.2.0)
       '@babel/runtime': 7.28.3
@@ -516,7 +516,7 @@ packages:
       dayjs: 1.11.13
       lodash: 4.17.21
       lodash-es: 4.17.21
-      rc-field-form: 2.7.0(react-dom@19.2.0)(react@19.2.0)
+      rc-field-form: 2.7.1(react-dom@19.2.0)(react@19.2.0)
       rc-resize-observer: 1.4.3(react-dom@19.2.0)(react@19.2.0)
       rc-util: 5.44.4(react-dom@19.2.0)(react@19.2.0)
       react: 19.2.0
@@ -565,10 +565,10 @@ packages:
       tslib: 2.8.1
     dev: false
 
-  /@antv/component@2.1.5:
-    resolution: {integrity: sha512-+Pqu6CLkGTvYZw+UQK03B/yiR0h2Zu65tyUGUQkNuPv49Zwe4WqDZqqu94bqT1F07OAAVjeXLCTvhBb954DLXQ==}
+  /@antv/component@2.1.9:
+    resolution: {integrity: sha512-HPvE3AtlnzJZSEGk3jGphG+zVV8z7dH3PeF0sM2rX5WLvUUyAA79QwMZ+WAhF6C3e2VgSUx342PH75tm/LGnmg==}
     dependencies:
-      '@antv/g': 6.1.27
+      '@antv/g': 6.1.28
       '@antv/scale': 0.4.16
       '@antv/util': 3.3.11
       svg-path-parser: 1.1.0
@@ -579,7 +579,7 @@ packages:
     dependencies:
       '@antv/scale': 0.4.16
       '@antv/util': 2.0.17
-      gl-matrix: 3.4.3
+      gl-matrix: 3.4.4
     dev: false
 
   /@antv/event-emitter@0.1.3:
@@ -590,47 +590,47 @@ packages:
     resolution: {integrity: sha512-vrfdmPHkTuiS5voVutKl2l06w1ihBh9A8SFdQPEE+2KMVpkymzGOF1eWpfkbGZ7tiFE15GodVdhhHomD/hdIwg==}
     dev: false
 
-  /@antv/g-camera-api@2.0.40:
-    resolution: {integrity: sha512-Pq3XLDgRk+TT2u7pcyBavPP9MCLzfsCwknrUqiGcBo9lXCUI9ZcWWquehv8dVXX8df4q9u4dFFJYQ1wQFx+mKA==}
+  /@antv/g-camera-api@2.0.41:
+    resolution: {integrity: sha512-dF52/wpzHDKi7ZzPlaHurEjWrF9aBKL2udDwQkEeVtfkJ0DHaavr3BAvhuGhtHoecRYQJvpzP1OkGNDLQJQQlw==}
     dependencies:
-      '@antv/g-lite': 2.3.1
+      '@antv/g-lite': 2.3.2
       '@antv/util': 3.3.11
       '@babel/runtime': 7.28.3
-      gl-matrix: 3.4.3
+      gl-matrix: 3.4.4
       tslib: 2.8.1
     dev: false
 
-  /@antv/g-canvas@2.0.47:
-    resolution: {integrity: sha512-IB7GvL9QXEQoVvQwOrcvxt0wD+9MQ7uSLS0mXyUeyURj3YUiOSO9aDgc7CdmkjwDvjd3eLmnqOROTFO+NWAtnA==}
+  /@antv/g-canvas@2.0.48:
+    resolution: {integrity: sha512-P98cTLRbKbCAcUVgHqMjKcvOany6nR7wvt+g+sazIfKSMUCWgjLTOjlLezux2up3At29mt80StaV2AR3d61YQA==}
     dependencies:
-      '@antv/g-lite': 2.3.1
-      '@antv/g-plugin-canvas-path-generator': 2.1.21
-      '@antv/g-plugin-canvas-picker': 2.1.26
-      '@antv/g-plugin-canvas-renderer': 2.3.2
-      '@antv/g-plugin-dom-interaction': 2.1.26
-      '@antv/g-plugin-html-renderer': 2.1.26
-      '@antv/g-plugin-image-loader': 2.1.25
+      '@antv/g-lite': 2.3.2
+      '@antv/g-plugin-canvas-path-generator': 2.1.22
+      '@antv/g-plugin-canvas-picker': 2.1.27
+      '@antv/g-plugin-canvas-renderer': 2.3.3
+      '@antv/g-plugin-dom-interaction': 2.1.27
+      '@antv/g-plugin-html-renderer': 2.1.27
+      '@antv/g-plugin-image-loader': 2.1.26
       '@antv/util': 3.3.11
       '@babel/runtime': 7.28.3
       tslib: 2.8.1
     dev: false
 
-  /@antv/g-dom-mutation-observer-api@2.0.37:
-    resolution: {integrity: sha512-s2pmAtyoq8WAkkcgc0f/Tq27RlRckjcGDspqWadxNNwTQrkOVuCFshb7an0Vd/NpU3y0e8aZi+t6TUeew7qzlA==}
+  /@antv/g-dom-mutation-observer-api@2.0.38:
+    resolution: {integrity: sha512-xzgbt8GUOiToBeDVv+jmGkDE+HtI9tD6uO8TirJbCya88DKcY/jurQALq0NdWKgMJLn7WPiUKyDwHWimwQcBJw==}
     dependencies:
-      '@antv/g-lite': 2.3.1
+      '@antv/g-lite': 2.3.2
       '@babel/runtime': 7.28.3
     dev: false
 
-  /@antv/g-lite@2.3.1:
-    resolution: {integrity: sha512-9Dwc/IItd5oIB+70rfkaVwHs6yT42M88KT1F4/g5mJnL4lpBprCj+yWXBkoS1gKIvc4ua2KOd2wEGv4ziTMvJA==}
+  /@antv/g-lite@2.3.2:
+    resolution: {integrity: sha512-fkIxRoqLOGsNPwsp26bPp58cPWuX3E4wQ9cfkB/DHy5LtLrPpvOwHWB3+MBPgZwzk8jTTjchiXa756ZFOAWyQQ==}
     dependencies:
       '@antv/g-math': 3.0.1
       '@antv/util': 3.3.11
       '@antv/vendor': 1.0.11
       '@babel/runtime': 7.28.3
       eventemitter3: 5.0.1
-      gl-matrix: 3.4.3
+      gl-matrix: 3.4.4
       rbush: 3.0.1
       tslib: 2.8.1
     dev: false
@@ -640,118 +640,118 @@ packages:
     dependencies:
       '@antv/util': 3.3.11
       '@babel/runtime': 7.28.3
-      gl-matrix: 3.4.3
+      gl-matrix: 3.4.4
       tslib: 2.8.1
     dev: false
 
-  /@antv/g-plugin-canvas-path-generator@2.1.21:
-    resolution: {integrity: sha512-vA53t7H/K/yXGs7hzEcYL27bxDq6eNcPRjfqSNB41hn5UjKZkwm5zslow8reWW+xvFmFfOmLBHxLFzACVgbz5w==}
+  /@antv/g-plugin-canvas-path-generator@2.1.22:
+    resolution: {integrity: sha512-Z0IawzTGgTppa9IpkNNKsqgoU89oOjUsiU8GZZlkDkUggQTHP0wOxTeLAb43YgClx3aTI3bRs44uMQutNdSVxw==}
     dependencies:
-      '@antv/g-lite': 2.3.1
+      '@antv/g-lite': 2.3.2
       '@antv/g-math': 3.0.1
       '@antv/util': 3.3.11
       '@babel/runtime': 7.28.3
       tslib: 2.8.1
     dev: false
 
-  /@antv/g-plugin-canvas-picker@2.1.26:
-    resolution: {integrity: sha512-gH0Ji6c0BQ0wKf/1QHstjsM1UflPWAPQqZwrbwxa4qBqhqZ1uLjcabUa6xpjcXIcV4E+B2QX46+Rud0If7CdIw==}
+  /@antv/g-plugin-canvas-picker@2.1.27:
+    resolution: {integrity: sha512-DHQ0YLYNXAm6O63pW6nKs/R0fuqlUYfehNs/EtzrmqyUkKASd/Vhs4HLNeHTMUdBMgg41T+x5qay0GGttK4Xdw==}
     dependencies:
-      '@antv/g-lite': 2.3.1
+      '@antv/g-lite': 2.3.2
       '@antv/g-math': 3.0.1
-      '@antv/g-plugin-canvas-path-generator': 2.1.21
-      '@antv/g-plugin-canvas-renderer': 2.3.2
+      '@antv/g-plugin-canvas-path-generator': 2.1.22
+      '@antv/g-plugin-canvas-renderer': 2.3.3
       '@antv/util': 3.3.11
       '@babel/runtime': 7.28.3
-      gl-matrix: 3.4.3
+      gl-matrix: 3.4.4
       tslib: 2.8.1
     dev: false
 
-  /@antv/g-plugin-canvas-renderer@2.3.2:
-    resolution: {integrity: sha512-32oh/ZXyihPdisIcpna9q+CwM7TinQw65hLGItY+z1zESswQZb1oYV6G9EdeqeGeoXYK+U/hfu8gM+haMMoNvw==}
+  /@antv/g-plugin-canvas-renderer@2.3.3:
+    resolution: {integrity: sha512-d6JkZy1YmLnvI9wsbO8QVpBz7z7tl6JRQkF5hx9XLDtf2fD4n83KINeMq13skiNwaiudS771WWiBtfzUHB73pQ==}
     dependencies:
-      '@antv/g-lite': 2.3.1
+      '@antv/g-lite': 2.3.2
       '@antv/g-math': 3.0.1
-      '@antv/g-plugin-canvas-path-generator': 2.1.21
-      '@antv/g-plugin-image-loader': 2.1.25
+      '@antv/g-plugin-canvas-path-generator': 2.1.22
+      '@antv/g-plugin-image-loader': 2.1.26
       '@antv/util': 3.3.11
       '@babel/runtime': 7.28.3
-      gl-matrix: 3.4.3
+      gl-matrix: 3.4.4
       tslib: 2.8.1
     dev: false
 
-  /@antv/g-plugin-dom-interaction@2.1.26:
-    resolution: {integrity: sha512-3DVsP1wHiLVXkGcjTyCfdlddP+du54s8XkjpBz4mW6Ynufz6C9OXR8A6Fgm62I+VJ+UVu9Cir4kyffpXt/sRkw==}
+  /@antv/g-plugin-dom-interaction@2.1.27:
+    resolution: {integrity: sha512-hltVZZH+bj0uXmGSR+6BIwhCFYyHmDIQi3vrj/Wn1Dn6PgufvMCXfjr3DfmkQnY+FFP8ZCpg5N9MaE0BE9OddA==}
     dependencies:
-      '@antv/g-lite': 2.3.1
+      '@antv/g-lite': 2.3.2
       '@babel/runtime': 7.28.3
       tslib: 2.8.1
     dev: false
 
-  /@antv/g-plugin-dragndrop@2.0.37:
-    resolution: {integrity: sha512-cStWWmXe6cNQpSlr22vrA8Moub8l4TXO0A8wvm7cTZg0DIkbBA1KaL18a7tNE1W3xUSkO8ttLmHcwv2xDLEADA==}
+  /@antv/g-plugin-dragndrop@2.0.38:
+    resolution: {integrity: sha512-yCef5ER759i0WpuOekFQ+AcDTu0N/COMbkPOG6YuswVnhQH447GUpuNm7Le+Mq26qONlXTDyjxuMHoUOWwJ7Cw==}
     dependencies:
-      '@antv/g-lite': 2.3.1
-      '@antv/util': 3.3.11
-      '@babel/runtime': 7.28.3
-      tslib: 2.8.1
-    dev: false
-
-  /@antv/g-plugin-html-renderer@2.1.26:
-    resolution: {integrity: sha512-G74ZAicXLYS93my4ciKr0HiW7VDcBnVLSL0mLO2mfrACDKme6+Xo03Cu0Bkdlt7iraKYR3soO6TFCc9hatIx5A==}
-    dependencies:
-      '@antv/g-lite': 2.3.1
-      '@antv/util': 3.3.11
-      '@babel/runtime': 7.28.3
-      gl-matrix: 3.4.3
-      tslib: 2.8.1
-    dev: false
-
-  /@antv/g-plugin-image-loader@2.1.25:
-    resolution: {integrity: sha512-J5eCow6zZa5krXDMfIemt5Y10nWmUQmeBig+o/STRoo4MTpWrUrBuG/LgNaOw/tbXar7/Anf2yuahit4pKwc4A==}
-    dependencies:
-      '@antv/g-lite': 2.3.1
-      '@antv/util': 3.3.11
-      '@babel/runtime': 7.28.3
-      gl-matrix: 3.4.3
-      tslib: 2.8.1
-    dev: false
-
-  /@antv/g-plugin-svg-picker@2.0.41:
-    resolution: {integrity: sha512-j0VqmBCN2v23lZvuBG7Le7em35XhTiv3PKhjnCM53R8uREJGDiWFIVuFZ5FOzosFMOCoPz/1/Uc6tV4c5KYe5w==}
-    dependencies:
-      '@antv/g-lite': 2.3.1
-      '@antv/g-plugin-svg-renderer': 2.2.23
-      '@babel/runtime': 7.28.3
-      tslib: 2.8.1
-    dev: false
-
-  /@antv/g-plugin-svg-renderer@2.2.23:
-    resolution: {integrity: sha512-NtZsI3394MQVZ6V0r1PISNegcRXlZGnda+O1Y+X6TTVe/qS8rtdOh+Vh7M6/JH/oqYMkQ9NF6pM/IbjYwRA5ag==}
-    dependencies:
-      '@antv/g-lite': 2.3.1
-      '@antv/util': 3.3.11
-      '@babel/runtime': 7.28.3
-      gl-matrix: 3.4.3
-      tslib: 2.8.1
-    dev: false
-
-  /@antv/g-svg@2.0.41:
-    resolution: {integrity: sha512-QgzfAR1pA3CygQmq/G1+Onx51mrqrv8jFsoE8ugjgwkEKaNmv5BndZZnzZY9YGnon2UZ+QcGUrj1fJkO2eY02g==}
-    dependencies:
-      '@antv/g-lite': 2.3.1
-      '@antv/g-plugin-dom-interaction': 2.1.26
-      '@antv/g-plugin-svg-picker': 2.0.41
-      '@antv/g-plugin-svg-renderer': 2.2.23
+      '@antv/g-lite': 2.3.2
       '@antv/util': 3.3.11
       '@babel/runtime': 7.28.3
       tslib: 2.8.1
     dev: false
 
-  /@antv/g-web-animations-api@2.1.27:
-    resolution: {integrity: sha512-oqyVXBipFZ3l+LpTy6kbxUo0r0MrjLcxe186KpUxp7eA64vWSBVjNocUrPM7UKdGPJpudhUJYPFHRHzPnKlssQ==}
+  /@antv/g-plugin-html-renderer@2.1.27:
+    resolution: {integrity: sha512-NnI4GxDBb71o/XZzoRdi0xI3xg7GJmthyO5xP5/MiOFmwJ/jW/QDz17vUonmzUVbCt6upikHV5GyYOaogRqdVg==}
     dependencies:
-      '@antv/g-lite': 2.3.1
+      '@antv/g-lite': 2.3.2
+      '@antv/util': 3.3.11
+      '@babel/runtime': 7.28.3
+      gl-matrix: 3.4.4
+      tslib: 2.8.1
+    dev: false
+
+  /@antv/g-plugin-image-loader@2.1.26:
+    resolution: {integrity: sha512-AElV0QOX2LAhB3jr9XtvkynntuKhcaU5n7avu5ynM5VoAtMaJRANhCyefA2G3myeJxWcHk4nWDX6u4YMaZnnvw==}
+    dependencies:
+      '@antv/g-lite': 2.3.2
+      '@antv/util': 3.3.11
+      '@babel/runtime': 7.28.3
+      gl-matrix: 3.4.4
+      tslib: 2.8.1
+    dev: false
+
+  /@antv/g-plugin-svg-picker@2.0.42:
+    resolution: {integrity: sha512-MxnaDdLM251Mv+o66emC6TKAoz0uVaPvlbE7eIZ35Aa/UIlkPMtbMBruBOh2JR/C8JKAn9N1V3CYx3WLxiPfYg==}
+    dependencies:
+      '@antv/g-lite': 2.3.2
+      '@antv/g-plugin-svg-renderer': 2.2.24
+      '@babel/runtime': 7.28.3
+      tslib: 2.8.1
+    dev: false
+
+  /@antv/g-plugin-svg-renderer@2.2.24:
+    resolution: {integrity: sha512-QTq+rMNtD1Yg6fT6HqkCViho21rESIvhORzv9y/J/zmY3CkBWpg8JtiRqDhDBuce+1dxjO193fiR8L7ZW9+Ziw==}
+    dependencies:
+      '@antv/g-lite': 2.3.2
+      '@antv/util': 3.3.11
+      '@babel/runtime': 7.28.3
+      gl-matrix: 3.4.4
+      tslib: 2.8.1
+    dev: false
+
+  /@antv/g-svg@2.0.42:
+    resolution: {integrity: sha512-0vunUSvG1CgcW2bzSY8H7naa8ItU1k/l2sdyrvlcdM2mAvq5Yjx2MFm0PBCMvvSr8w4JKW0I0fnvk35NePf3uA==}
+    dependencies:
+      '@antv/g-lite': 2.3.2
+      '@antv/g-plugin-dom-interaction': 2.1.27
+      '@antv/g-plugin-svg-picker': 2.0.42
+      '@antv/g-plugin-svg-renderer': 2.2.24
+      '@antv/util': 3.3.11
+      '@babel/runtime': 7.28.3
+      tslib: 2.8.1
+    dev: false
+
+  /@antv/g-web-animations-api@2.1.28:
+    resolution: {integrity: sha512-V5g8bO2D1hb8fRMMi5hXL/De+1UDRzW3C5EX07oazR0q71GONASP+sVwniZdt9R1HAmJSN5dvW3SqWeU3EEstQ==}
+    dependencies:
+      '@antv/g-lite': 2.3.2
       '@antv/util': 3.3.11
       '@babel/runtime': 7.28.3
       tslib: 2.8.1
@@ -760,51 +760,51 @@ packages:
   /@antv/g2-extension-plot@0.2.2:
     resolution: {integrity: sha512-KJXCXO7as+h0hDqirGXf1omrNuYzQmY3VmBmp7lIvkepbQ7sz3pPwy895r1FWETGF3vTk5UeFcAF5yzzBHWgbw==}
     dependencies:
-      '@antv/g2': 5.3.5
+      '@antv/g2': 5.4.4
       '@antv/util': 3.3.11
       '@antv/vendor': 1.0.11
     dev: false
 
-  /@antv/g2@5.3.5:
-    resolution: {integrity: sha512-Q2TPfWTf2fMwe02Uqk4Uvgy/RGXpGQXfSMPHKLkwTUh6WrFImpgzU4mHhUewKVu5ppPGGfvlwIbZcHeBnNb5ug==}
+  /@antv/g2@5.4.4:
+    resolution: {integrity: sha512-Bpwi+I7pzUvZl45VYuDkDixhFcTSqwI3tanq7cbtmUBXiuD8RBTigc6r2KXi56+scDsibIT0D8UEuBJvpvBF8g==}
     dependencies:
-      '@antv/component': 2.1.5
+      '@antv/component': 2.1.9
       '@antv/coord': 0.4.7
       '@antv/event-emitter': 0.1.3
       '@antv/expr': 1.0.2
-      '@antv/g': 6.1.27
-      '@antv/g-canvas': 2.0.47
-      '@antv/g-plugin-dragndrop': 2.0.37
-      '@antv/scale': 0.4.16
+      '@antv/g': 6.1.28
+      '@antv/g-canvas': 2.0.48
+      '@antv/g-plugin-dragndrop': 2.0.38
+      '@antv/scale': 0.5.2
       '@antv/util': 3.3.11
       '@antv/vendor': 1.0.11
       flru: 1.0.2
       pdfast: 0.2.0
     dev: false
 
-  /@antv/g6-extension-react@0.2.4(@antv/g6@5.0.49)(react-dom@19.2.0)(react@19.2.0):
-    resolution: {integrity: sha512-oE/yWrR7HLSU63vls+Re6ioICXEZ6ko4zmy9ypsjSXFdOHuWukS78qHyy7/hyjG5Ym2teGws3vcmSGYEjYbKMA==}
+  /@antv/g6-extension-react@0.2.6(@antv/g6@5.0.50)(react-dom@19.2.0)(react@19.2.0):
+    resolution: {integrity: sha512-JWOiWMz/r4jG+Nn2Y28LfohpxfUaf9M/0brLdKBshSVa4DraQFfQvA9OTIbzahLLoxIXsKKG2KteQ9QcXL26Kw==}
     peerDependencies:
-      '@antv/g6': ^5.0.49
+      '@antv/g6': ^5.0.50
       react: '>=16.8'
       react-dom: '>=16.8'
     dependencies:
-      '@antv/g': 6.1.27
-      '@antv/g-svg': 2.0.41
-      '@antv/g6': 5.0.49(workerize-loader@2.0.2)
+      '@antv/g': 6.1.28
+      '@antv/g-svg': 2.0.42
+      '@antv/g6': 5.0.50(workerize-loader@2.0.2)
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
     dev: false
 
-  /@antv/g6@5.0.49(workerize-loader@2.0.2):
-    resolution: {integrity: sha512-GRmK8oTVEgxjKbbhThIhnPOV1NcySLcSIGEod9RX/tbX4ME8txESb0zP0fDkuum26GLqvXgmIIIxRBE3m8VYPw==}
+  /@antv/g6@5.0.50(workerize-loader@2.0.2):
+    resolution: {integrity: sha512-L2ZdekSpJreIvSc4DkqGCh2bFmCadDZiR6q9euVtXdLeHPl/YQ4hqTvLIkc7aYO6oE/nC5mPAIOaM6ZiAy7QKA==}
     dependencies:
       '@antv/algorithm': 0.1.26
-      '@antv/component': 2.1.5
+      '@antv/component': 2.1.9
       '@antv/event-emitter': 0.1.3
-      '@antv/g': 6.1.27
-      '@antv/g-canvas': 2.0.47
-      '@antv/g-plugin-dragndrop': 2.0.37
+      '@antv/g': 6.1.28
+      '@antv/g-canvas': 2.0.48
+      '@antv/g-plugin-dragndrop': 2.0.38
       '@antv/graphlib': 2.0.4
       '@antv/hierarchy': 0.6.14
       '@antv/layout': 1.2.14-beta.9(workerize-loader@2.0.2)
@@ -814,13 +814,13 @@ packages:
       - workerize-loader
     dev: false
 
-  /@antv/g@6.1.27:
-    resolution: {integrity: sha512-s9rrGgxc3CFS2EY8Ap7/pwRBgBsGINbFFfndRsCh2BWU6u9GkpVuFWf8oQM31uaHM62wplJ6sdZZqyoIor1/RA==}
+  /@antv/g@6.1.28:
+    resolution: {integrity: sha512-BwavpbKGR4NEJD3BtVxfBFjCcxy5gsWoUNnBisfG1qfjhGTt7QvUYHFH46+mHJjHMIdYjuFw2T0ZYVtxBddxSg==}
     dependencies:
-      '@antv/g-camera-api': 2.0.40
-      '@antv/g-dom-mutation-observer-api': 2.0.37
-      '@antv/g-lite': 2.3.1
-      '@antv/g-web-animations-api': 2.1.27
+      '@antv/g-camera-api': 2.0.41
+      '@antv/g-dom-mutation-observer-api': 2.0.38
+      '@antv/g-lite': 2.3.2
+      '@antv/g-web-animations-api': 2.1.28
       '@babel/runtime': 7.28.3
     dev: false
 
@@ -830,7 +830,7 @@ packages:
       react: ^18.0.0 || ^19.1.0
       react-dom: ^18.0.0 || ^19.1.0
     dependencies:
-      '@antv/g6': 5.0.49(workerize-loader@2.0.2)
+      '@antv/g6': 5.0.50(workerize-loader@2.0.2)
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
     transitivePeerDependencies:
@@ -874,10 +874,18 @@ packages:
       fecha: 4.2.3
     dev: false
 
+  /@antv/scale@0.5.2:
+    resolution: {integrity: sha512-rTHRAwvpHWC5PGZF/mJ2ZuTDqwwvVBDRph0Uu5PV9BXwzV7K8+9lsqGJ+XHVLxe8c6bKog5nlzvV/dcYb0d5Ow==}
+    dependencies:
+      '@antv/util': 3.3.11
+      color-string: 1.9.1
+      fecha: 4.2.3
+    dev: false
+
   /@antv/util@2.0.17:
     resolution: {integrity: sha512-o6I9hi5CIUvLGDhth0RxNSFDRwXeywmt6ExR4+RmVAzIi48ps6HUy+svxOCayvrPBN37uE6TAc2KDofRo0nK9Q==}
     dependencies:
-      csstype: 3.1.3
+      csstype: 3.2.3
       tslib: 2.8.1
     dev: false
 
@@ -885,16 +893,16 @@ packages:
     resolution: {integrity: sha512-FII08DFM4ABh2q5rPYdr0hMtKXRgeZazvXaFYCs7J7uTcWDHUhczab2qOCJLNDugoj8jFag1djb7wS9ehaRYBg==}
     dependencies:
       fast-deep-equal: 3.1.3
-      gl-matrix: 3.4.3
+      gl-matrix: 3.4.4
       tslib: 2.8.1
     dev: false
 
   /@antv/vendor@1.0.11:
     resolution: {integrity: sha512-LmhPEQ+aapk3barntaiIxJ5VHno/Tyab2JnfdcPzp5xONh/8VSfed4bo/9xKo5HcUAEydko38vYLfj6lJliLiw==}
     dependencies:
-      '@types/d3-array': 3.2.1
+      '@types/d3-array': 3.2.2
       '@types/d3-color': 3.1.3
-      '@types/d3-dispatch': 3.0.6
+      '@types/d3-dispatch': 3.0.7
       '@types/d3-dsv': 3.0.7
       '@types/d3-ease': 3.0.2
       '@types/d3-fetch': 3.0.7
@@ -2037,6 +2045,11 @@ packages:
     resolution: {integrity: sha512-9uIQ10o0WGdpP6GDhXcdOJPJuDgFtIDtN/9+ArJQ2NAfAmiuhTQdzkaTGR33v43GYS2UrSA0eX2pPPHoFVvpxA==}
     engines: {node: '>=6.9.0'}
 
+  /@babel/runtime@7.28.4:
+    resolution: {integrity: sha512-Q/N6JNWvIvPnLDvjlE1OUBLPQHH6l3CltCEsHIujp45zQUSSh8K+gHnaEX45yAT1nyngnINhvWtzN+Nb9D8RAQ==}
+    engines: {node: '>=6.9.0'}
+    dev: false
+
   /@babel/template@7.27.2:
     resolution: {integrity: sha512-LPDZ85aEJyYSd18/DkjNh4/y1ntkE5KwUHWTiqgRxruuZL2F1yuHligVHLvcHY2vMHXttKFpJn6LwfI7cw7ODw==}
     engines: {node: '>=6.9.0'}
@@ -2364,16 +2377,16 @@ packages:
       react-is: 18.3.1
     dev: false
 
-  /@types/d3-array@3.2.1:
-    resolution: {integrity: sha512-Y2Jn2idRrLzUfAKV2LyRImR+y4oa2AntrgID95SHJxuMUrkNXmanDSed71sRNZysveJVt1hLLemQZIady0FpEg==}
+  /@types/d3-array@3.2.2:
+    resolution: {integrity: sha512-hOLWVbm7uRza0BYXpIIW5pxfrKe0W+D5lrFiAEYR+pb6w3N2SwSMaJbXdUfSEv+dT4MfHBLtn5js0LAWaO6otw==}
     dev: false
 
   /@types/d3-color@3.1.3:
     resolution: {integrity: sha512-iO90scth9WAbmgv7ogoq57O9YpKmFBbmoEoCHDB2xMBY0+/KVrqAaCDyCE16dUspeOvIxFFRI+0sEtqDqy2b4A==}
     dev: false
 
-  /@types/d3-dispatch@3.0.6:
-    resolution: {integrity: sha512-4fvZhzMeeuBJYZXRXrRIQnvUYfyXwYmLsdiN7XXmVNQKKw1cM8a5WdID0g1hVFZDqT9ZqZEY5pD44p24VS7iZQ==}
+  /@types/d3-dispatch@3.0.7:
+    resolution: {integrity: sha512-5o9OIAdKkhN1QItV2oqaE5KMIiXAvDWBDPrD85e58Qlz1c1kI/J0NcqbEG88CoTwJrYe7ntUCVfeUl2UJKbWgA==}
     dev: false
 
   /@types/d3-dsv@3.0.7:
@@ -2982,7 +2995,7 @@ packages:
     resolution: {integrity: sha512-shrVawQFojnZv6xM40anx4CkoDP+fZsw/ZerEMsW/pyzsRbElpsL/DBVW7q3ExxwusdNXI3lXpuhEZkzs8p5Eg==}
     dependencies:
       color-name: 1.1.4
-      simple-swizzle: 0.2.2
+      simple-swizzle: 0.2.4
     dev: false
 
   /colorette@2.0.20:
@@ -3122,6 +3135,10 @@ packages:
 
   /csstype@3.1.3:
     resolution: {integrity: sha512-M1uQkMl8rQK/szD0LNhtqxIPLpimGm8sOBwU7lLnCpSbTyY3yeU1Vc7l4KT5zT4s/yOxHH5O7tIuuLOCnLADRw==}
+
+  /csstype@3.2.3:
+    resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
+    dev: false
 
   /d3-array@3.2.4:
     resolution: {integrity: sha512-tdQAmyA18i4J7wprpYq8ClcxZy3SC31QMeByyCFyRt7BVHdREQZ5lpzoe5mFEYZUWe+oq8HBvk9JjpibyEV4Jg==}
@@ -3586,8 +3603,8 @@ packages:
       webpack: 5.100.2(webpack-cli@6.0.1)
     dev: true
 
-  /gl-matrix@3.4.3:
-    resolution: {integrity: sha512-wcCp8vu8FT22BnvKVPjXa/ICBWRq/zjFfdofZy1WSpQZpphblv12/bOQLBC1rMM7SGOFS9ltVmKOHil5+Ml7gA==}
+  /gl-matrix@3.4.4:
+    resolution: {integrity: sha512-latSnyDNt/8zYUB6VIJ6PCh2jBjJX6gnDsoCZ7LyW7GkqrD51EWwa9qCoGixj8YqBtETQK/xY7OmpTF8xz1DdQ==}
     dev: false
 
   /glob-to-regexp@0.4.1:
@@ -3745,8 +3762,8 @@ packages:
     resolution: {integrity: sha512-UtilS7hLRu++wb/WBAw9bNuP1Eg04Ivn1vERJck8zJthEvXCBEBpGR/33u/xLKWEQf95803oalHrVDptcAvFdQ==}
     dev: false
 
-  /is-arrayish@0.3.2:
-    resolution: {integrity: sha512-eVRqCvVlZbuw3GrM63ovNSNAeA1K16kaR/LRY/92w0zxQ5/1YzwblUX652i4Xs9RwAGjW9d9y6X88t8OaAJfWQ==}
+  /is-arrayish@0.3.4:
+    resolution: {integrity: sha512-m6UrgzFVUYawGBh1dUsWR5M2Clqic9RVXC/9f8ceNlv2IcO9j9J/z8UoCLPqtsPBFNzEpfR3xftohbfqDx8EQA==}
     dev: false
 
   /is-core-module@2.16.1:
@@ -4264,6 +4281,20 @@ packages:
       react-dom: '>=16.9.0'
     dependencies:
       '@babel/runtime': 7.28.3
+      '@rc-component/async-validator': 5.0.4
+      rc-util: 5.44.4(react-dom@19.2.0)(react@19.2.0)
+      react: 19.2.0
+      react-dom: 19.2.0(react@19.2.0)
+    dev: false
+
+  /rc-field-form@2.7.1(react-dom@19.2.0)(react@19.2.0):
+    resolution: {integrity: sha512-vKeSifSJ6HoLaAB+B8aq/Qgm8a3dyxROzCtKNCsBQgiverpc4kWDQihoUwzUj+zNWJOykwSY4dNX3QrGwtVb9A==}
+    engines: {node: '>=8.x'}
+    peerDependencies:
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+    dependencies:
+      '@babel/runtime': 7.28.4
       '@rc-component/async-validator': 5.0.4
       rc-util: 5.44.4(react-dom@19.2.0)(react@19.2.0)
       react: 19.2.0
@@ -4958,10 +4989,10 @@ packages:
     resolution: {integrity: sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A==}
     engines: {node: '>=8'}
 
-  /simple-swizzle@0.2.2:
-    resolution: {integrity: sha512-JA//kQgZtbuY83m+xT+tXJkmJncGMTFT+C+g2h2R9uxkYIrE2yy9sgmcLhCnw57/WSD+Eh3J97FPEDFnbXnDUg==}
+  /simple-swizzle@0.2.4:
+    resolution: {integrity: sha512-nAu1WFPQSMNr2Zn9PGSZK9AGn4t/y97lEm+MXTtUDwfP0ksAIX4nO+6ruD9Jwut4C49SB1Ws+fbXsm/yScWOHw==}
     dependencies:
-      is-arrayish: 0.3.2
+      is-arrayish: 0.3.4
     dev: false
 
   /source-map-js@1.2.1:
