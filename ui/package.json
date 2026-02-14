@@ -50,5 +50,8 @@
     "react-router-dom": "^7.0.0",
     "react-use-websocket": "^4.13.0",
     "styled-components": "^6.1.15"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["fsevents"]
   }
 }
