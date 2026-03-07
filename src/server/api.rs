@@ -5,7 +5,7 @@ use lapin::Channel;
 use sqlx::PgPool;
 use std::{ops::Deref, path::Path, sync::Arc};
 use tracing::{debug, warn};
-use axum::routing::{get, post, put, delete, get_service};
+use axum::routing::{get, post, put};
 use tower_http::{services::{ServeDir, ServeFile}, trace::TraceLayer};
 use axum::http::StatusCode;
 

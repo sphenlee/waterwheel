@@ -1,6 +1,6 @@
 use crate::{
     config::Config,
-    server::api::{App, AppResult, error::AppError /*job::get_job_project_id*/},
+    server::api::{App, AppResult, error::AppError, job::get_job_project_id},
 };
 use axum::{
     http::{HeaderMap, StatusCode},
@@ -164,7 +164,7 @@ impl Check<'_> {
             && object.project_id.is_none()
         {
             let pool = self.app.get_pool();
-            let project_id = /*get_job_project_id(&pool, job_id).await?*/todo!();
+            let project_id = get_job_project_id(&pool, job_id).await?;
             object.project_id = Some(project_id);
         }
 
@@ -180,7 +180,7 @@ impl Check<'_> {
     }
 }
 
-pub fn get(app: &App) -> Check {
+pub fn get(app: &App) -> Check<'_> {
     Check {
         app,
         action: Action::Get,
@@ -188,7 +188,7 @@ pub fn get(app: &App) -> Check {
     }
 }
 
-pub fn list(app: &App) -> Check {
+pub fn list(app: &App) -> Check<'_> {
     Check {
         app,
         action: Action::List,
@@ -196,7 +196,7 @@ pub fn list(app: &App) -> Check {
     }
 }
 
-pub fn update(app: &App) -> Check {
+pub fn update(app: &App) -> Check<'_> {
     Check {
         app,
         action: Action::Update,
@@ -204,7 +204,7 @@ pub fn update(app: &App) -> Check {
     }
 }
 
-pub fn delete(app: &App) -> Check {
+pub fn delete(app: &App) -> Check<'_> {
     Check {
         app,
         action: Action::Delete,

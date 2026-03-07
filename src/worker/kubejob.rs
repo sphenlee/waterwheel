@@ -61,10 +61,10 @@ pub async fn run_kubejob(
                 if let Some(conditions) = &status.conditions {
                     let complete = conditions
                         .iter()
-                        .any(|cond| (cond.status == "True" && cond.type_ == "Complete"));
+                        .any(|cond| cond.status == "True" && cond.type_ == "Complete");
                     let failed = conditions
                         .iter()
-                        .any(|cond| (cond.status == "True" && cond.type_ == "Failed"));
+                        .any(|cond| cond.status == "True" && cond.type_ == "Failed");
 
                     if complete {
                         result = true;

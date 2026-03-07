@@ -89,7 +89,7 @@ struct ListTaskRuns {
 pub async fn list_task_runs(
     State(app): State<App>,
     Path((task_id, trigger_datetime)): Path<(Uuid, DateTime<Utc>)>,
-    headers: HeaderMap,
+    _headers: HeaderMap,
 ) -> AppResult<Response> {
     // TODO - auth via a task id?
     //auth::list(&app).job(job_id, None).check(&headers).await?;

@@ -7,11 +7,11 @@ use chrono::{DateTime, Utc};
 use futures::TryStreamExt;
 use axum::{
     Json,
-    extract::{State, Path, Query},
+    extract::{State, Path},
     http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
 };
-use axum_extra::{TypedHeader, headers::{Authorization, HeaderMapExt, authorization::Bearer}};
+use axum_extra::headers::{Authorization, HeaderMapExt, authorization::Bearer};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use uuid::Uuid;
@@ -25,7 +25,7 @@ pub struct ActivateTokenParams {
 pub async fn activate_token(
     State(app): State<App>,
     Path((task_id, trigger_datetime)): Path<(Uuid, DateTime<Utc>)>,
-    headers: HeaderMap,
+    _headers: HeaderMap,
     Json(params): Json<ActivateTokenParams>,
 ) -> AppResult<Response> {
     // TODO auth check
@@ -77,7 +77,7 @@ struct ActivateTokenReply {
 pub async fn activate_multiple_tokens(
     State(app): State<App>,
     Path(task_id): Path<Uuid>,
-    headers: HeaderMap,
+    _headers: HeaderMap,
     Json(params): Json<ActivateMultipleTokensParams>,
 ) -> AppResult<Response> {
     if params.first.is_none() && params.last.is_none() && params.only_failed.is_none() {
