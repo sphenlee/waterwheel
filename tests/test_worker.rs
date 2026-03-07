@@ -22,7 +22,7 @@ const NULL_UUID: Uuid = Uuid::from_u128(0);
 
 #[tokio::main]
 #[test]
-pub async fn test_worker() -> highnoon::Result<()> {
+pub async fn test_worker() -> anyhow::Result<()> {
     common::with_external_services(|mut config| async move {
         config.task_engine = TaskEngine::Null;
 
@@ -167,7 +167,7 @@ pub async fn test_worker() -> highnoon::Result<()> {
 
 #[tokio::main]
 #[test]
-pub async fn test_worker_missing_taskid() -> highnoon::Result<()> {
+pub async fn test_worker_missing_taskid() -> anyhow::Result<()> {
     common::with_external_services(|mut config| async move {
         config.task_engine = TaskEngine::Null;
 

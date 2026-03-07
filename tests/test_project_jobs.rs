@@ -1,6 +1,6 @@
-use highnoon::StatusCode;
-use pretty_assertions::assert_eq;
-use serde_json::{Value, json};
+use axum_test::TestServer;
+use axum::http::StatusCode;
+use serde_json::json;
 use waterwheel::server::api::make_app;
 
 mod common;
@@ -8,9 +8,9 @@ mod common;
 #[tokio::main]
 #[test]
 
-pub async fn test_project_jobs() -> highnoon::Result<()> {
+pub async fn test_project_jobs() -> anyhow::Result<()> {
     common::with_external_services(|config| async {
-        let tc = make_app(config).await?.test();
+        let tc = TestServer::new(make_app(config).await?);
 
         let project_uuid = "00000000-0000-0000-0000-000000000000";
         let project_name = "integration_tests";
@@ -18,15 +18,14 @@ pub async fn test_project_jobs() -> highnoon::Result<()> {
         // CREATE A PROJECT
         let resp = tc
             .post("/api/projects")
-            .json(json!({
+            .json(&json!({
               "uuid": project_uuid,
               "name": project_name,
               "description": "Project used for integration tests"
-            }))?
-            .send()
-            .await?;
+            }))
+            .await;
 
-        assert_eq!(resp.status(), StatusCode::CREATED);
+        resp.assert_status(StatusCode::CREATED);
 
         // CREATE A JOB
         let job1_uuid = "00000000-0000-0000-0000-000000000001";
@@ -41,8 +40,9 @@ pub async fn test_project_jobs() -> highnoon::Result<()> {
             "tasks": [],
         });
 
-        let resp = tc.post("/api/jobs").json(job1)?.send().await?;
-        assert_eq!(resp.status(), StatusCode::CREATED);
+        let resp = tc.post("/api/jobs").json(&job1).await;
+
+        resp.assert_status(StatusCode::CREATED);
 
         // CREATE ANOTHER JOB
         let job2_uuid = "00000000-0000-0000-0000-000000000002";
@@ -57,15 +57,15 @@ pub async fn test_project_jobs() -> highnoon::Result<()> {
             "tasks": [],
         });
 
-        let resp = tc.post("/api/jobs").json(job2)?.send().await?;
-        assert_eq!(resp.status(), StatusCode::CREATED);
+        let resp = tc.post("/api/jobs").json(&job2).await;
+        
+        resp.assert_status(StatusCode::CREATED);
 
         // LIST JOBS
-        let mut resp = tc
-            .get(format!("/api/projects/{}/jobs", project_uuid))
-            .send()
-            .await?;
-        let job_list: Value = resp.body_json().await?;
+        let resp = tc
+            .get(&format!("/api/projects/{}/jobs", project_uuid))
+            .await;
+
         let expected_list = json!([
             {
                 "job_id": job1_uuid,
@@ -90,18 +90,18 @@ pub async fn test_project_jobs() -> highnoon::Result<()> {
                 "error": 0,
             },
         ]);
-        assert_eq!(resp.status(), StatusCode::OK);
-        assert_eq!(job_list, expected_list);
-
+        resp.assert_status_ok()
+            .assert_json(&expected_list);
+        
+        
         // GET A JOB BY NAME
-        let mut resp = tc
-            .get(format!(
+        let resp = tc
+            .get(&format!(
                 "/api/projects/{}/jobs?name={}",
                 project_uuid, job1_name
             ))
-            .send()
-            .await?;
-        let job_list: Value = resp.body_json().await?;
+            .await;
+        
         let expected_list = json!([
             {
                 "job_id": job1_uuid,
@@ -115,21 +115,20 @@ pub async fn test_project_jobs() -> highnoon::Result<()> {
                 "error": 0,
             },
         ]);
-        assert_eq!(resp.status(), StatusCode::OK);
-        assert_eq!(job_list, expected_list);
-
+        resp.assert_status_ok()
+            .assert_json(&expected_list);
+        
         // GET A NON-EXISTENT JOB BY NAME
-        let mut resp = tc
-            .get(format!(
+        let resp = tc
+            .get(&format!(
                 "/api/projects/{}/jobs?name={}",
                 project_uuid, "idontexist"
             ))
-            .send()
-            .await?;
-        let job_list: Value = resp.body_json().await?;
+            .await;
+
         let expected_list = json!([]);
-        assert_eq!(resp.status(), StatusCode::OK);
-        assert_eq!(job_list, expected_list);
+        resp.assert_status_ok()
+            .assert_json(&expected_list);
 
         Ok(())
     })

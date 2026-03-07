@@ -1,12 +1,13 @@
 use std::time::Duration;
 
-use highnoon::StatusCode;
+use axum_test::TestServer;
+use axum::http::StatusCode;
 use lapin::{
     options::{BasicGetOptions, QueueBindOptions, QueueDeclareOptions},
     types::FieldTable,
 };
 use pretty_assertions::assert_eq;
-use serde_json::{Value, json};
+use serde_json::json;
 use tokio::time::timeout;
 use waterwheel::server::{Server, api::make_app};
 
@@ -14,11 +15,11 @@ mod common;
 
 #[tokio::main]
 #[test]
-pub async fn test_project() -> highnoon::Result<()> {
+pub async fn test_project() -> anyhow::Result<()> {
     common::with_external_services(|config| async {
         let server = Server::new(config.clone()).await?;
 
-        let tc = make_app(config).await?.test();
+        let tc = TestServer::new(make_app(config).await?);
 
         // (setup a queue to receive the config updates - these are a fanout broadcast so
         // no queue is subscribed by default)
@@ -51,9 +52,9 @@ pub async fn test_project() -> highnoon::Result<()> {
               "description": "Project used for integration tests"
         });
 
-        let resp = tc.post("/api/projects").json(project)?.send().await?;
+        let resp = tc.post("/api/projects").json(&project).await;
 
-        assert_eq!(resp.status(), StatusCode::CREATED);
+        resp.assert_status(StatusCode::CREATED);
 
         // CHECK FOR CONFIG UPDATE MESSAGE
         let get = amqp_chan.basic_get(queue.name().as_str(), BasicGetOptions::default());
@@ -68,8 +69,8 @@ pub async fn test_project() -> highnoon::Result<()> {
         );
 
         // LIST ALL PROJECTS
-        let mut resp = tc.get("/api/projects").send().await?;
-        let proj_list: Value = resp.body_json().await?;
+        let resp = tc.get("/api/projects").await;
+        
         let expected_list = json!([
             {
                 "id": "00000000-0000-0000-0000-000000000000", // TODO - consistency, why id here, uuid above?
@@ -77,23 +78,22 @@ pub async fn test_project() -> highnoon::Result<()> {
                 "description": "Project used for integration tests"
             }
         ]);
-        assert_eq!(proj_list, expected_list);
+        resp.assert_json(&expected_list);
 
         // GET PROJECT BY NAME
-        let mut resp = tc
+        let resp = tc
             .get("/api/projects?name=integration_tests")
-            .send()
-            .await?;
-        let proj_list: Value = resp.body_json().await?;
+            .await;
+        
         let expected_project = json!({
               "id": "00000000-0000-0000-0000-000000000000",
               "name": "integration_tests",
               "description": "Project used for integration tests"
         });
-        assert_eq!(proj_list, expected_project);
+        resp.assert_json(&expected_project);
 
-        let resp = tc.get("/api/projects?name=no_such_name").send().await?;
-        assert_eq!(resp.status(), highnoon::StatusCode::NOT_FOUND);
+        let resp = tc.get("/api/projects?name=no_such_name").await;
+        resp.assert_status_not_found();
 
         Ok(())
     })

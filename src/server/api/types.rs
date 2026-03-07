@@ -113,7 +113,7 @@ mod test {
         assert_eq!(
             res.unwrap_err().to_string().as_str(),
             "unknown time unit \"x\", \
-            supported units: ns, us, ms, sec, min, hours, days, weeks, months, years (and few variations)"
+            supported units: ns, us/µs, ms, sec, min, hours, days, weeks, months, years (and few variations)"
         );
 
         let res = duration_from_string(Some(""));

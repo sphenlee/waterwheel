@@ -12,6 +12,7 @@ anymap3 = "1.0.0"
 async-trait = "0.1.83"
 axum = { version = "0.8.8", features = ["tokio", "http1", "macros", "ws"] }
 axum-extra = { version = "0.12.5", features = ["typed-header"] }
+axum-test = "19.1.1"
 binary-heap-plus = "0.5.0"
 bollard = "0.18"
 cadence = "1.5.0"
