@@ -1,15 +1,20 @@
 use crate::{
     messages::{ProcessToken, Token, TokenState},
-    server::api::{State, auth, request_ext::RequestExt, updates},
+    server::api::{App, AppResult, auth, error::AppError, updates},
+};
+use axum::{
+    Json,
+    extract::{Path, Query, State},
+    http::HeaderMap,
+    response::{IntoResponse, Response},
 };
 use chrono::{DateTime, Utc};
-use highnoon::{Json, Request, Responder};
 use serde::{Deserialize, Serialize};
 use std::{cmp::Reverse, collections::BTreeMap};
 use uuid::Uuid;
 
 #[derive(Deserialize)]
-struct QueryToken {
+pub struct QueryToken {
     state: Option<String>,
     before: Option<DateTime<Utc>>,
     limit: Option<i32>,
@@ -23,11 +28,14 @@ struct GetToken {
     state: String,
 }
 
-async fn get_tokens_common(req: Request<State>) -> highnoon::Result<Vec<GetToken>> {
-    let job_id = req.param("id")?.parse::<Uuid>()?;
-    let q = req.query::<QueryToken>()?;
-
-    auth::get().job(job_id, None).check(&req).await?;
+// helper now takes extracted values rather than Request
+async fn get_tokens_common(
+    app: &App,
+    headers: &HeaderMap,
+    job_id: Uuid,
+    q: &QueryToken,
+) -> AppResult<Vec<GetToken>> {
+    auth::get(app).job(job_id, None).check(headers).await?;
 
     let maybe_states: Option<Vec<_>> = q.state.as_ref().map(|s| s.split(',').collect());
 
@@ -35,7 +43,7 @@ async fn get_tokens_common(req: Request<State>) -> highnoon::Result<Vec<GetToken
         for state in states {
             let _ = state
                 .parse::<TokenState>()
-                .map_err(|err| highnoon::Error::bad_request(err.0))?;
+                .map_err(|err| AppError::http((axum::http::StatusCode::BAD_REQUEST, err.0)))?;
         }
     }
 
@@ -73,15 +81,21 @@ async fn get_tokens_common(req: Request<State>) -> highnoon::Result<Vec<GetToken
     .bind(q.before)
     .bind(q.limit.unwrap_or(200))
     .bind(maybe_states)
-    .fetch_all(&req.get_pool())
+    .fetch_all(&app.get_pool())
     .await?;
 
     Ok(tokens)
 }
 
-pub async fn get_tokens(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let tokens = get_tokens_common(req).await?;
-    Ok(Json(tokens))
+#[axum::debug_handler]
+pub async fn get_tokens(
+    State(app): State<App>,
+    Path(job_id): Path<Uuid>,
+    Query(q): Query<QueryToken>,
+    headers: HeaderMap,
+) -> AppResult<Response> {
+    let tokens = get_tokens_common(&app, &headers, job_id, &q).await?;
+    Ok(Json(tokens).into_response())
 }
 
 #[derive(Serialize)]
@@ -103,8 +117,14 @@ struct GetTokensOverview {
     tasks: Vec<String>,
 }
 
-pub async fn get_tokens_overview(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let tokens = get_tokens_common(req).await?;
+#[axum::debug_handler]
+pub async fn get_tokens_overview(
+    State(app): State<App>,
+    Path(job_id): Path<Uuid>,
+    Query(q): Query<QueryToken>,
+    headers: HeaderMap,
+) -> AppResult<Response> {
+    let tokens = get_tokens_common(&app, &headers, job_id, &q).await?;
 
     let mut tasks = tokens
         .iter()
@@ -143,14 +163,17 @@ pub async fn get_tokens_overview(req: Request<State>) -> highnoon::Result<impl R
     Ok(Json(GetTokensOverview {
         tokens: tokens_by_time,
         tasks,
-    }))
+    })
+    .into_response())
 }
 
-pub async fn get_tokens_trigger_datetime(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let job_id = req.param("id")?.parse::<Uuid>()?;
-    let trigger_datetime = req.param("trigger_datetime")?.parse::<DateTime<Utc>>()?;
-
-    auth::get().job(job_id, None).check(&req).await?;
+#[axum::debug_handler]
+pub async fn get_tokens_trigger_datetime(
+    State(app): State<App>,
+    Path((job_id, trigger_datetime)): Path<(Uuid, DateTime<Utc>)>,
+    headers: HeaderMap,
+) -> AppResult<Response> {
+    auth::get(&app).job(job_id, None).check(&headers).await?;
 
     let tokens: Vec<GetToken> = sqlx::query_as(
         "SELECT
@@ -168,10 +191,10 @@ pub async fn get_tokens_trigger_datetime(req: Request<State>) -> highnoon::Resul
     )
     .bind(job_id)
     .bind(trigger_datetime)
-    .fetch_all(&req.get_pool())
+    .fetch_all(&app.get_pool())
     .await?;
 
-    Ok(Json(tokens))
+    Ok(Json(tokens).into_response())
 }
 
 #[derive(Serialize)]
@@ -179,13 +202,13 @@ struct ClearTokens {
     tokens_cleared: u64,
 }
 
+#[axum::debug_handler]
 pub async fn clear_tokens_trigger_datetime(
-    req: Request<State>,
-) -> highnoon::Result<impl Responder> {
-    let job_id = req.param("id")?.parse::<Uuid>()?;
-    let trigger_datetime = req.param("trigger_datetime")?.parse::<DateTime<Utc>>()?;
-
-    auth::delete().job(job_id, None).check(&req).await?;
+    State(app): State<App>,
+    Path((job_id, trigger_datetime)): Path<(Uuid, DateTime<Utc>)>,
+    headers: HeaderMap,
+) -> AppResult<Response> {
+    auth::delete(&app).job(job_id, None).check(&headers).await?;
 
     let task_ids: Vec<(Uuid,)> = sqlx::query_as(
         "UPDATE token k
@@ -199,7 +222,7 @@ pub async fn clear_tokens_trigger_datetime(
     )
     .bind(job_id)
     .bind(trigger_datetime)
-    .fetch_all(&req.get_pool())
+    .fetch_all(&app.get_pool())
     .await?;
 
     for &(id,) in &task_ids {
@@ -207,12 +230,12 @@ pub async fn clear_tokens_trigger_datetime(
             task_id: id,
             trigger_datetime,
         };
-        updates::send_token_update(req.get_channel(), ProcessToken::Clear(token)).await?;
+        updates::send_token_update(app.get_channel(), ProcessToken::Clear(token)).await?;
     }
 
     let body = ClearTokens {
         tokens_cleared: task_ids.len() as u64,
     };
 
-    Ok(Json(body))
+    Ok(Json(body).into_response())
 }

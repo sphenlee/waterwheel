@@ -4,7 +4,7 @@
 bazel_dep(name = "rules_rust", version = "0.68.1")
 
 RUST_EDITION = "2024"
-RUST_VERSION = "nightly/2025-06-01"
+RUST_VERSION = "nightly/2026-03-03"
 
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(

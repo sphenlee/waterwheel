@@ -1,4 +1,4 @@
-use highnoon::Result;
+use anyhow::Result;
 use std::{
     future::Future,
     sync::{Once, atomic},
@@ -11,7 +11,7 @@ use testcontainers_modules::{
 };
 use waterwheel::config::{self, Config};
 
-const DEFAULT_LOG: &str = "warn,waterwheel=trace,highnoon=info,testcontainers=info,lapin=off";
+const DEFAULT_LOG: &str = "warn,waterwheel=trace,tower=info,axum=info,testcontainers=info,lapin=off";
 static LOGGING_SETUP: Once = Once::new();
 
 // hopefully we have some free ports starting from here - we increment for each test run

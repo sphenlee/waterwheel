@@ -7,7 +7,7 @@ max_tasks = 8
 task_engine = "docker"
 json_log = false
 no_authz = false
-log = "warn,waterwheel=info,lapin=off"
+log = "warn,waterwheel=info,lapin=off,tower_http=trace,axum=trace"
 cluster_gossip_bind = "127.0.0.1:7111"
 cluster_gossip_addr = "127.0.0.1:7111"
 cluster_seed_nodes = []

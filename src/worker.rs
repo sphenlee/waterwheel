@@ -1,4 +1,5 @@
 use anyhow::Result;
+use axum::routing::get;
 use cadence::StatsdClient;
 use lapin::Connection;
 use lru_time_cache::LruCache;
@@ -6,7 +7,8 @@ use once_cell::sync::Lazy;
 use serde_json::Value as JsonValue;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use tracing::info;
+use tower_http::trace::TraceLayer;
+use tracing::{debug, info};
 use uuid::Uuid;
 
 use crate::{
@@ -94,15 +96,18 @@ impl Worker {
     }
 
     async fn serve(self: Arc<Self>) -> Result<()> {
-        let mut app = highnoon::App::new(());
-        app.at("/")
-            .get(|_req| async { Ok("Hello from Waterwheel Worker!") });
+        let worker_bind = &self.config.worker_bind;
 
-        // healthcheck to see if the worker is up
-        app.at("/healthcheck").get(|_req| async { Ok("OK") });
+        let router = axum::Router::new()
+            // enable request tracing for all routes
+            .layer(TraceLayer::new_for_http())
+            .route("/", get(|| async { "OK" }))
+            .route("/healthcheck", get(|| async { "OK" }));
 
-        let host = &self.config.worker_bind;
-        app.listen(host).await?;
+        debug!("worker binding to {}", worker_bind);
+
+        let listener = tokio::net::TcpListener::bind(worker_bind).await?;
+        axum::serve(listener, router).await?;
 
         Ok(())
     }

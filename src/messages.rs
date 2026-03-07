@@ -142,7 +142,7 @@ pub struct TaskProgress {
 // }
 
 #[derive(
-    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Serialize, Deserialize, sqlx::Type,
+    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Serialize, Deserialize, sqlx::Type, Default,
 )]
 #[serde(rename_all = "lowercase")]
 #[sqlx(rename_all = "lowercase")]
@@ -150,6 +150,7 @@ pub struct TaskProgress {
 pub enum TaskPriority {
     BackFill = 0,
     Low = 1,
+    #[default]
     Normal = 2,
     High = 3,
 }
@@ -162,12 +163,6 @@ impl TaskPriority {
             TaskPriority::Normal => "normal",
             TaskPriority::High => "high",
         }
-    }
-}
-
-impl Default for TaskPriority {
-    fn default() -> Self {
-        Self::Normal
     }
 }
 

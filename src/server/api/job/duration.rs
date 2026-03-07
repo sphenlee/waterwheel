@@ -1,6 +1,11 @@
-use crate::server::api::{State, auth, request_ext::RequestExt};
+use crate::server::api::{App, AppResult, auth};
+use axum::{
+    Json,
+    extract::{Path, Query, State},
+    http::HeaderMap,
+    response::{IntoResponse, Response},
+};
 use chrono::{DateTime, Utc};
-use highnoon::{Json, Request, Responder};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -22,12 +27,14 @@ pub struct GetDuration {
     pub duration: Vec<TaskDuration>,
 }
 
-pub async fn get_duration(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let job_id = req.param("id")?.parse::<Uuid>()?;
-
-    let query: GetDurationQuery = req.query()?;
-
-    auth::get().job(job_id, None).check(&req).await?;
+#[axum::debug_handler]
+pub async fn get_duration(
+    State(app): State<App>,
+    Path(job_id): Path<Uuid>,
+    Query(query): Query<GetDurationQuery>,
+    headers: HeaderMap,
+) -> AppResult<Response> {
+    auth::get(&app).job(job_id, None).check(&headers).await?;
 
     let duration: Vec<TaskDuration> = sqlx::query_as(
         "WITH these_triggers AS (
@@ -65,8 +72,8 @@ pub async fn get_duration(req: Request<State>) -> highnoon::Result<impl Responde
     .bind(job_id)
     .bind(query.before)
     .bind(query.limit.unwrap_or(31))
-    .fetch_all(&req.get_pool())
+    .fetch_all(&app.get_pool())
     .await?;
 
-    Ok(Json(GetDuration { duration }))
+    Ok(Json(GetDuration { duration }).into_response())
 }

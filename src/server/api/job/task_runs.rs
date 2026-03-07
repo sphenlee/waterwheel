@@ -1,14 +1,19 @@
 use crate::{
     messages::{TaskPriority, TokenState},
-    server::api::{State, auth, request_ext::RequestExt},
+    server::api::{App, AppResult, auth},
+};
+use axum::{
+    Json,
+    extract::{Path, Query, State},
+    http::HeaderMap,
+    response::{IntoResponse, Response},
 };
 use chrono::{DateTime, Utc};
-use highnoon::{Json, Request, Responder};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Deserialize)]
-struct ListTaskRunsQuery {
+pub struct ListTaskRunsQuery {
     limit: Option<i32>,
 }
 
@@ -26,12 +31,14 @@ struct ListJobAllTaskRuns {
     priority: TaskPriority,
     worker_id: Option<Uuid>,
 }
-pub async fn list_job_all_task_runs(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let job_id: Uuid = req.param("id")?.parse()?;
-    let trigger_datetime: DateTime<Utc> = req.param("trigger_datetime")?.parse()?;
-    let query: ListTaskRunsQuery = req.query()?;
-
-    auth::list().job(job_id, None).check(&req).await?;
+#[axum::debug_handler]
+pub async fn list_job_all_task_runs(
+    State(app): State<App>,
+    Path((job_id, trigger_datetime)): Path<(Uuid, DateTime<Utc>)>,
+    Query(query): Query<ListTaskRunsQuery>,
+    headers: HeaderMap,
+) -> AppResult<Response> {
+    auth::list(&app).job(job_id, None).check(&headers).await?;
 
     let tasks: Vec<ListJobAllTaskRuns> = sqlx::query_as(
         "SELECT
@@ -60,10 +67,10 @@ pub async fn list_job_all_task_runs(req: Request<State>) -> highnoon::Result<imp
     .bind(job_id)
     .bind(trigger_datetime)
     .bind(query.limit)
-    .fetch_all(&req.get_pool())
+    .fetch_all(&app.get_pool())
     .await?;
 
-    Ok(Json(tasks))
+    Ok(Json(tasks).into_response())
 }
 
 #[derive(Serialize, sqlx::FromRow)]
@@ -78,12 +85,14 @@ struct ListTaskRuns {
     worker_id: Option<Uuid>,
 }
 
-pub async fn list_task_runs(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let task_id: Uuid = req.param("id")?.parse()?;
-    let trigger_datetime: DateTime<Utc> = req.param("trigger_datetime")?.parse()?;
-
+#[axum::debug_handler]
+pub async fn list_task_runs(
+    State(app): State<App>,
+    Path((task_id, trigger_datetime)): Path<(Uuid, DateTime<Utc>)>,
+    _headers: HeaderMap,
+) -> AppResult<Response> {
     // TODO - auth via a task id?
-    //auth::list().job(job_id, None).check(&req).await?;
+    //auth::list(&app).job(job_id, None).check(&headers).await?;
 
     let tasks: Vec<ListTaskRuns> = sqlx::query_as(
         "SELECT
@@ -106,8 +115,8 @@ pub async fn list_task_runs(req: Request<State>) -> highnoon::Result<impl Respon
     )
     .bind(task_id)
     .bind(trigger_datetime)
-    .fetch_all(&req.get_pool())
+    .fetch_all(&app.get_pool())
     .await?;
 
-    Ok(Json(tasks))
+    Ok(Json(tasks).into_response())
 }

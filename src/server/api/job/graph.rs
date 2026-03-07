@@ -1,6 +1,11 @@
-use crate::server::api::{State, auth, request_ext::RequestExt};
+use crate::server::api::{App, AppResult, auth};
+use axum::{
+    Json,
+    extract::{Path, Query, State},
+    http::HeaderMap,
+    response::{IntoResponse, Response},
+};
 use chrono::{DateTime, Utc};
-use highnoon::{Json, Request, Responder};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -27,16 +32,18 @@ struct Graph {
 }
 
 #[derive(Deserialize)]
-struct QueryGraph {
+pub struct QueryGraph {
     trigger_datetime: Option<DateTime<Utc>>,
 }
 
-pub async fn get_graph(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let job_id = req.param("id")?.parse::<Uuid>()?;
-
-    auth::get().job(job_id, None).check(&req).await?;
-
-    let q: QueryGraph = req.query()?;
+#[axum::debug_handler]
+pub async fn get_graph(
+    State(app): State<App>,
+    Path(job_id): Path<Uuid>,
+    Query(q): Query<QueryGraph>,
+    headers: HeaderMap,
+) -> AppResult<Response> {
+    auth::get(&app).job(job_id, None).check(&headers).await?;
 
     let mut nodes: Vec<Node> = sqlx::query_as(
         "SELECT
@@ -64,7 +71,7 @@ pub async fn get_graph(req: Request<State>) -> highnoon::Result<impl Responder> 
     )
     .bind(job_id)
     .bind(q.trigger_datetime)
-    .fetch_all(&req.get_pool())
+    .fetch_all(&app.get_pool())
     .await?;
 
     let edges: Vec<Edge> = sqlx::query_as(
@@ -85,7 +92,7 @@ pub async fn get_graph(req: Request<State>) -> highnoon::Result<impl Responder> 
         WHERE t.job_id = $1",
     )
     .bind(job_id)
-    .fetch_all(&req.get_pool())
+    .fetch_all(&app.get_pool())
     .await?;
 
     let extra_nodes: Vec<Node> = sqlx::query_as(
@@ -120,10 +127,10 @@ pub async fn get_graph(req: Request<State>) -> highnoon::Result<impl Responder> 
     )
     .bind(job_id)
     .bind(q.trigger_datetime)
-    .fetch_all(&req.get_pool())
+    .fetch_all(&app.get_pool())
     .await?;
 
     nodes.extend(extra_nodes);
 
-    Ok(Json(Graph { nodes, edges }))
+    Ok(Json(Graph { nodes, edges }).into_response())
 }

@@ -1,12 +1,9 @@
 use crate::{
     config::Config,
-    server::api::{State, job::get_job_project_id, request_ext::RequestExt},
+    server::api::{App, AppResult, error::AppError, job::get_job_project_id},
 };
-use anyhow::Result;
-use highnoon::{
-    StatusCode,
-    headers::{Authorization, authorization::Bearer},
-};
+use axum::http::{HeaderMap, StatusCode};
+use axum_extra::headers::{Authorization, HeaderMapExt, authorization::Bearer};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::{debug, error, warn};
@@ -34,7 +31,6 @@ pub enum Action {
 
 #[derive(Serialize, Debug)]
 struct Http {
-    method: String,
     headers: HashMap<String, String>,
 }
 
@@ -56,27 +52,28 @@ struct OPAResponse {
     result: Option<bool>,
 }
 
-fn derive_principal<S: highnoon::State>(req: &highnoon::Request<S>) -> Result<Principal> {
-    let bearer = req
-        .header::<Authorization<Bearer>>()
-        .map(|header| header.0.token().to_owned());
-
-    Ok(Principal { bearer })
+fn derive_principal(headers: &axum::http::HeaderMap) -> anyhow::Result<Principal> {
+    if let Some(bearer) = headers.typed_get::<Authorization<Bearer>>() {
+        Ok(Principal {
+            bearer: Some(bearer.0.token().to_owned()),
+        })
+    } else {
+        Ok(Principal { bearer: None })
+    }
 }
 
-fn derive_http<S: highnoon::State>(req: &highnoon::Request<S>) -> Result<Http> {
-    let mut headers = HashMap::new();
+fn derive_http(headers: &HeaderMap) -> anyhow::Result<Http> {
+    let mut header_map = HashMap::new();
 
-    for (k, v) in req.headers() {
+    for (k, v) in headers {
         if let Ok(val) = v.to_str() {
             // TODO avoid this copying
-            headers.insert(k.to_string(), val.to_owned());
+            header_map.insert(k.to_string(), val.to_owned());
         }
     }
 
     Ok(Http {
-        method: req.method().to_string(),
-        headers,
+        headers: header_map,
     })
 }
 
@@ -86,7 +83,7 @@ async fn authorize(
     action: Action,
     object: Object,
     http: Http,
-) -> highnoon::Result<bool> {
+) -> AppResult<bool> {
     let opa = if let Some(opa) = config.opa_sidecar_addr.as_ref() {
         opa
     } else {
@@ -123,12 +120,13 @@ async fn authorize(
     Ok(result.result.unwrap_or(false))
 }
 
-pub struct Check {
+pub struct Check<'a> {
+    app: &'a App,
     action: Action,
     object: Object,
 }
 
-impl Check {
+impl Check<'_> {
     pub fn project(mut self, project_id: impl Into<Option<Uuid>>) -> Self {
         self.object.project_id = project_id.into();
         self.object.kind = "project".to_owned();
@@ -151,58 +149,61 @@ impl Check {
         self
     }
 
-    pub async fn check(self, req: &highnoon::Request<State>) -> highnoon::Result<()> {
-        let config = &req.state().config;
-        if config.no_authz {
+    pub async fn check(self, headers: &HeaderMap) -> AppResult<()> {
+        if self.app.0.config.no_authz {
             return Ok(());
         }
 
-        let principal = derive_principal(req)?;
+        let principal = derive_principal(headers)?;
         let mut object = self.object;
 
         if let Some(job_id) = object.job_id
             && object.project_id.is_none()
         {
-            let pool = req.get_pool();
+            let pool = self.app.get_pool();
             let project_id = get_job_project_id(&pool, job_id).await?;
             object.project_id = Some(project_id);
         }
 
-        let http = derive_http(req)?;
+        let http = derive_http(headers)?;
         // NOTE - this potentially logs credentials so don't leave it uncommented
         //debug!("http context", { http: Value::from_debug(&http) });
 
-        if authorize(config, principal, self.action, object, http).await? {
+        if authorize(&self.app.0.config, principal, self.action, object, http).await? {
             Ok(())
         } else {
-            Err(highnoon::Error::http(StatusCode::FORBIDDEN))
+            Err(AppError::http(StatusCode::FORBIDDEN))
         }
     }
 }
 
-pub fn get() -> Check {
+pub fn get(app: &App) -> Check<'_> {
     Check {
+        app,
         action: Action::Get,
         object: Default::default(),
     }
 }
 
-pub fn list() -> Check {
+pub fn list(app: &App) -> Check<'_> {
     Check {
+        app,
         action: Action::List,
         object: Default::default(),
     }
 }
 
-pub fn update() -> Check {
+pub fn update(app: &App) -> Check<'_> {
     Check {
+        app,
         action: Action::Update,
         object: Default::default(),
     }
 }
 
-pub fn delete() -> Check {
+pub fn delete(app: &App) -> Check<'_> {
     Check {
+        app,
         action: Action::Delete,
         object: Default::default(),
     }

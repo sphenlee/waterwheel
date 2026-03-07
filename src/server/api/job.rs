@@ -1,12 +1,14 @@
 use crate::{
-    messages::ConfigUpdate,
-    server::{
-        api::{State, auth, config_cache, request_ext::RequestExt, types::Job, updates},
-        body_parser::read_from_body,
-    },
-    util::{is_pg_integrity_error, pg_error},
+    messages::{ConfigUpdate, ProcessToken, TriggerUpdate},
+    server::api::{App, AppResult, auth, config_cache, error::AppError, types::Job, updates},
+    util::{first, is_pg_integrity_error, pg_error},
 };
-use highnoon::{Json, Request, Responder, Response, StatusCode};
+use axum::{
+    Json,
+    extract::{Path, Query, State},
+    http::{HeaderMap, StatusCode},
+    response::{IntoResponse, Response},
+};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use tracing::{info, warn};
@@ -23,19 +25,15 @@ mod triggers;
 pub use self::{
     duration::get_duration,
     graph::get_graph,
+    task_runs::{list_job_all_task_runs, list_task_runs},
     tasks::list_tasks,
     tokens::{
         clear_tokens_trigger_datetime, get_tokens, get_tokens_overview, get_tokens_trigger_datetime,
     },
     triggers::{get_trigger, get_triggers_by_job},
 };
-use crate::{
-    messages::{ProcessToken, TriggerUpdate},
-    util::first,
-};
-pub use task_runs::{list_job_all_task_runs, list_task_runs};
 
-pub async fn get_job_project_id(pool: &PgPool, job_id: Uuid) -> highnoon::Result<Uuid> {
+pub async fn get_job_project_id(pool: &PgPool, job_id: Uuid) -> AppResult<Uuid> {
     let row: Option<(Uuid,)> = sqlx::query_as(
         "SELECT project_id
         FROM job
@@ -46,31 +44,40 @@ pub async fn get_job_project_id(pool: &PgPool, job_id: Uuid) -> highnoon::Result
     .await?;
 
     match row {
-        None => Err(highnoon::Error::bad_request("job not found")),
+        None => Err(AppError::http((StatusCode::BAD_REQUEST, "job not found"))),
         Some((project_id,)) => Ok(project_id),
     }
 }
 
 /// resolve a project name into an ID
-pub async fn get_project_id(pool: &PgPool, name: &str) -> highnoon::Result<Uuid> {
+pub async fn get_project_id(pool: &PgPool, name: &str) -> AppResult<Uuid> {
     let row: Option<(Uuid,)> = sqlx::query_as("SELECT id FROM project WHERE name = $1")
         .bind(name)
         .fetch_optional(pool)
         .await?;
 
     match row {
-        None => Err(highnoon::Error::bad_request("project not found")),
+        None => Err(AppError::http((
+            StatusCode::BAD_REQUEST,
+            "project not found",
+        ))),
         Some((id,)) => Ok(id),
     }
 }
 
-pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
-    let pool = req.get_pool();
-
-    let job: Job = read_from_body(&mut req).await?;
+#[axum::debug_handler]
+pub async fn create(
+    State(app): State<App>,
+    headers: HeaderMap,
+    Json(job): Json<Job>,
+) -> AppResult<Response> {
+    let pool = app.get_pool();
 
     let project_id = get_project_id(&pool, &job.project).await?;
-    auth::update().job(job.uuid, project_id).check(&req).await?;
+    auth::update(&app)
+        .job(job.uuid, project_id)
+        .check(&headers)
+        .await?;
 
     let mut txn = pool.begin().await?;
 
@@ -108,7 +115,7 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
         Err(err) => {
             warn!("error creating job: {}", err);
             return if is_pg_integrity_error(&err) {
-                StatusCode::CONFLICT.into_response()
+                Ok(StatusCode::CONFLICT.into_response())
             } else {
                 Err(err.into())
             };
@@ -135,23 +142,23 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
 
     txn.commit().await?;
 
-    updates::send_trigger_update(req.get_channel(), TriggerUpdate(triggers_to_tx)).await?;
+    updates::send_trigger_update(app.get_channel(), TriggerUpdate(triggers_to_tx)).await?;
 
     for id in tasks_to_tx {
-        config_cache::send(req.get_channel(), ConfigUpdate::TaskDef(id)).await?;
+        config_cache::send(app.get_channel(), ConfigUpdate::TaskDef(id)).await?;
     }
 
-    StatusCode::CREATED.into_response()
+    Ok(StatusCode::CREATED.into_response())
 }
 
 #[derive(Deserialize)]
-struct QueryJob {
+pub struct QueryJob {
     pub project: String,
     pub name: String,
 }
 
 #[derive(Serialize, sqlx::FromRow)]
-struct GetJob {
+pub struct GetJob {
     pub id: Uuid,
     pub project_id: Uuid,
     pub name: String,
@@ -159,9 +166,12 @@ struct GetJob {
     pub paused: bool,
 }
 
-pub async fn get_by_name(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let q = req.query::<QueryJob>()?;
-
+#[axum::debug_handler]
+pub async fn get_by_name(
+    State(app): State<App>,
+    Query(q): Query<QueryJob>,
+    headers: HeaderMap,
+) -> AppResult<Response> {
     let maybe_job: Option<GetJob> = sqlx::query_as(
         "SELECT
             j.id AS id,
@@ -176,14 +186,17 @@ pub async fn get_by_name(req: Request<State>) -> highnoon::Result<impl Responder
     )
     .bind(&q.name)
     .bind(&q.project)
-    .fetch_optional(&req.get_pool())
+    .fetch_optional(&app.get_pool())
     .await?;
 
     if let Some(job) = maybe_job {
-        auth::get().job(job.id, job.project_id).check(&req).await?;
-        Json(job).into_response()
+        auth::get(&app)
+            .job(job.id, job.project_id)
+            .check(&headers)
+            .await?;
+        Ok(Json(job).into_response())
     } else {
-        StatusCode::NOT_FOUND.into_response()
+        Ok(StatusCode::NOT_FOUND.into_response())
     }
 }
 
@@ -203,9 +216,12 @@ struct GetJobExtra {
     pub error_tasks_last_hour: i64,
 }
 
-pub async fn get_by_id(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let id = req.param("id")?.parse::<Uuid>()?;
-
+#[axum::debug_handler]
+pub async fn get_by_id(
+    State(app): State<App>,
+    Path(id): Path<Uuid>,
+    headers: HeaderMap,
+) -> AppResult<Response> {
     let maybe_job: Option<GetJobExtra> = sqlx::query_as(
         "WITH these_tasks AS (
             SELECT
@@ -255,21 +271,27 @@ pub async fn get_by_id(req: Request<State>) -> highnoon::Result<impl Responder> 
         WHERE j.id = $1",
     )
     .bind(id)
-    .fetch_optional(&req.get_pool())
+    .fetch_optional(&app.get_pool())
     .await?;
 
     if let Some(job) = maybe_job {
-        auth::get().job(job.id, job.project_id).check(&req).await?;
-        Json(job).into_response()
+        auth::get(&app)
+            .job(job.id, job.project_id)
+            .check(&headers)
+            .await?;
+        Ok(Json(job).into_response())
     } else {
-        StatusCode::NOT_FOUND.into_response()
+        Ok(StatusCode::NOT_FOUND.into_response())
     }
 }
 
-pub async fn delete(req: Request<State>) -> highnoon::Result<StatusCode> {
-    let id = req.param("id")?.parse::<Uuid>()?;
-
-    auth::delete().job(id, None).check(&req).await?;
+#[axum::debug_handler]
+pub async fn delete(
+    State(app): State<App>,
+    Path(id): Path<Uuid>,
+    headers: HeaderMap,
+) -> AppResult<StatusCode> {
+    auth::delete(&app).job(id, None).check(&headers).await?;
 
     // TODO - this breaks because of foreign key constraints
     // should we even allow deleting a job?
@@ -278,7 +300,7 @@ pub async fn delete(req: Request<State>) -> highnoon::Result<StatusCode> {
         WHERE id = $1",
     )
     .bind(id)
-    .execute(&req.get_pool())
+    .execute(&app.get_pool())
     .await;
 
     match pg_error(res)? {
@@ -298,38 +320,43 @@ pub async fn delete(req: Request<State>) -> highnoon::Result<StatusCode> {
     }
 }
 
-pub async fn get_paused(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let id = req.param("id")?.parse::<Uuid>()?;
-
+#[axum::debug_handler]
+pub async fn get_paused(
+    State(app): State<App>,
+    Path(id): Path<Uuid>,
+    headers: HeaderMap,
+) -> AppResult<Response> {
     let row: Option<(bool, Uuid)> = sqlx::query_as(
         "SELECT paused, project_id
         FROM job
         WHERE id = $1",
     )
     .bind(id)
-    .fetch_optional(&req.get_pool())
+    .fetch_optional(&app.get_pool())
     .await?;
 
     match row {
         Some((paused, proj_id)) => {
-            auth::get().job(id, proj_id).check(&req).await?;
-            Response::ok().json(paused)
+            auth::get(&app).job(id, proj_id).check(&headers).await?;
+            Ok((StatusCode::OK, Json(paused)).into_response())
         }
-        None => Ok(Response::status(StatusCode::NOT_FOUND)),
+        None => Ok(StatusCode::NOT_FOUND.into_response()),
     }
 }
 
 #[derive(Deserialize)]
-struct Paused {
+pub struct Paused {
     paused: bool,
 }
 
-pub async fn set_paused(mut req: Request<State>) -> impl Responder {
-    let job_id = req.param("id")?.parse::<Uuid>()?;
-
-    auth::update().job(job_id, None).check(&req).await?;
-
-    let Paused { paused } = req.body_json().await?;
+#[axum::debug_handler]
+pub async fn set_paused(
+    State(app): State<App>,
+    Path(job_id): Path<Uuid>,
+    headers: HeaderMap,
+    Json(Paused { paused }): Json<Paused>,
+) -> AppResult<StatusCode> {
+    auth::update(&app).job(job_id, None).check(&headers).await?;
 
     let row = sqlx::query(
         "UPDATE job
@@ -338,7 +365,7 @@ pub async fn set_paused(mut req: Request<State>) -> impl Responder {
     )
     .bind(job_id)
     .bind(paused)
-    .execute(&req.get_pool())
+    .execute(&app.get_pool())
     .await;
 
     match row {
@@ -367,11 +394,11 @@ pub async fn set_paused(mut req: Request<State>) -> impl Responder {
         WHERE job_id = $1",
     )
     .bind(job_id)
-    .fetch_all(&req.get_pool())
+    .fetch_all(&app.get_pool())
     .await?;
 
     let triggers_to_tx = triggers_to_tx.into_iter().map(first).collect();
-    updates::send_trigger_update(req.get_channel(), TriggerUpdate(triggers_to_tx)).await?;
+    updates::send_trigger_update(app.get_channel(), TriggerUpdate(triggers_to_tx)).await?;
 
     // send taskdef updates for the whole job to notify the workers
     let tasks_to_tx: Vec<(Uuid,)> = sqlx::query_as(
@@ -380,16 +407,16 @@ pub async fn set_paused(mut req: Request<State>) -> impl Responder {
         WHERE job_id = $1",
     )
     .bind(job_id)
-    .fetch_all(&req.get_pool())
+    .fetch_all(&app.get_pool())
     .await?;
 
     for (id,) in tasks_to_tx {
-        config_cache::send(req.get_channel(), ConfigUpdate::TaskDef(id)).await?;
+        config_cache::send(app.get_channel(), ConfigUpdate::TaskDef(id)).await?;
     }
 
     // if job is being unpaused notify the token processor to trigger any pending tasks
     if !paused {
-        updates::send_token_update(req.get_channel(), ProcessToken::UnpauseJob(job_id)).await?;
+        updates::send_token_update(app.get_channel(), ProcessToken::UnpauseJob(job_id)).await?;
     }
 
     Ok(StatusCode::NO_CONTENT)

@@ -1,13 +1,18 @@
 use crate::{
     server::api::{
-        State, auth,
+        App, AppResult, StatusCode, auth,
+        error::AppError,
         job::reference::{Reference, ReferenceKind, parse_reference, resolve_reference},
-        request_ext::RequestExt,
         types::{Job, Task},
     },
     util::{is_pg_integrity_error, pg_error},
 };
-use highnoon::{Json, Request, Responder};
+use axum::{
+    Json,
+    extract::{Path, State},
+    http::HeaderMap,
+    response::{IntoResponse, Response},
+};
 use serde::Serialize;
 use sqlx::{Postgres, Transaction};
 use tracing::debug;
@@ -17,7 +22,7 @@ pub async fn create_task(
     txn: &mut Transaction<'_, Postgres>,
     task: &Task,
     job: &Job,
-) -> highnoon::Result<Uuid> {
+) -> AppResult<Uuid> {
     let threshold = task.threshold.unwrap_or({
         if let Some(dep) = &task.depends {
             dep.len() as i32
@@ -88,7 +93,7 @@ pub async fn create_task_edges(
     txn: &mut Transaction<'_, Postgres>,
     task: &Task,
     job: &Job,
-) -> highnoon::Result<()> {
+) -> AppResult<()> {
     let (task_id,): (Uuid,) = sqlx::query_as(
         "SELECT id
          FROM task
@@ -141,8 +146,8 @@ pub async fn create_task_edges(
 
             match reference.kind {
                 ReferenceKind::Trigger => {
-                    return Err(highnoon::Error::http((
-                        highnoon::StatusCode::BAD_REQUEST,
+                    return Err(AppError::http((
+                        StatusCode::BAD_REQUEST,
                         "depends_failure cannot reference a trigger since triggers can't fail",
                     )));
                 }
@@ -160,7 +165,7 @@ async fn create_trigger_edge(
     txn: &mut Transaction<'_, Postgres>,
     task: &Uuid,
     reference: Reference,
-) -> highnoon::Result<()> {
+) -> AppResult<()> {
     let res = sqlx::query(
         "INSERT INTO trigger_edge(trigger_id, task_id, edge_offset)
         VALUES(
@@ -188,8 +193,8 @@ async fn create_trigger_edge(
     if let Err(e) = pg_error(res)? {
         if is_pg_integrity_error(&e) {
             debug!("pg integrity error: {}", e.message());
-            Err(highnoon::Error::http((
-                highnoon::StatusCode::BAD_REQUEST,
+            Err(AppError::http((
+                StatusCode::BAD_REQUEST,
                 format!("invalid trigger reference (does this trigger exist?): {reference}"),
             )))
         } else {
@@ -205,7 +210,7 @@ async fn create_task_edge(
     task: &Uuid,
     reference: Reference,
     kind: &str,
-) -> highnoon::Result<()> {
+) -> AppResult<()> {
     let res = sqlx::query(
         "INSERT INTO task_edge(parent_task_id, child_task_id, kind, edge_offset)
         VALUES(
@@ -235,8 +240,8 @@ async fn create_task_edge(
     if let Err(e) = pg_error(res)? {
         if is_pg_integrity_error(&e) {
             debug!("pg integrity error: {}", e.message());
-            Err(highnoon::Error::http((
-                highnoon::StatusCode::BAD_REQUEST,
+            Err(AppError::http((
+                StatusCode::BAD_REQUEST,
                 format!("invalid task reference (does this task exist?): {reference}"),
             )))
         } else {
@@ -253,10 +258,13 @@ struct ListTask {
     name: String,
 }
 
-pub async fn list_tasks(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let job_id: Uuid = req.param("id")?.parse()?;
-
-    auth::list().job(job_id, None).check(&req).await?;
+#[axum::debug_handler]
+pub async fn list_tasks(
+    State(app): State<App>,
+    Path(job_id): Path<Uuid>,
+    headers: HeaderMap,
+) -> AppResult<Response> {
+    auth::list(&app).job(job_id, None).check(&headers).await?;
 
     let tasks: Vec<ListTask> = sqlx::query_as(
         "SELECT
@@ -268,10 +276,10 @@ pub async fn list_tasks(req: Request<State>) -> highnoon::Result<impl Responder>
         LIMIT 200",
     )
     .bind(job_id)
-    .fetch_all(&req.get_pool())
+    .fetch_all(&app.get_pool())
     .await?;
 
     // TODO - check for job_id not found
 
-    Ok(Json(tasks))
+    Ok(Json(tasks).into_response())
 }

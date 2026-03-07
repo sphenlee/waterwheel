@@ -1,25 +1,31 @@
-use crate::server::api::{State, auth, request_ext::RequestExt};
-use highnoon::{Json, Request, Responder, StatusCode};
+use crate::server::api::{App, AppResult, auth, stash::JwtSubject};
+use axum::{
+    Json,
+    body::Bytes,
+    extract::{Path, State},
+    http::{HeaderMap, StatusCode},
+    response::{IntoResponse, Response},
+};
 use tracing::info;
 use uuid::Uuid;
 
-use super::{StashData, StashName, get_jwt_subject};
+use super::{StashData, StashName};
 use cadence::CountedExt;
 use chrono::{DateTime, Utc};
 
-pub async fn create(mut req: Request<State>) -> highnoon::Result<impl Responder> {
-    let data = req.body_bytes().await?;
-
-    let job_id = req.param("id")?.parse::<Uuid>()?;
-    let trigger_datetime = req.param("trigger_datetime")?.parse::<DateTime<Utc>>()?;
-    let task_id = get_jwt_subject(&req)?.parse::<Uuid>()?;
-    let key = req.param("key")?;
+#[axum::debug_handler]
+pub async fn create(
+    State(app): State<App>,
+    Path((job_id, trigger_datetime, key)): Path<(Uuid, DateTime<Utc>, String)>,
+    JwtSubject(subject): JwtSubject,
+    data: Bytes,
+) -> AppResult<Response> {
+    let task_id = subject.parse::<Uuid>()?;
 
     // don't check authz here - job stash are expected to be created by tasks
     // and so we want to check permissions using the Stash JWT
-    //auth::update().job(job_id).kind("stash").check(&req).await?;
 
-    let db = req.get_pool();
+    let db = app.get_pool();
 
     sqlx::query(
         "INSERT INTO job_stash(job_id, trigger_datetime, name, data)
@@ -36,27 +42,29 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<impl Responder>
     )
     .bind(job_id)
     .bind(trigger_datetime)
-    .bind(key)
-    .bind(&data)
+    .bind(&key)
+    .bind(data.as_ref())
     .bind(task_id)
     .execute(&db)
     .await?;
 
     info!(?job_id, trigger_datetime=?trigger_datetime.to_rfc3339(), %key, "created job stash item");
 
-    Ok(StatusCode::CREATED)
+    Ok(StatusCode::CREATED.into_response())
 }
 
-pub async fn list(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let db = req.get_pool();
+#[axum::debug_handler]
+pub async fn list(
+    State(app): State<App>,
+    Path((job_id, trigger_datetime)): Path<(Uuid, DateTime<Utc>)>,
+    headers: HeaderMap,
+) -> AppResult<Response> {
+    let db = app.get_pool();
 
-    let job_id = req.param("id")?.parse::<Uuid>()?;
-    let trigger_datetime = req.param("trigger_datetime")?.parse::<DateTime<Utc>>()?;
-
-    auth::list()
+    auth::list(&app)
         .job(job_id, None)
         .kind("stash")
-        .check(&req)
+        .check(&headers)
         .await?;
 
     let rows: Vec<StashName> = sqlx::query_as(
@@ -70,21 +78,23 @@ pub async fn list(req: Request<State>) -> highnoon::Result<impl Responder> {
     .fetch_all(&db)
     .await?;
 
-    Ok(Json(rows))
+    Ok(Json(rows).into_response())
 }
 
-pub async fn get(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let db = req.get_pool();
+#[axum::debug_handler]
+pub async fn get(
+    State(app): State<App>,
+    JwtSubject(subject): JwtSubject,
+    Path((job_id, trigger_datetime, key)): Path<(Uuid, DateTime<Utc>, String)>,
+) -> AppResult<Response> {
+    let db = app.get_pool();
 
-    let job_id = req.param("id")?.parse::<Uuid>()?;
-    let trigger_datetime = req.param("trigger_datetime")?.parse::<DateTime<Utc>>()?;
-    let task_id = get_jwt_subject(&req)?.parse::<Uuid>()?;
-    let key = req.param("key")?;
+    let task_id = subject.parse::<Uuid>()?;
 
     info!(?job_id,
         trigger_datetime=?trigger_datetime.to_rfc3339(),
         ?task_id,
-        key,
+        %key,
         "task requested job stash");
 
     let row: Option<StashData> = sqlx::query_as(
@@ -101,30 +111,34 @@ pub async fn get(req: Request<State>) -> highnoon::Result<impl Responder> {
     .bind(job_id)
     .bind(trigger_datetime)
     .bind(task_id)
-    .bind(key)
+    .bind(&key)
     .fetch_optional(&db)
     .await?;
 
-    req.get_statsd()
+    app.get_statsd()
         .incr_with_tags("stash.get")
         .with_tag_value("job")
         .with_tag("job_id", &job_id.to_string())
         .send();
 
-    Ok(row)
+    match row {
+        Some(data) => Ok(data.into_response()),
+        None => Ok(StatusCode::NOT_FOUND.into_response()),
+    }
 }
 
-pub async fn delete(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let db = req.get_pool();
+#[axum::debug_handler]
+pub async fn delete(
+    State(app): State<App>,
+    Path((job_id, trigger_datetime, key)): Path<(Uuid, DateTime<Utc>, String)>,
+    headers: HeaderMap,
+) -> AppResult<Response> {
+    let db = app.get_pool();
 
-    let job_id = req.param("id")?.parse::<Uuid>()?;
-    let trigger_datetime = req.param("trigger_datetime")?.parse::<DateTime<Utc>>()?;
-    let key = req.param("key")?;
-
-    auth::delete()
+    auth::delete(&app)
         .job(job_id, None)
         .kind("stash")
-        .check(&req)
+        .check(&headers)
         .await?;
 
     let _done = sqlx::query(
@@ -136,11 +150,11 @@ pub async fn delete(req: Request<State>) -> highnoon::Result<impl Responder> {
     )
     .bind(job_id)
     .bind(trigger_datetime)
-    .bind(key)
+    .bind(&key)
     .execute(&db)
     .await?;
 
-    info!(?job_id, trigger_datetime=?trigger_datetime.to_rfc3339(), key, "deleted job stash item");
+    info!(?job_id, trigger_datetime=?trigger_datetime.to_rfc3339(), %key, "deleted job stash item");
 
-    Ok(StatusCode::NO_CONTENT)
+    Ok(StatusCode::NO_CONTENT.into_response())
 }
