@@ -1,57 +1,71 @@
-use super::State;
-use highnoon::{
-    Message, Request,
-    ws::{WebSocketReceiver, WebSocketSender},
+use crate::server::api::App;
+use axum::{
+    extract::{State, Path},
+    response::Response,
 };
+use axum::extract::ws::{WebSocketUpgrade, WebSocket, Message};
 use redis::{
     AsyncCommands, FromRedisValue,
     streams::{StreamReadOptions, StreamReadReply},
 };
 use tracing::{debug, trace};
+use uuid::Uuid;
 
+#[axum::debug_handler]
 pub async fn logs(
-    req: Request<State>,
-    mut tx: WebSocketSender,
-    mut _rx: WebSocketReceiver,
-) -> highnoon::Result<()> {
-    let mut redis = req
-        .state()
-        .redis_client
-        .get_multiplexed_tokio_connection()
-        .await?;
+    State(app): State<App>,
+    Path(task_run_id): Path<Uuid>,
+    ws: WebSocketUpgrade,
+) -> Response {
+    ws.on_upgrade(move |mut socket: WebSocket| async move {
+        let mut redis = match app
+            .redis_client
+            .get_multiplexed_tokio_connection()
+            .await
+        {
+            Ok(conn) => conn,
+            Err(_e) => return,
+        };
 
-    let task_run_id = req.param("id")?;
-    let key = format!("waterwheel-logs.{task_run_id}");
-    let mut id = "0-0".to_owned();
-    let opts = StreamReadOptions::default().block(60000).count(10);
+        let key = format!("waterwheel-logs.{task_run_id}");
+        let mut id = "0-0".to_owned();
+        let opts = StreamReadOptions::default().block(60000).count(10);
 
-    debug!("reading logs from {}", key);
-    loop {
-        trace!("reading starting at id {}", id);
-        let reply: StreamReadReply = redis
-            .xread_options(&[key.as_str()], &[id.as_str()], &opts)
-            .await?;
+        debug!("reading logs from {}", key);
+        loop {
+            trace!("reading starting at id {}", id);
+            let reply: StreamReadReply = match redis
+                .xread_options(&[key.as_str()], &[id.as_str()], &opts)
+                .await
+            {
+                Ok(r) => r,
+                Err(_) => return,
+            };
 
-        if reply.keys.is_empty() {
-            trace!("key expired while tailing logs");
-            return Ok(());
+            if reply.keys.is_empty() {
+                trace!("key expired while tailing logs");
+                return;
+            }
+
+            if reply.keys[0].ids.is_empty() {
+                trace!("got empty response, reading from '$'");
+                id = "$".to_string();
+                continue;
+            }
+
+            for entry in &reply.keys[0].ids {
+                trace!("got entry with id {}", entry.id);
+                let data: String = match String::from_redis_value(&entry.map["data"]) {
+                    Ok(d) => d,
+                    Err(_) => return,
+                };
+
+                if socket.send(Message::Text(data.into())).await.is_err() {
+                    return;
+                }
+            }
+
+            id = reply.keys[0].ids.last().unwrap().id.clone();
         }
-
-        if reply.keys[0].ids.is_empty() {
-            trace!("got empty response, reading from '$'");
-            id = "$".to_string();
-            continue;
-        }
-
-        for entry in &reply.keys[0].ids {
-            trace!("got entry with id {}", entry.id);
-            let data: String = String::from_redis_value(&entry.map["data"])
-                .map_err(|_e| anyhow::format_err!("data was not binary"))?;
-
-            let msg = Message::text(data);
-            tx.send(msg).await?;
-        }
-
-        id = reply.keys[0].ids.last().unwrap().id.clone();
-    }
+    })
 }

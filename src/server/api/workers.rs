@@ -1,6 +1,11 @@
-use crate::server::api::{State, auth, request_ext::RequestExt};
+use crate::server::api::{App, AppResult, auth};
 use chrono::{DateTime, Utc};
-use highnoon::{Json, Request, Responder, Response, StatusCode};
+use axum::{
+    Json,
+    extract::{State, Path, Query},
+    http::{HeaderMap, StatusCode},
+    response::{IntoResponse, Response},
+};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -15,8 +20,12 @@ struct WorkerState {
     pub status: String,
 }
 
-pub async fn list(req: Request<State>) -> highnoon::Result<impl Responder> {
-    auth::list().kind("workers").check(&req).await?;
+#[axum::debug_handler]
+pub async fn list(
+    State(app): State<App>,
+    headers: HeaderMap,
+) -> AppResult<Response> {
+    auth::list(&app).kind("workers").check(&headers).await?;
 
     let workers: Vec<WorkerState> = sqlx::query_as(
         "SELECT
@@ -34,14 +43,14 @@ pub async fn list(req: Request<State>) -> highnoon::Result<impl Responder> {
         WHERE CURRENT_TIMESTAMP - last_seen_datetime < INTERVAL '24 hours'
         ORDER BY last_seen_datetime DESC",
     )
-    .fetch_all(&req.get_pool())
+    .fetch_all(&app.get_pool())
     .await?;
 
-    Ok(Json(workers))
+    Ok(Json(workers).into_response())
 }
 
 #[derive(Deserialize)]
-struct QueryWorker {
+pub struct QueryWorker {
     state: Option<String>,
 }
 
@@ -72,12 +81,14 @@ struct GetWorkerTask {
     attempt: i64,
 }
 
-pub async fn tasks(req: Request<State>) -> highnoon::Result<Response> {
-    let id = req.param("id")?.parse::<Uuid>()?;
-
-    auth::get().kind("workers").check(&req).await?;
-
-    let q = req.query::<QueryWorker>()?;
+#[axum::debug_handler]
+pub async fn tasks(
+    State(app): State<App>,
+    Path(id): Path<Uuid>,
+    Query(q): Query<QueryWorker>,
+    headers: HeaderMap,
+) -> AppResult<Response> {
+    auth::get(&app).kind("workers").check(&headers).await?;
 
     let states: Option<Vec<_>> = q.state.as_ref().map(|s| s.split(',').collect());
 
@@ -107,7 +118,7 @@ pub async fn tasks(req: Request<State>) -> highnoon::Result<Response> {
     )
     .bind(id)
     .bind(&states)
-    .fetch_all(&req.get_pool())
+    .fetch_all(&app.get_pool())
     .await?;
 
     let status: Option<WorkerState> = sqlx::query_as(
@@ -126,11 +137,11 @@ pub async fn tasks(req: Request<State>) -> highnoon::Result<Response> {
         WHERE id = $1",
     )
     .bind(id)
-    .fetch_optional(&req.get_pool())
+    .fetch_optional(&app.get_pool())
     .await?;
 
     if let Some(worker) = status {
-        Response::ok().json(GetWorker {
+        Ok(Json(GetWorker {
             last_seen_datetime: worker.last_seen_datetime,
             running_tasks: worker.running_tasks,
             total_tasks: worker.total_tasks,
@@ -138,7 +149,8 @@ pub async fn tasks(req: Request<State>) -> highnoon::Result<Response> {
             status: worker.status,
             version: worker.version,
         })
+        .into_response())
     } else {
-        Ok(Response::status(StatusCode::NOT_FOUND))
+        Ok(StatusCode::NOT_FOUND.into_response())
     }
 }

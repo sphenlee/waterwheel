@@ -1,6 +1,6 @@
 use crate::{
     messages::{ProcessToken, Token, TokenState},
-    server::api::{App, AppResult, auth, error::AppError, request_ext::RequestExt, updates},
+    server::api::{App, AppResult, auth, error::AppError, updates},
 };
 use chrono::{DateTime, Utc};
 use axum::{
@@ -14,7 +14,7 @@ use std::{cmp::Reverse, collections::BTreeMap};
 use uuid::Uuid;
 
 #[derive(Deserialize)]
-struct QueryToken {
+pub struct QueryToken {
     state: Option<String>,
     before: Option<DateTime<Utc>>,
     limit: Option<i32>,

@@ -1,24 +1,33 @@
 use crate::{
     messages::{ProcessToken, TaskDef, TaskPriority, Token},
-    server::api::{State, auth, jwt, request_ext::RequestExt, updates},
+    server::api::{App, AppResult, auth, jwt, updates},
+    server::api::error::AppError,
 };
 use chrono::{DateTime, Utc};
 use futures::TryStreamExt;
-use highnoon::{Json, Request, Responder, Response, StatusCode};
+use axum::{
+    Json,
+    extract::{State, Path, Query},
+    http::{HeaderMap, StatusCode},
+    response::{IntoResponse, Response},
+};
+use axum_extra::{TypedHeader, headers::{Authorization, HeaderMapExt, authorization::Bearer}};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use uuid::Uuid;
 
 #[derive(Deserialize)]
-struct ActivateTokenParams {
+pub struct ActivateTokenParams {
     priority: Option<TaskPriority>,
 }
 
-pub async fn activate_token(mut req: Request<State>) -> highnoon::Result<impl Responder> {
-    let task_id = req.param("id")?.parse::<Uuid>()?;
-    let trigger_datetime = req.param("trigger_datetime")?.parse::<DateTime<Utc>>()?;
-    let params: ActivateTokenParams = req.body_json().await?;
-
+#[axum::debug_handler]
+pub async fn activate_token(
+    State(app): State<App>,
+    Path((task_id, trigger_datetime)): Path<(Uuid, DateTime<Utc>)>,
+    headers: HeaderMap,
+    Json(params): Json<ActivateTokenParams>,
+) -> AppResult<Response> {
     // TODO auth check
 
     let token = Token {
@@ -26,7 +35,7 @@ pub async fn activate_token(mut req: Request<State>) -> highnoon::Result<impl Re
         trigger_datetime,
     };
 
-    let pool = req.get_pool();
+    let pool = app.get_pool();
     let mut txn = pool.begin().await?;
 
     sqlx::query(
@@ -44,15 +53,15 @@ pub async fn activate_token(mut req: Request<State>) -> highnoon::Result<impl Re
 
     let priority = params.priority.unwrap_or(TaskPriority::High);
 
-    updates::send_token_update(req.get_channel(), ProcessToken::Activate(token, priority)).await?;
+    updates::send_token_update(app.get_channel(), ProcessToken::Activate(token, priority)).await?;
 
     txn.commit().await?;
 
-    Ok(StatusCode::CREATED)
+    Ok(StatusCode::CREATED.into_response())
 }
 
 #[derive(Deserialize)]
-struct ActivateMultipleTokensParams {
+pub struct ActivateMultipleTokensParams {
     priority: Option<TaskPriority>,
     first: Option<DateTime<Utc>>,
     last: Option<DateTime<Utc>>,
@@ -64,21 +73,24 @@ struct ActivateTokenReply {
     cleared: u64,
 }
 
-pub async fn activate_multiple_tokens(mut req: Request<State>) -> highnoon::Result<impl Responder> {
-    let task_id = req.param("id")?.parse::<Uuid>()?;
-    let params: ActivateMultipleTokensParams = req.body_json().await?;
-
+#[axum::debug_handler]
+pub async fn activate_multiple_tokens(
+    State(app): State<App>,
+    Path(task_id): Path<Uuid>,
+    headers: HeaderMap,
+    Json(params): Json<ActivateMultipleTokensParams>,
+) -> AppResult<Response> {
     if params.first.is_none() && params.last.is_none() && params.only_failed.is_none() {
-        return (
+        return Ok((
             StatusCode::BAD_REQUEST,
             "one or more of 'first','last' and 'only_failed' must be specified",
         )
-            .into_response();
+            .into_response());
     }
 
     // TODO auth check
 
-    let pool = req.get_pool();
+    let pool = app.get_pool();
     let mut txn = pool.begin().await?;
 
     let mut cursor = sqlx::query_as(
@@ -108,7 +120,7 @@ pub async fn activate_multiple_tokens(mut req: Request<State>) -> highnoon::Resu
             trigger_datetime,
         };
 
-        updates::send_token_update(req.get_channel(), ProcessToken::Activate(token, priority))
+        updates::send_token_update(app.get_channel(), ProcessToken::Activate(token, priority))
             .await?;
     }
 
@@ -116,31 +128,47 @@ pub async fn activate_multiple_tokens(mut req: Request<State>) -> highnoon::Resu
 
     txn.commit().await?;
 
-    Json(ActivateTokenReply { cleared: count }).into_response()
+    Ok(Json(ActivateTokenReply { cleared: count }).into_response())
 }
 
-pub async fn get_task_def(req: Request<State>) -> highnoon::Result<Response> {
-    let maybe_def = get_task_def_common(&req).await?;
+#[axum::debug_handler]
+pub async fn get_task_def(
+    State(app): State<App>,
+    Path(task_id): Path<Uuid>,
+    headers: HeaderMap,
+) -> AppResult<Response> {
+    let maybe_def = get_task_def_common(&app, task_id).await?;
 
     if let Some(def) = maybe_def {
-        auth::get()
+        auth::get(&app)
             .job(def.job_id, def.project_id)
             .kind("task")
-            .check(&req)
+            .check(&headers)
             .await?;
-        Json(def).into_response()
+        Ok(Json(def).into_response())
     } else {
-        StatusCode::NOT_FOUND.into_response()
+        Ok(StatusCode::NOT_FOUND.into_response())
     }
 }
 
-pub async fn internal_get_task_def(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let task_id = req.param("id")?.parse::<Uuid>()?;
+#[axum::debug_handler]
+pub async fn internal_get_task_def(
+    State(app): State<App>,
+    Path(task_id): Path<Uuid>,
+    headers: HeaderMap,
+) -> AppResult<Response> {
+    let auth = headers
+        .typed_get::<Authorization<Bearer>>()
+        .ok_or_else(|| AppError::http(StatusCode::UNAUTHORIZED))?;
 
-    jwt::validate_config_jwt(&req, task_id)?;
+    jwt::validate_config_jwt(&app, auth, task_id)?;
 
-    let maybe_def = get_task_def_common(&req).await?;
-    Ok(maybe_def.map(Json))
+    let maybe_def = get_task_def_common(&app, task_id).await?;
+    if let Some(def) = maybe_def {
+        Ok(Json(def).into_response())
+    } else {
+        Ok(StatusCode::NOT_FOUND.into_response())
+    }
 }
 
 #[derive(sqlx::FromRow)]
@@ -178,9 +206,7 @@ impl From<DbTaskDef> for TaskDef {
     }
 }
 
-async fn get_task_def_common(req: &Request<State>) -> highnoon::Result<Option<TaskDef>> {
-    let task_id = req.param("id")?.parse::<Uuid>()?;
-
+async fn get_task_def_common(app: &App, task_id: Uuid) -> AppResult<Option<TaskDef>> {
     let maybe_def: Option<DbTaskDef> = sqlx::query_as(
         "SELECT
                 t.id AS task_id,
@@ -200,7 +226,7 @@ async fn get_task_def_common(req: &Request<State>) -> highnoon::Result<Option<Ta
             WHERE t.id = $1",
     )
     .bind(task_id)
-    .fetch_optional(&req.get_pool())
+    .fetch_optional(&app.get_pool())
     .await?;
 
     Ok(maybe_def.map(TaskDef::from))

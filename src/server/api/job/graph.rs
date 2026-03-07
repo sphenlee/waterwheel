@@ -1,4 +1,4 @@
-use crate::server::api::{App, AppResult, auth, request_ext::RequestExt};
+use crate::server::api::{App, AppResult, auth};
 use chrono::{DateTime, Utc};
 use axum::{
     Json,
@@ -32,7 +32,7 @@ struct Graph {
 }
 
 #[derive(Deserialize)]
-struct QueryGraph {
+pub struct QueryGraph {
     trigger_datetime: Option<DateTime<Utc>>,
 }
 

@@ -1,6 +1,6 @@
 use crate::{
     messages::{TaskPriority, TokenState},
-    server::api::{App, AppResult, auth, request_ext::RequestExt},
+    server::api::{App, AppResult, auth},
 };
 use chrono::{DateTime, Utc};
 use axum::{
@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Deserialize)]
-struct ListTaskRunsQuery {
+pub struct ListTaskRunsQuery {
     limit: Option<i32>,
 }
 

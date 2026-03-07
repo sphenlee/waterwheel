@@ -1,4 +1,6 @@
+use crate::server::api::{AppResult, error::AppError};
 use crate::server::api::types::Job;
+use axum::http::StatusCode;
 use chrono::Duration;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -14,14 +16,14 @@ pub enum ReferenceKind {
 }
 
 impl FromStr for ReferenceKind {
-    type Err = highnoon::Error;
+    type Err = AppError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "trigger" => Ok(ReferenceKind::Trigger),
             "task" => Ok(ReferenceKind::Task),
-            _ => Err(highnoon::Error::http((
-                highnoon::StatusCode::BAD_REQUEST,
+            _ => Err(AppError::http((
+                StatusCode::BAD_REQUEST,
                 format!(
                     "failed to parse reference kind (expected \"task\" \
                          or \"trigger\", got \"{s}\")"
@@ -82,9 +84,9 @@ static REFERENCE_PATTERN: Lazy<Regex> = Lazy::new(|| {
     .expect("error compiling regex")
 });
 
-pub fn parse_reference(reference: &str) -> highnoon::Result<Reference> {
+pub fn parse_reference(reference: &str) -> AppResult<Reference> {
     let captures = REFERENCE_PATTERN.captures(reference).ok_or_else(|| {
-        highnoon::Error::bad_request(format!("invalid reference \'{reference}\'"))
+        AppError::http((StatusCode::BAD_REQUEST, format!("invalid reference '{reference}'")))
     })?;
 
     let mut proj = captures
@@ -144,7 +146,7 @@ mod test {
     use super::*;
     use chrono::Duration;
     use pretty_assertions::assert_eq;
-    use std::assert_matches::assert_matches;
+    use std::assert_matches;
 
     #[test]
     fn test_parse_reference() {

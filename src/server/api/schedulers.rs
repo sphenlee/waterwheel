@@ -1,6 +1,11 @@
-use crate::server::api::{State, auth, request_ext::RequestExt};
+use crate::server::api::{App, AppResult, auth};
 use chrono::{DateTime, Utc};
-use highnoon::{Json, Request, Responder};
+use axum::{
+    Json,
+    extract::State,
+    http::HeaderMap,
+    response::{IntoResponse, Response},
+};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -15,8 +20,12 @@ struct SchedulerState {
     pub status: String,
 }
 
-pub async fn list(req: Request<State>) -> highnoon::Result<impl Responder> {
-    auth::list().kind("schedulers").check(&req).await?;
+#[axum::debug_handler]
+pub async fn list(
+    State(app): State<App>,
+    headers: HeaderMap,
+) -> AppResult<Response> {
+    auth::list(&app).kind("schedulers").check(&headers).await?;
 
     let schedulers: Vec<SchedulerState> = sqlx::query_as(
         "SELECT
@@ -35,8 +44,8 @@ pub async fn list(req: Request<State>) -> highnoon::Result<impl Responder> {
         WHERE CURRENT_TIMESTAMP - s.last_seen_datetime < INTERVAL '1 hour'
         ORDER BY s.last_seen_datetime DESC",
     )
-    .fetch_all(&req.get_pool())
+    .fetch_all(&app.get_pool())
     .await?;
 
-    Ok(Json(schedulers))
+    Ok(Json(schedulers).into_response())
 }

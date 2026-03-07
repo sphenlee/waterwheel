@@ -7,8 +7,8 @@ use axum_extra::headers::{Authorization, HeaderMapExt, authorization::Bearer};
 
 use crate::server::api::{App, jwt};
 
-//pub mod global;
-//pub mod job;
+pub mod global;
+pub mod job;
 pub mod project;
 
 #[derive(sqlx::FromRow, serde::Serialize)]

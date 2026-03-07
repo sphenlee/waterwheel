@@ -1,13 +1,12 @@
 use crate::server::api::{
     App, AppResult, auth, error::AppError,
-    request_ext::RequestExt,
     types::{Job, Trigger, duration_from_string},
 };
 use chrono::{DateTime, Utc};
 use axum::{
     Json,
     extract::{Path, Query, State},
-    http::HeaderMap,
+    http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
 };
 use serde::{Deserialize, Serialize};
@@ -28,15 +27,15 @@ pub enum TriggerError {
     InvalidPeriod(humantime::DurationError),
 }
 
-fn bad_req(err: TriggerError) -> highnoon::Result<()> {
-    Err(highnoon::Error::bad_request(err.to_string()))
+fn bad_req(err: TriggerError) -> AppResult<()> {
+    Err(AppError::http((StatusCode::BAD_REQUEST, err.to_string())))
 }
 
 pub async fn create_trigger(
     txn: &mut Transaction<'_, Postgres>,
     job: &Job,
     trigger: &Trigger,
-) -> highnoon::Result<Uuid> {
+) -> AppResult<Uuid> {
     match (&trigger.period, &trigger.cron) {
         (Some(_), Some(_)) => bad_req(TriggerError::MultipleSchedule)?,
         (Some(p), None) => {

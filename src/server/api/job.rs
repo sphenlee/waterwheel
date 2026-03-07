@@ -2,8 +2,8 @@ use crate::{
     messages::ConfigUpdate,
     server::{
         api::{App, AppResult, auth, config_cache, types::Job, updates},
-        body_parser::read_from_body,
     },
+    server::api::error::AppError,
     util::{is_pg_integrity_error, pg_error},
     messages::{ProcessToken, TriggerUpdate},
     util::first,
@@ -55,14 +55,14 @@ pub async fn get_job_project_id(pool: &PgPool, job_id: Uuid) -> AppResult<Uuid> 
 }
 
 /// resolve a project name into an ID
-pub async fn get_project_id(pool: &PgPool, name: &str) -> highnoon::Result<Uuid> {
+pub async fn get_project_id(pool: &PgPool, name: &str) -> AppResult<Uuid> {
     let row: Option<(Uuid,)> = sqlx::query_as("SELECT id FROM project WHERE name = $1")
         .bind(name)
         .fetch_optional(pool)
         .await?;
 
     match row {
-        None => Err(highnoon::Error::bad_request("project not found")),
+        None => Err(AppError::http((StatusCode::BAD_REQUEST, "project not found"))),
         Some((id,)) => Ok(id),
     }
 }
@@ -151,13 +151,13 @@ pub async fn create(
 }
 
 #[derive(Deserialize)]
-struct QueryJob {
+pub struct QueryJob {
     pub project: String,
     pub name: String,
 }
 
 #[derive(Serialize, sqlx::FromRow)]
-struct GetJob {
+pub struct GetJob {
     pub id: Uuid,
     pub project_id: Uuid,
     pub name: String,
@@ -338,7 +338,7 @@ pub async fn get_paused(
 }
 
 #[derive(Deserialize)]
-struct Paused {
+pub struct Paused {
     paused: bool,
 }
 

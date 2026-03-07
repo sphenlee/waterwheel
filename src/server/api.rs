@@ -16,14 +16,14 @@ mod heartbeat;
 mod job;
 pub mod jwt;
 mod project;
-//mod schedulers;
+mod schedulers;
 mod stash;
 mod status;
-//mod task;
-//mod task_logs;
+mod task;
+mod task_logs;
 pub mod types;
 mod updates;
-//mod workers;
+mod workers;
 
 pub struct AppInner {
     db_pool: PgPool,
@@ -157,64 +157,64 @@ pub async fn make_app(config: Config) -> Result<axum::Router<()>> {
         )
 
         // job runs
-        // .route(
-        //     "/api/jobs/:id/runs/:trigger_datetime",
-        //     get(job::list_job_all_task_runs),
-        // )
+        .route(
+            "/api/jobs/:id/runs/:trigger_datetime",
+            get(job::list_job_all_task_runs),
+        )
 
         // job triggers
-        // .route("/api/jobs/:id/triggers", get(job::get_triggers_by_job))
+        .route("/api/jobs/:id/triggers", get(job::get_triggers_by_job))
 
         // job stash
-        // .route(
-        //     "/int-api/jobs/:id/stash/:trigger_datetime/",
-        //     get(stash::job::list),
-        // )
-        // .route(
-        //     "/int-api/jobs/:id/stash/:trigger_datetime/:key",
-        //     put(stash::job::create)
-        //         .get(stash::job::get)
-        //         .delete(stash::job::delete),
-        // )
+        .route(
+            "/int-api/jobs/:id/stash/:trigger_datetime/",
+            get(stash::job::list),
+        )
+        .route(
+            "/int-api/jobs/:id/stash/:trigger_datetime/:key",
+            put(stash::job::create)
+                .get(stash::job::get)
+                .delete(stash::job::delete),
+        )
 
         // tasks
-        // .route("/api/tasks/:id", get(task::get_task_def))
-        // .route(
-        //     "/api/tasks/:id/tokens",
-        //     post(task::activate_multiple_tokens),
-        // )
-        // .route(
-        //     "/api/tasks/:id/tokens/:trigger_datetime",
-        //     put(task::activate_token),
-        // )
-        // .route("/int-api/tasks/:id", get(task::internal_get_task_def))
+        .route("/api/tasks/:id", get(task::get_task_def))
+        .route(
+            "/api/tasks/:id/tokens",
+            post(task::activate_multiple_tokens),
+        )
+        .route(
+            "/api/tasks/:id/tokens/:trigger_datetime",
+            put(task::activate_token),
+        )
+        .route("/int-api/tasks/:id", get(task::internal_get_task_def))
 
         // task runs
-        // .route(
-        //     "/api/tasks/:id/runs/:trigger_datetime",
-        //     get(job::list_task_runs),
-        // )
+        .route(
+            "/api/tasks/:id/runs/:trigger_datetime",
+            get(job::list_task_runs),
+        )
 
         // task logs (websocket handler)
-        // .route("/api/task_runs/:id/logs", get(task_logs::logs))
+        .route("/api/task_runs/:id/logs", get(task_logs::logs))
 
         // trigger times
-        // .route("/api/triggers/:id", get(job::get_trigger))
+        .route("/api/triggers/:id", get(job::get_trigger))
 
         // workers
-        // .route("/api/workers", get(workers::list))
-        // .route("/api/workers/:id", get(workers::tasks))
+        .route("/api/workers", get(workers::list))
+        .route("/api/workers/:id", get(workers::tasks))
 
         // schedulers
-        // .route("/api/schedulers", get(schedulers::list))
+        .route("/api/schedulers", get(schedulers::list))
 
         // stash
-        // .route("/api/stash", get(stash::global::list))
-        // .route(
-        //     "/api/stash/:key",
-        //     put(stash::global::create).delete(stash::global::delete),
-        // )
-        // .route("/int-api/stash/:key", get(stash::global::get))
+        .route("/api/stash", get(stash::global::list))
+        .route(
+            "/api/stash/:key",
+            put(stash::global::create).delete(stash::global::delete),
+        )
+        .route("/int-api/stash/:key", get(stash::global::get))
 
         // static files
         .nest_service(
