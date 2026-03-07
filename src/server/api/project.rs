@@ -1,29 +1,41 @@
-use super::{State, auth, config_cache, request_ext::RequestExt};
+use super::{App, AppResult, auth, config_cache};
 use crate::{
     messages::ConfigUpdate,
     server::api::jwt,
     util::{is_pg_integrity_error, pg_error},
 };
-use highnoon::{Json, Request, Responder, Response, StatusCode};
+use axum::{
+    Json,
+    extract::{Path, Query, Request, State},
+    http::{HeaderMap, StatusCode},
+    response::{IntoResponse, Response},
+};
+use axum_extra::{
+    TypedHeader,
+    headers::{Authorization, authorization::Bearer},
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use tracing::{info, warn};
 use uuid::Uuid;
 
 #[derive(Serialize, Deserialize)]
-struct NewProject {
+pub struct NewProject {
     pub uuid: Option<Uuid>,
     pub name: String,
     pub description: String,
     pub config: Option<JsonValue>,
 }
 
-pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
-    let proj: NewProject = req.body_json().await?;
-
+#[axum::debug_handler]
+pub async fn create(
+    State(app): State<App>,
+    headers: HeaderMap,
+    Json(proj): Json<NewProject>,
+) -> AppResult<Response> {
     let id = proj.uuid.unwrap_or_else(uuid::Uuid::new_v4);
 
-    auth::update().project(id).check(&req).await?;
+    auth::update(&app).project(id).check(&headers).await?;
 
     let res = sqlx::query(
         "INSERT INTO project(id, name, description, config)
@@ -38,50 +50,50 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<Response> {
     .bind(&proj.name)
     .bind(&proj.description)
     .bind(&proj.config)
-    .execute(&req.get_pool())
+    .execute(&app.get_pool())
     .await;
 
     match pg_error(res)? {
         Ok(_done) => {
             info!("updated project {} -> {}", id, proj.name);
 
-            config_cache::send(req.get_channel(), ConfigUpdate::Project(id)).await?;
+            config_cache::send(app.get_channel(), ConfigUpdate::Project(id)).await?;
 
             let proj = NewProject {
                 uuid: Some(id),
                 ..proj
             };
-            (StatusCode::CREATED, Json(proj)).into_response()
+            Ok((StatusCode::CREATED, Json(proj)).into_response())
         }
         Err(err) => {
             warn!("error updating project: {}", err);
             if is_pg_integrity_error(&err) {
-                (
+                Ok((
                     StatusCode::CONFLICT,
                     "a project with this name already exists",
                 )
-                    .into_response()
+                    .into_response())
             } else {
-                StatusCode::INTERNAL_SERVER_ERROR.into_response()
+                Ok(StatusCode::INTERNAL_SERVER_ERROR.into_response())
             }
         }
     }
 }
 
 #[derive(Deserialize)]
-struct QueryProject {
+pub struct QueryProject {
     pub name: Option<String>,
 }
 
 #[derive(Serialize, sqlx::FromRow)]
-struct ListProject {
+pub struct ListProject {
     pub id: Uuid,
     pub name: String,
     pub description: String,
 }
 
-pub async fn list(req: Request<State>) -> highnoon::Result<Response> {
-    auth::list().project(None).check(&req).await?;
+pub async fn list(State(app): State<App>, headers: HeaderMap) -> AppResult<Response> {
+    auth::list(&app).project(None).check(&headers).await?;
 
     let projects: Vec<ListProject> = sqlx::query_as(
         "SELECT id, name, description
@@ -89,15 +101,17 @@ pub async fn list(req: Request<State>) -> highnoon::Result<Response> {
         ORDER BY name
         LIMIT 100",
     )
-    .fetch_all(&req.get_pool())
+    .fetch_all(&app.get_pool())
     .await?;
 
-    Json(projects).into_response()
+    Ok(Json(projects).into_response())
 }
 
-pub async fn get_by_name(req: Request<State>) -> highnoon::Result<Response> {
-    let q = req.query::<QueryProject>()?;
-
+pub async fn get_by_name(
+    State(app): State<App>,
+    Query(q): Query<QueryProject>,
+    headers: HeaderMap,
+) -> AppResult<Response> {
     if let Some(name) = q.name {
         let row: Option<ListProject> = sqlx::query_as(
             "SELECT id, name, description
@@ -105,18 +119,18 @@ pub async fn get_by_name(req: Request<State>) -> highnoon::Result<Response> {
             WHERE name = $1",
         )
         .bind(&name)
-        .fetch_optional(&req.get_pool())
+        .fetch_optional(&app.get_pool())
         .await?;
 
         match row {
-            None => StatusCode::NOT_FOUND.into_response(),
+            None => Ok(StatusCode::NOT_FOUND.into_response()),
             Some(proj) => {
-                auth::get().project(proj.id).check(&req).await?;
-                Json(proj).into_response()
+                auth::get(&app).project(proj.id).check(&headers).await?;
+                Ok(Json(proj).into_response())
             }
         }
     } else {
-        list(req).await
+        list(State(app), headers).await
     }
 }
 
@@ -134,10 +148,11 @@ struct ProjectExtra {
     pub error_tasks_last_hour: i64,
 }
 
-pub async fn get_by_id(req: Request<State>) -> highnoon::Result<Response> {
-    let id_str = req.param("id")?;
-    let id = Uuid::parse_str(id_str)?;
-
+pub async fn get_by_id(
+    State(app): State<App>,
+    Path(id): Path<Uuid>,
+    headers: HeaderMap,
+) -> AppResult<Response> {
     let row: Option<ProjectExtra> = sqlx::query_as(
         "WITH these_tasks AS (
             SELECT
@@ -188,14 +203,14 @@ pub async fn get_by_id(req: Request<State>) -> highnoon::Result<Response> {
         WHERE id = $1",
     )
     .bind(id)
-    .fetch_optional(&req.get_pool())
+    .fetch_optional(&app.get_pool())
     .await?;
 
     match row {
-        None => StatusCode::NOT_FOUND.into_response(),
+        None => Ok(StatusCode::NOT_FOUND.into_response()),
         Some(proj) => {
-            auth::get().project(proj.id).check(&req).await?;
-            Json(proj).into_response()
+            auth::get(&app).project(proj.id).check(&headers).await?;
+            Ok(Json(proj).into_response())
         }
     }
 }
@@ -204,11 +219,12 @@ pub async fn get_by_id(req: Request<State>) -> highnoon::Result<Response> {
 #[serde(transparent)]
 struct ProjectConfig(JsonValue);
 
-pub async fn get_config(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let id_str = req.param("id")?;
-    let id = Uuid::parse_str(id_str)?;
-
-    jwt::validate_config_jwt(&req, id)?;
+pub async fn get_config(
+    State(app): State<App>,
+    Path(id): Path<Uuid>,
+    TypedHeader(auth): TypedHeader<Authorization<Bearer>>,
+) -> AppResult<Response> {
+    jwt::validate_config_jwt(&app, auth, id)?;
 
     let row: Option<ProjectConfig> = sqlx::query_as(
         "SELECT COALESCE(config, '{}'::jsonb) AS config
@@ -216,28 +232,29 @@ pub async fn get_config(req: Request<State>) -> highnoon::Result<impl Responder>
         WHERE id = $1",
     )
     .bind(id)
-    .fetch_optional(&req.get_pool())
+    .fetch_optional(&app.get_pool())
     .await?;
 
     if let Some(proj_conf) = row {
-        Json(proj_conf).into_response()
+        Ok(Json(proj_conf).into_response())
     } else {
-        StatusCode::NOT_FOUND.into_response()
+        Ok(StatusCode::NOT_FOUND.into_response())
     }
 }
 
-pub async fn delete(req: Request<State>) -> highnoon::Result<StatusCode> {
-    let id_str = req.param("id")?;
-    let id = Uuid::parse_str(id_str)?;
-
-    auth::delete().project(id).check(&req).await?;
+pub async fn delete(
+    State(app): State<App>,
+    Path(id): Path<Uuid>,
+    headers: HeaderMap,
+) -> AppResult<StatusCode> {
+    auth::delete(&app).project(id).check(&headers).await?;
 
     let res = sqlx::query(
         "DELETE FROM project
         WHERE id = $1",
     )
     .bind(id)
-    .execute(&req.get_pool())
+    .execute(&app.get_pool())
     .await;
 
     match pg_error(res)? {
@@ -258,14 +275,14 @@ pub async fn delete(req: Request<State>) -> highnoon::Result<StatusCode> {
 }
 
 #[derive(Deserialize)]
-struct ListJobQuery {
+pub struct ListJobQuery {
     limit: Option<i32>,
     after: Option<String>,
     name: Option<String>,
 }
 
 #[derive(Serialize, sqlx::FromRow)]
-struct ListJob {
+pub struct ListJob {
     job_id: Uuid,
     name: String,
     description: String,
@@ -277,13 +294,13 @@ struct ListJob {
     error: i64,
 }
 
-pub async fn list_jobs(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let id_str = req.param("id")?;
-    let id = Uuid::parse_str(id_str)?;
-
-    let query: ListJobQuery = req.query()?;
-
-    auth::list().project(id).check(&req).await?;
+pub async fn list_jobs(
+    State(app): State<App>,
+    Path(id): Path<Uuid>,
+    Query(query): Query<ListJobQuery>,
+    headers: HeaderMap,
+) -> AppResult<Json<Vec<ListJob>>> {
+    auth::list(&app).project(id).check(&headers).await?;
 
     let jobs: Vec<ListJob> = sqlx::query_as(
         "WITH these_runs AS (
@@ -335,7 +352,7 @@ pub async fn list_jobs(req: Request<State>) -> highnoon::Result<impl Responder> 
     .bind(query.after.as_ref())
     .bind(query.name.as_ref())
     .bind(query.limit.unwrap_or(50))
-    .fetch_all(&req.get_pool())
+    .fetch_all(&app.get_pool())
     .await?;
 
     Ok(Json(jobs))

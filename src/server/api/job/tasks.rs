@@ -1,13 +1,18 @@
 use crate::{
     server::api::{
-        State, auth,
+        App, AppResult, auth,
         job::reference::{Reference, ReferenceKind, parse_reference, resolve_reference},
         request_ext::RequestExt,
         types::{Job, Task},
     },
     util::{is_pg_integrity_error, pg_error},
 };
-use highnoon::{Json, Request, Responder};
+use axum::{
+    Json,
+    extract::{Path, State},
+    http::HeaderMap,
+    response::{IntoResponse, Response},
+};
 use serde::Serialize;
 use sqlx::{Postgres, Transaction};
 use tracing::debug;
@@ -253,10 +258,13 @@ struct ListTask {
     name: String,
 }
 
-pub async fn list_tasks(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let job_id: Uuid = req.param("id")?.parse()?;
-
-    auth::list().job(job_id, None).check(&req).await?;
+#[axum::debug_handler]
+pub async fn list_tasks(
+    State(app): State<App>,
+    Path(job_id): Path<Uuid>,
+    headers: HeaderMap,
+) -> AppResult<Response> {
+    auth::list(&app).job(job_id, None).check(&headers).await?;
 
     let tasks: Vec<ListTask> = sqlx::query_as(
         "SELECT
@@ -268,10 +276,10 @@ pub async fn list_tasks(req: Request<State>) -> highnoon::Result<impl Responder>
         LIMIT 200",
     )
     .bind(job_id)
-    .fetch_all(&req.get_pool())
+    .fetch_all(&app.get_pool())
     .await?;
 
     // TODO - check for job_id not found
 
-    Ok(Json(tasks))
+    Ok(Json(tasks).into_response())
 }

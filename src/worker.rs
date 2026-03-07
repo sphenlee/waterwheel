@@ -94,15 +94,15 @@ impl Worker {
     }
 
     async fn serve(self: Arc<Self>) -> Result<()> {
-        let mut app = highnoon::App::new(());
-        app.at("/")
-            .get(|_req| async { Ok("Hello from Waterwheel Worker!") });
+        // let mut app = highnoon::App::new(());
+        // app.at("/")
+        //     .get(|_req| async { Ok("Hello from Waterwheel Worker!") });
 
-        // healthcheck to see if the worker is up
-        app.at("/healthcheck").get(|_req| async { Ok("OK") });
+        // // healthcheck to see if the worker is up
+        // app.at("/healthcheck").get(|_req| async { Ok("OK") });
 
-        let host = &self.config.worker_bind;
-        app.listen(host).await?;
+        // let host = &self.config.worker_bind;
+        // app.listen(host).await?;
 
         Ok(())
     }

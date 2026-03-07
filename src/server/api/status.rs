@@ -1,5 +1,5 @@
-use crate::server::api::{State, auth, request_ext::RequestExt};
-use highnoon::{Json, Request, Responder};
+use crate::server::api::{App, auth, AppResult};
+use axum::{extract::{State, Request}, response::Json};
 use serde::Serialize;
 
 #[derive(Serialize, sqlx::FromRow)]
@@ -9,8 +9,9 @@ pub struct ServerStatus {
     pub running_tasks: i64,
 }
 
-pub async fn status(req: Request<State>) -> highnoon::Result<impl Responder> {
-    auth::get().kind("status").check(&req).await?;
+#[axum::debug_handler]
+pub async fn status(State(app): State<App>, req: Request) -> AppResult<Json<ServerStatus>> {
+    auth::get(&app).kind("status").check(req.headers()).await?;
 
     let status: ServerStatus = sqlx::query_as(
         "SELECT
@@ -29,7 +30,7 @@ pub async fn status(req: Request<State>) -> highnoon::Result<impl Responder> {
                 WHERE CURRENT_TIMESTAMP - last_seen_datetime < INTERVAL '15 minutes'
             ) AS running_tasks",
     )
-    .fetch_one(&req.get_pool())
+    .fetch_one(&app.get_pool())
     .await?;
 
     Ok(Json(status))

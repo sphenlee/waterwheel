@@ -1,10 +1,15 @@
 use crate::server::api::{
-    State, auth,
+    App, AppResult, auth, error::AppError,
     request_ext::RequestExt,
     types::{Job, Trigger, duration_from_string},
 };
 use chrono::{DateTime, Utc};
-use highnoon::{Json, Request, Responder};
+use axum::{
+    Json,
+    extract::{Path, Query, State},
+    http::HeaderMap,
+    response::{IntoResponse, Response},
+};
 use serde::{Deserialize, Serialize};
 use sqlx::{Postgres, Transaction};
 use std::str::FromStr;
@@ -99,10 +104,13 @@ pub struct GetTriggerByJob {
     pub catchup: Option<String>,
 }
 
-pub async fn get_triggers_by_job(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let job_id = req.param("id")?.parse::<Uuid>()?;
-
-    auth::get().job(job_id, None).check(&req).await?;
+#[axum::debug_handler]
+pub async fn get_triggers_by_job(
+    State(app): State<App>,
+    Path(job_id): Path<Uuid>,
+    headers: HeaderMap,
+) -> AppResult<Response> {
+    auth::get(&app).job(job_id, None).check(&headers).await?;
 
     let triggers: Vec<GetTriggerByJob> = sqlx::query_as(
         "SELECT
@@ -121,10 +129,10 @@ pub async fn get_triggers_by_job(req: Request<State>) -> highnoon::Result<impl R
         ORDER BY latest_trigger_datetime DESC",
     )
     .bind(job_id)
-    .fetch_all(&req.get_pool())
+    .fetch_all(&app.get_pool())
     .await?;
 
-    Ok(Json(triggers))
+    Ok(Json(triggers).into_response())
 }
 
 #[derive(Deserialize)]
@@ -159,12 +167,14 @@ pub struct GetTrigger {
     pub times: Vec<TriggerTime>,
 }
 
-pub async fn get_trigger(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let trigger_id = req.param("id")?.parse::<Uuid>()?;
-
-    let query: GetTriggerQuery = req.query()?;
-
-    // TODO auth check
+#[axum::debug_handler]
+pub async fn get_trigger(
+    State(app): State<App>,
+    Path(trigger_id): Path<Uuid>,
+    Query(query): Query<GetTriggerQuery>,
+    headers: HeaderMap,
+) -> AppResult<Response> {
+    // fetch the info record
     let info: Option<GetTriggerInfo> = sqlx::query_as(
         "SELECT
             g.id AS trigger_id,
@@ -179,15 +189,18 @@ pub async fn get_trigger(req: Request<State>) -> highnoon::Result<impl Responder
         WHERE g.id = $1",
     )
     .bind(trigger_id)
-    .fetch_optional(&req.get_pool())
+    .fetch_optional(&app.get_pool())
     .await?;
 
-    let info = info.ok_or_else(|| highnoon::Error::http(None::<&str>))?; // weird irrelevant type for None required here
+    let info = info.ok_or_else(|| {
+        // match old behaviour of highnoon::Error::http(None::<&str>)
+        AppError::http(axum::http::StatusCode::BAD_REQUEST)
+    })?;
 
-    auth::get()
+    auth::get(&app)
         .job(info.job_id, info.project_id)
         .kind("trigger")
-        .check(&req)
+        .check(&headers)
         .await?;
 
     let times: Vec<TriggerTime> = sqlx::query_as(
@@ -228,8 +241,8 @@ pub async fn get_trigger(req: Request<State>) -> highnoon::Result<impl Responder
     .bind(trigger_id)
     .bind(query.before)
     .bind(query.limit.unwrap_or(100))
-    .fetch_all(&req.get_pool())
+    .fetch_all(&app.get_pool())
     .await?;
 
-    Ok(Json(GetTrigger { info, times }))
+    Ok(Json(GetTrigger { info, times }).into_response())
 }

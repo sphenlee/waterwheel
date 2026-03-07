@@ -1,13 +1,14 @@
 use crate::{
     messages::WorkerHeartbeat,
-    server::api::{State, request_ext::RequestExt},
+    server::api::{AppResult, App},
 };
-use highnoon::{Request, Responder, StatusCode};
+use axum::{Json, http::StatusCode, extract::State, response::IntoResponse};
 use tracing::trace;
 
-pub async fn post(mut req: Request<State>) -> highnoon::Result<impl Responder> {
-    let beat: WorkerHeartbeat = req.body_json().await?;
-
+pub async fn post(
+    State(app): State<App>,
+    Json(beat): Json<WorkerHeartbeat>,
+) -> AppResult<impl IntoResponse> {
     // TODO - should heartbeats be JWT protected?
 
     trace!(uuid=?beat.uuid, "received heartbeat");
@@ -36,7 +37,7 @@ pub async fn post(mut req: Request<State>) -> highnoon::Result<impl Responder> {
     .bind(beat.running_tasks)
     .bind(beat.total_tasks)
     .bind(&beat.version)
-    .execute(&req.get_pool())
+    .execute(&app.get_pool())
     .await?;
 
     Ok(StatusCode::OK)

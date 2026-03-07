@@ -1,6 +1,7 @@
-use crate::{config::Config, server::api::State};
+use crate::{config::Config, server::api::{App, AppResult, error::AppError}};
 use anyhow::{Result, format_err};
-use highnoon::{Error, Request, StatusCode};
+use axum::http::StatusCode;
+use axum_extra::headers::{Authorization, authorization::Bearer};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use serde::{Deserialize, Serialize};
 use sqlx::types::Uuid;
@@ -110,18 +111,15 @@ pub fn validate_stash_jwt(keys: &JwtKeys, jwt: &str) -> Result<String> {
     validate_jwt(keys, jwt, STASH_AUDIENCE)
 }
 
-pub fn validate_config_jwt(req: &Request<State>, id: Uuid) -> highnoon::Result<String> {
-    use highnoon::headers::{Authorization, authorization::Bearer};
-
-    let bearer = req
-        .header::<Authorization<Bearer>>()
-        .ok_or_else(|| Error::http(StatusCode::FORBIDDEN))?;
-
-    let keys = &req.state().jwt_keys;
+pub fn validate_config_jwt(
+    app: &App,
+    bearer: Authorization<Bearer>,
+    id: Uuid,) -> AppResult<String> {
+    let keys = &app.jwt_keys;
 
     let sub = validate_jwt(keys, bearer.0.token(), CONFIG_AUDIENCE)?;
     if sub != id.to_string() {
-        Err(Error::http(StatusCode::FORBIDDEN))
+        Err(AppError::http(StatusCode::FORBIDDEN))
     } else {
         Ok(sub)
     }

@@ -1,24 +1,30 @@
-use crate::server::api::{State, auth, request_ext::RequestExt};
-use highnoon::{Json, Request, Responder, StatusCode};
+use crate::server::api::{App, AppResult, auth, error::AppError, stash::JwtSubject};
+use axum::{
+    Json,
+    body::Bytes,
+    extract::{Path, State},
+    http::{HeaderMap, StatusCode},
+    response::{IntoResponse, Response},
+};
 use tracing::info;
 use uuid::Uuid;
 
-use super::{StashData, StashName, get_jwt_subject};
+use super::{StashData, StashName};
 use cadence::CountedExt;
 
-pub async fn create(mut req: Request<State>) -> highnoon::Result<impl Responder> {
-    let data = req.body_bytes().await?;
-
-    let proj_id = req.param("id")?.parse::<Uuid>()?;
-    let key = req.param("key")?;
-
-    auth::update()
+pub async fn create(
+    State(app): State<App>,
+    Path((proj_id, key)): Path<(Uuid, String)>,
+    headers: HeaderMap,
+    body: Bytes,
+) -> AppResult<StatusCode> {
+    auth::update(&app)
         .project(proj_id)
         .kind("stash")
-        .check(&req)
+        .check(&headers)
         .await?;
 
-    let db = req.get_pool();
+    let db = app.get_pool();
 
     sqlx::query(
         "INSERT INTO project_stash(project_id, name, data)
@@ -28,8 +34,8 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<impl Responder>
         SET data = $3",
     )
     .bind(proj_id)
-    .bind(key)
-    .bind(&data)
+    .bind(&key)
+    .bind(body.as_ref())
     .execute(&db)
     .await?;
 
@@ -38,15 +44,17 @@ pub async fn create(mut req: Request<State>) -> highnoon::Result<impl Responder>
     Ok(StatusCode::CREATED)
 }
 
-pub async fn list(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let db = req.get_pool();
+pub async fn list(
+    State(app): State<App>,
+    Path(proj_id): Path<Uuid>,
+    headers: HeaderMap,
+) -> AppResult<Json<Vec<StashName>>> {
+    let db = app.get_pool();
 
-    let proj_id = req.param("id")?.parse::<Uuid>()?;
-
-    auth::list()
+    auth::list(&app)
         .project(proj_id)
         .kind("stash")
-        .check(&req)
+        .check(&headers)
         .await?;
 
     let rows: Vec<StashName> = sqlx::query_as(
@@ -61,12 +69,14 @@ pub async fn list(req: Request<State>) -> highnoon::Result<impl Responder> {
     Ok(Json(rows))
 }
 
-pub async fn get(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let db = req.get_pool();
+pub async fn get(
+    State(app): State<App>,
+    JwtSubject(subject): JwtSubject,
+    Path((proj_id, key)): Path<(Uuid, String)>,
+) -> AppResult<Response> {
+    let db = app.get_pool();
 
-    let proj_id = req.param("id")?.parse::<Uuid>()?;
-    let task_id = get_jwt_subject(&req)?.parse::<Uuid>()?;
-    let key = req.param("key")?;
+    let task_id = subject.parse::<Uuid>()?;
 
     info!(?proj_id, ?task_id, %key, "task requested project stash");
 
@@ -88,25 +98,27 @@ pub async fn get(req: Request<State>) -> highnoon::Result<impl Responder> {
     .fetch_optional(&db)
     .await?;
 
-    req.get_statsd()
+    app.get_statsd()
         .incr_with_tags("stash.get")
         .with_tag_value("project")
         .with_tag("proj_id", &proj_id.to_string())
         .send();
 
-    Ok(row)
+    row.map(IntoResponse::into_response)
+        .ok_or_else(|| AppError::http(StatusCode::NOT_FOUND))
 }
 
-pub async fn delete(req: Request<State>) -> highnoon::Result<impl Responder> {
-    let db = req.get_pool();
+pub async fn delete(
+        State(app): State<App>,
+    Path((proj_id, key)): Path<(Uuid, String)>,
+    headers: HeaderMap,
+) -> AppResult<StatusCode> {
+    let db = app.get_pool();
 
-    let proj_id = req.param("id")?.parse::<Uuid>()?;
-    let key = req.param("key")?;
-
-    auth::delete()
+    auth::delete(&app)
         .project(proj_id)
         .kind("stash")
-        .check(&req)
+        .check(&headers)
         .await?;
 
     let _done = sqlx::query(
@@ -116,7 +128,7 @@ pub async fn delete(req: Request<State>) -> highnoon::Result<impl Responder> {
         AND name = $2",
     )
     .bind(proj_id)
-    .bind(key)
+    .bind(&key)
     .execute(&db)
     .await?;
 

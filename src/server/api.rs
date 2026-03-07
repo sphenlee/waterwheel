@@ -3,26 +3,29 @@ use anyhow::Result;
 use cadence::StatsdClient;
 use lapin::Channel;
 use sqlx::PgPool;
-use std::{path::Path, sync::Arc};
+use std::{ops::Deref, path::Path, sync::Arc};
 use tracing::{debug, warn};
+use axum::routing::{get, post, put, delete, get_service};
+use tower_http::{services::{ServeDir, ServeFile}, trace::TraceLayer};
+use axum::http::StatusCode;
 
 pub mod auth;
 mod config_cache;
+mod error;
 mod heartbeat;
 mod job;
 pub mod jwt;
 mod project;
-mod request_ext;
-mod schedulers;
+//mod schedulers;
 mod stash;
 mod status;
-mod task;
-mod task_logs;
+//mod task;
+//mod task_logs;
 pub mod types;
 mod updates;
-mod workers;
+//mod workers;
 
-pub struct State {
+pub struct AppInner {
     db_pool: PgPool,
     //amqp_conn: Connection,
     amqp_channel: Channel,
@@ -33,16 +36,42 @@ pub struct State {
     pub jwt_keys: JwtKeys,
 }
 
-impl highnoon::State for State {
-    type Context = ();
-    fn new_context(&self) -> Self::Context {
-        Self::Context::default()
+#[derive(Clone)]
+pub struct App(Arc<AppInner>);
+
+impl Deref for App {
+    type Target = AppInner;
+
+    fn deref(&self) -> &Self::Target {
+        self.0.as_ref()
     }
 }
 
+impl Into<App> for AppInner {
+    fn into(self) -> App {
+        App(Arc::new(self))
+    }
+}
+
+impl App {
+    fn get_pool(&self) -> PgPool {
+        self.0.db_pool.clone()
+    }
+
+    fn get_channel(&self) -> &Channel {
+        &self.0.amqp_channel
+    }
+
+    fn get_statsd(&self) -> &StatsdClient {
+        &self.0.statsd
+    }
+}
+
+pub type AppResult<T> = Result<T, error::AppError>;
+
 const UI_RELATIVE_PATH: &str = "ui/dist/";
 
-pub async fn make_app(config: Config) -> Result<highnoon::App<State>> {
+pub async fn make_app(config: Config) -> Result<axum::Router<()>> {
     let amqp_conn = amqp::amqp_connect(&config).await?;
     let db_pool = db::create_pool(&config).await?;
     let statsd = metrics::new_client(&config)?;
@@ -51,7 +80,7 @@ pub async fn make_app(config: Config) -> Result<highnoon::App<State>> {
     let amqp_channel = amqp_conn.create_channel().await?;
     let redis_client = redis::Client::open(config.redis_url.as_ref())?;
 
-    let state = State {
+    let app = AppInner {
         config,
         db_pool,
         //amqp_conn,
@@ -61,140 +90,156 @@ pub async fn make_app(config: Config) -> Result<highnoon::App<State>> {
         redis_client,
     };
 
-    updates::setup(&state.amqp_channel).await?;
-    config_cache::setup(&state.amqp_channel).await?;
+    updates::setup(&app.amqp_channel).await?;
+    config_cache::setup(&app.amqp_channel).await?;
 
-    let mut app = highnoon::App::new(state);
-    app.with(highnoon::filter::Log);
+    let router = axum::Router::new()
+        // enable request tracing for all routes
+        .layer(TraceLayer::new_for_http())
 
-    // basic healthcheck to see if waterwheel is up
-    app.at("/healthcheck").get(|_req| async { Ok("OK") });
+        // healthcheck
+        .route("/healthcheck", get(|| async { "OK" }))
 
-    app.at("/api/status").get(status::status);
+        // status
+        .route("/api/status", get(status::status))
 
-    // worker heartbeats
-    app.at("/int-api/heartbeat").post(heartbeat::post);
+        // worker heartbeats
+        .route("/int-api/heartbeat", post(heartbeat::post))
 
-    // project
-    app.at("/api/projects")
-        .get(project::get_by_name)
-        .post(project::create)
-        .put(project::create);
-    app.at("/api/projects/:id")
-        .get(project::get_by_id)
-        .delete(project::delete);
-    app.at("/api/projects/:id/jobs").get(project::list_jobs);
+        // project
+        .route(
+            "/api/projects",
+            get(project::get_by_name)
+                .post(project::create)
+                .put(project::create),
+        )
+        .route(
+            "/api/projects/{id}",
+            get(project::get_by_id).delete(project::delete),
+        )
+        .route("/api/projects/{id}/jobs", get(project::list_jobs))
+        .route("/int-api/projects/{id}/config", get(project::get_config))
 
-    app.at("/int-api/projects/:id/config")
-        .get(project::get_config);
+        // project stash
+        .route("/api/projects/{id}/stash", get(stash::project::list))
+        .route(
+            "/api/projects/{id}/stash/{key}",
+            put(stash::project::create).delete(stash::project::delete),
+        )
+        .route("/int-api/projects/{id}/stash/{key}", get(stash::project::get))
 
-    // project stash
-    app.at("/api/projects/:id/stash").get(stash::project::list);
-    app.at("/api/projects/:id/stash/:key")
-        .put(stash::project::create)
-        .delete(stash::project::delete);
+        // job
+        .route(
+            "/api/jobs",
+            get(job::get_by_name)
+                .post(job::create)
+                .put(job::create),
+        )
+        .route(
+            "/api/jobs/{id}",
+            get(job::get_by_id).delete(job::delete),
+        )
+        .route("/api/jobs/{id}/tasks", get(job::list_tasks))
+        .route(
+            "/api/jobs/{id}/paused",
+            get(job::get_paused).put(job::set_paused),
+        )
+        .route("/api/jobs/{id}/graph", get(job::get_graph))
+        .route("/api/jobs/{id}/duration", get(job::get_duration))
 
-    app.at("/int-api/projects/:id/stash/:key")
-        .get(stash::project::get);
+        // job tokens
+        .route("/api/jobs/{id}/tokens", get(job::get_tokens))
+        .route("/api/jobs/{id}/tokens-overview", get(job::get_tokens_overview))
+        .route(
+            "/api/jobs/{id}/tokens/{trigger_datetime}",
+            get(job::get_tokens_trigger_datetime)
+                .delete(job::clear_tokens_trigger_datetime),
+        )
 
-    // job
-    app.at("/api/jobs")
-        .get(job::get_by_name)
-        .post(job::create)
-        .put(job::create);
-    app.at("/api/jobs/:id")
-        .get(job::get_by_id)
-        .delete(job::delete);
-    app.at("/api/jobs/:id/tasks").get(job::list_tasks);
-    app.at("/api/jobs/:id/paused")
-        .get(job::get_paused)
-        .put(job::set_paused);
-    app.at("/api/jobs/:id/graph").get(job::get_graph);
-    app.at("/api/jobs/:id/duration").get(job::get_duration);
+        // job runs
+        // .route(
+        //     "/api/jobs/:id/runs/:trigger_datetime",
+        //     get(job::list_job_all_task_runs),
+        // )
 
-    // job tokens
-    app.at("/api/jobs/:id/tokens").get(job::get_tokens);
-    app.at("/api/jobs/:id/tokens-overview")
-        .get(job::get_tokens_overview);
-    app.at("/api/jobs/:id/tokens/:trigger_datetime")
-        .get(job::get_tokens_trigger_datetime)
-        .delete(job::clear_tokens_trigger_datetime);
+        // job triggers
+        // .route("/api/jobs/:id/triggers", get(job::get_triggers_by_job))
 
-    // job runs
-    app.at("/api/jobs/:id/runs/:trigger_datetime")
-        .get(job::list_job_all_task_runs);
+        // job stash
+        // .route(
+        //     "/int-api/jobs/:id/stash/:trigger_datetime/",
+        //     get(stash::job::list),
+        // )
+        // .route(
+        //     "/int-api/jobs/:id/stash/:trigger_datetime/:key",
+        //     put(stash::job::create)
+        //         .get(stash::job::get)
+        //         .delete(stash::job::delete),
+        // )
 
-    // job triggers
-    app.at("/api/jobs/:id/triggers")
-        .get(job::get_triggers_by_job);
+        // tasks
+        // .route("/api/tasks/:id", get(task::get_task_def))
+        // .route(
+        //     "/api/tasks/:id/tokens",
+        //     post(task::activate_multiple_tokens),
+        // )
+        // .route(
+        //     "/api/tasks/:id/tokens/:trigger_datetime",
+        //     put(task::activate_token),
+        // )
+        // .route("/int-api/tasks/:id", get(task::internal_get_task_def))
 
-    // job stash
-    app.at("/int-api/jobs/:id/stash/:trigger_datetime/")
-        .get(stash::job::list);
-    app.at("/int-api/jobs/:id/stash/:trigger_datetime/:key")
-        .put(stash::job::create)
-        .get(stash::job::get)
-        .delete(stash::job::delete);
+        // task runs
+        // .route(
+        //     "/api/tasks/:id/runs/:trigger_datetime",
+        //     get(job::list_task_runs),
+        // )
 
-    // tasks
-    app.at("/api/tasks/:id").get(task::get_task_def);
-    app.at("/api/tasks/:id/tokens")
-        .post(task::activate_multiple_tokens);
-    app.at("/api/tasks/:id/tokens/:trigger_datetime")
-        .put(task::activate_token);
-    app.at("/int-api/tasks/:id")
-        .get(task::internal_get_task_def);
+        // task logs (websocket handler)
+        // .route("/api/task_runs/:id/logs", get(task_logs::logs))
 
-    // task runs
-    app.at("/api/tasks/:id/runs/:trigger_datetime")
-        .get(job::list_task_runs);
+        // trigger times
+        // .route("/api/triggers/:id", get(job::get_trigger))
 
-    // task logs - TODO unimplemented
-    app.at("/api/task_runs/:id/logs").ws(task_logs::logs);
+        // workers
+        // .route("/api/workers", get(workers::list))
+        // .route("/api/workers/:id", get(workers::tasks))
 
-    // trigger times
-    app.at("/api/triggers/:id").get(job::get_trigger);
+        // schedulers
+        // .route("/api/schedulers", get(schedulers::list))
 
-    // workers
-    app.at("/api/workers").get(workers::list);
-    app.at("/api/workers/:id").get(workers::tasks);
+        // stash
+        // .route("/api/stash", get(stash::global::list))
+        // .route(
+        //     "/api/stash/:key",
+        //     put(stash::global::create).delete(stash::global::delete),
+        // )
+        // .route("/int-api/stash/:key", get(stash::global::get))
 
-    // schedulers
-    app.at("/api/schedulers").get(schedulers::list);
+        // static files
+        .nest_service(
+            "/static",
+            ServeDir::new(UI_RELATIVE_PATH),
+        )
+        .fallback_service(ServeFile::new(Path::new(UI_RELATIVE_PATH).join("index.html")))
 
-    // stash
-    app.at("/api/stash").get(stash::global::list);
-    app.at("/api/stash/:key")
-        .put(stash::global::create)
-        .delete(stash::global::delete);
+        .with_state(app.into());
 
-    app.at("/int-api/stash/:key").get(stash::global::get);
-
-    // web UI
-
-    let index = |_req: highnoon::Request<State>| async {
-        let body = highnoon::Response::ok()
-            .path(Path::new(UI_RELATIVE_PATH).join("index.html"))
-            .await?;
-        Ok(body)
-    };
-    app.at("/static/*").static_files(UI_RELATIVE_PATH);
-    app.at("/**").get(index);
-    app.at("/").get(index);
-
-    Ok(app)
+    Ok(router)
 }
 
 pub async fn serve(config: Config) -> Result<()> {
     if config.no_authz {
         warn!("authorization is disabled, this is not recommended in production");
     }
+    let server_bind = config.server_bind.clone();
 
     let app = make_app(config).await?;
-
-    let server_bind = &app.state().config.server_bind.clone();
+    
     debug!("server binding to {}", server_bind);
-    app.listen(&server_bind).await?;
+
+    let listener = tokio::net::TcpListener::bind(server_bind).await?;
+    axum::serve(listener, app).await?;
 
     Ok(())
 }
