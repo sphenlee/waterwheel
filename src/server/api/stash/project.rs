@@ -109,7 +109,7 @@ pub async fn get(
 }
 
 pub async fn delete(
-        State(app): State<App>,
+    State(app): State<App>,
     Path((proj_id, key)): Path<(Uuid, String)>,
     headers: HeaderMap,
 ) -> AppResult<StatusCode> {

@@ -2,13 +2,13 @@ use crate::{
     messages::{ProcessToken, Token, TokenState},
     server::api::{App, AppResult, auth, error::AppError, updates},
 };
-use chrono::{DateTime, Utc};
 use axum::{
     Json,
     extract::{Path, Query, State},
     http::HeaderMap,
     response::{IntoResponse, Response},
 };
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::{cmp::Reverse, collections::BTreeMap};
 use uuid::Uuid;
@@ -43,10 +43,7 @@ async fn get_tokens_common(
         for state in states {
             let _ = state
                 .parse::<TokenState>()
-                .map_err(|err| AppError::http((
-                    axum::http::StatusCode::BAD_REQUEST,
-                    err.0,
-                )))?;
+                .map_err(|err| AppError::http((axum::http::StatusCode::BAD_REQUEST, err.0)))?;
         }
     }
 
@@ -166,7 +163,8 @@ pub async fn get_tokens_overview(
     Ok(Json(GetTokensOverview {
         tokens: tokens_by_time,
         tasks,
-    }).into_response())
+    })
+    .into_response())
 }
 
 #[axum::debug_handler]

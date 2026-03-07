@@ -1,11 +1,11 @@
 use crate::server::api::{App, AppResult, auth};
-use chrono::{DateTime, Utc};
 use axum::{
     Json,
     extract::State,
     http::HeaderMap,
     response::{IntoResponse, Response},
 };
+use chrono::{DateTime, Utc};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -21,10 +21,7 @@ struct SchedulerState {
 }
 
 #[axum::debug_handler]
-pub async fn list(
-    State(app): State<App>,
-    headers: HeaderMap,
-) -> AppResult<Response> {
+pub async fn list(State(app): State<App>, headers: HeaderMap) -> AppResult<Response> {
     auth::list(&app).kind("schedulers").check(&headers).await?;
 
     let schedulers: Vec<SchedulerState> = sqlx::query_as(

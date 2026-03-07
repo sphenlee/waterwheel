@@ -1,9 +1,11 @@
 use crate::server::api::App;
 use axum::{
-    extract::{State, Path},
+    extract::{
+        Path, State,
+        ws::{Message, WebSocket, WebSocketUpgrade},
+    },
     response::Response,
 };
-use axum::extract::ws::{WebSocketUpgrade, WebSocket, Message};
 use redis::{
     AsyncCommands, FromRedisValue,
     streams::{StreamReadOptions, StreamReadReply},
@@ -18,11 +20,7 @@ pub async fn logs(
     ws: WebSocketUpgrade,
 ) -> Response {
     ws.on_upgrade(move |mut socket: WebSocket| async move {
-        let mut redis = match app
-            .redis_client
-            .get_multiplexed_tokio_connection()
-            .await
-        {
+        let mut redis = match app.redis_client.get_multiplexed_tokio_connection().await {
             Ok(conn) => conn,
             Err(_e) => return,
         };

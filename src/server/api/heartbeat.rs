@@ -1,8 +1,8 @@
 use crate::{
     messages::WorkerHeartbeat,
-    server::api::{AppResult, App},
+    server::api::{App, AppResult},
 };
-use axum::{Json, http::StatusCode, extract::State, response::IntoResponse};
+use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use tracing::trace;
 
 pub async fn post(

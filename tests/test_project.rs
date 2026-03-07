@@ -56,8 +56,7 @@ pub async fn test_project() -> highnoon::Result<()> {
         assert_eq!(resp.status(), StatusCode::CREATED);
 
         // CHECK FOR CONFIG UPDATE MESSAGE
-        let get = amqp_chan
-            .basic_get(queue.name().as_str(), BasicGetOptions::default());
+        let get = amqp_chan.basic_get(queue.name().as_str(), BasicGetOptions::default());
 
         let msg = timeout(Duration::from_secs(30), get)
             .await??

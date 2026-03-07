@@ -166,7 +166,6 @@ impl TaskPriority {
     }
 }
 
-
 #[derive(Serialize, Deserialize, Clone)]
 pub struct WorkerHeartbeat {
     pub uuid: Uuid,

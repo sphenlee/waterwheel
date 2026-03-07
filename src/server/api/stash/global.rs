@@ -1,11 +1,11 @@
 use crate::server::api::{App, AppResult, auth, stash::JwtSubject};
 use axum::{
-    extract::{State, Path},
+    Json,
+    body::Bytes,
+    extract::{Path, State},
     http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
-    Json,
 };
-use axum::body::Bytes;
 use tracing::info;
 use uuid::Uuid;
 
@@ -41,10 +41,7 @@ pub async fn create(
 }
 
 #[axum::debug_handler]
-pub async fn list(
-    State(app): State<App>,
-    headers: HeaderMap,
-) -> AppResult<Response> {
+pub async fn list(State(app): State<App>, headers: HeaderMap) -> AppResult<Response> {
     let db = app.get_pool();
 
     auth::list(&app).kind("stash").check(&headers).await?;

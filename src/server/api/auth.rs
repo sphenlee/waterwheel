@@ -2,9 +2,7 @@ use crate::{
     config::Config,
     server::api::{App, AppResult, error::AppError, job::get_job_project_id},
 };
-use axum::{
-    http::{HeaderMap, StatusCode}
-};
+use axum::http::{HeaderMap, StatusCode};
 use axum_extra::headers::{Authorization, HeaderMapExt, authorization::Bearer};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

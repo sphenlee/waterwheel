@@ -1,4 +1,7 @@
-use crate::{config::Config, server::api::{App, AppResult, error::AppError}};
+use crate::{
+    config::Config,
+    server::api::{App, AppResult, error::AppError},
+};
 use anyhow::{Result, format_err};
 use axum::http::StatusCode;
 use axum_extra::headers::{Authorization, authorization::Bearer};
@@ -114,7 +117,8 @@ pub fn validate_stash_jwt(keys: &JwtKeys, jwt: &str) -> Result<String> {
 pub fn validate_config_jwt(
     app: &App,
     bearer: Authorization<Bearer>,
-    id: Uuid,) -> AppResult<String> {
+    id: Uuid,
+) -> AppResult<String> {
     let keys = &app.jwt_keys;
 
     let sub = validate_jwt(keys, bearer.0.token(), CONFIG_AUDIENCE)?;

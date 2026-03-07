@@ -1,14 +1,15 @@
 use crate::server::api::{
-    App, AppResult, auth, error::AppError,
+    App, AppResult, auth,
+    error::AppError,
     types::{Job, Trigger, duration_from_string},
 };
-use chrono::{DateTime, Utc};
 use axum::{
     Json,
     extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
 };
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{Postgres, Transaction};
 use std::str::FromStr;

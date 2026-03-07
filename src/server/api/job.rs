@@ -1,18 +1,13 @@
 use crate::{
-    messages::ConfigUpdate,
-    server::{
-        api::{App, AppResult, auth, config_cache, types::Job, updates},
-    },
-    server::api::error::AppError,
-    util::{is_pg_integrity_error, pg_error},
-    messages::{ProcessToken, TriggerUpdate},
-    util::first,
+    messages::{ConfigUpdate, ProcessToken, TriggerUpdate},
+    server::api::{App, AppResult, auth, config_cache, error::AppError, types::Job, updates},
+    util::{first, is_pg_integrity_error, pg_error},
 };
 use axum::{
-    extract::{Path, Query, State},
-    response::{IntoResponse, Response},
-    http::{HeaderMap, StatusCode},
     Json,
+    extract::{Path, Query, State},
+    http::{HeaderMap, StatusCode},
+    response::{IntoResponse, Response},
 };
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
@@ -30,12 +25,12 @@ mod triggers;
 pub use self::{
     duration::get_duration,
     graph::get_graph,
+    task_runs::{list_job_all_task_runs, list_task_runs},
     tasks::list_tasks,
     tokens::{
         clear_tokens_trigger_datetime, get_tokens, get_tokens_overview, get_tokens_trigger_datetime,
     },
     triggers::{get_trigger, get_triggers_by_job},
-    task_runs::{list_job_all_task_runs, list_task_runs}
 };
 
 pub async fn get_job_project_id(pool: &PgPool, job_id: Uuid) -> AppResult<Uuid> {
@@ -62,7 +57,10 @@ pub async fn get_project_id(pool: &PgPool, name: &str) -> AppResult<Uuid> {
         .await?;
 
     match row {
-        None => Err(AppError::http((StatusCode::BAD_REQUEST, "project not found"))),
+        None => Err(AppError::http((
+            StatusCode::BAD_REQUEST,
+            "project not found",
+        ))),
         Some((id,)) => Ok(id),
     }
 }
@@ -76,7 +74,10 @@ pub async fn create(
     let pool = app.get_pool();
 
     let project_id = get_project_id(&pool, &job.project).await?;
-    auth::update(&app).job(job.uuid, project_id).check(&headers).await?;
+    auth::update(&app)
+        .job(job.uuid, project_id)
+        .check(&headers)
+        .await?;
 
     let mut txn = pool.begin().await?;
 
@@ -189,7 +190,10 @@ pub async fn get_by_name(
     .await?;
 
     if let Some(job) = maybe_job {
-        auth::get(&app).job(job.id, job.project_id).check(&headers).await?;
+        auth::get(&app)
+            .job(job.id, job.project_id)
+            .check(&headers)
+            .await?;
         Ok(Json(job).into_response())
     } else {
         Ok(StatusCode::NOT_FOUND.into_response())
@@ -271,7 +275,10 @@ pub async fn get_by_id(
     .await?;
 
     if let Some(job) = maybe_job {
-        auth::get(&app).job(job.id, job.project_id).check(&headers).await?;
+        auth::get(&app)
+            .job(job.id, job.project_id)
+            .check(&headers)
+            .await?;
         Ok(Json(job).into_response())
     } else {
         Ok(StatusCode::NOT_FOUND.into_response())

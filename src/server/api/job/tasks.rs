@@ -1,10 +1,10 @@
 use crate::{
     server::api::{
         App, AppResult, StatusCode, auth,
+        error::AppError,
         job::reference::{Reference, ReferenceKind, parse_reference, resolve_reference},
         types::{Job, Task},
     },
-    server::api::error::AppError,
     util::{is_pg_integrity_error, pg_error},
 };
 use axum::{

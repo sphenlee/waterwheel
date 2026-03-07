@@ -1,5 +1,8 @@
-use crate::server::api::{App, auth, AppResult};
-use axum::{extract::{State, Request}, response::Json};
+use crate::server::api::{App, AppResult, auth};
+use axum::{
+    extract::{Request, State},
+    response::Json,
+};
 use serde::Serialize;
 
 #[derive(Serialize, sqlx::FromRow)]

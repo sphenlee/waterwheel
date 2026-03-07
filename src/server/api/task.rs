@@ -1,17 +1,16 @@
 use crate::{
     messages::{ProcessToken, TaskDef, TaskPriority, Token},
-    server::api::{App, AppResult, auth, jwt, updates},
-    server::api::error::AppError,
+    server::api::{App, AppResult, auth, error::AppError, jwt, updates},
 };
-use chrono::{DateTime, Utc};
-use futures::TryStreamExt;
 use axum::{
     Json,
-    extract::{State, Path},
+    extract::{Path, State},
     http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
 };
 use axum_extra::headers::{Authorization, HeaderMapExt, authorization::Bearer};
+use chrono::{DateTime, Utc};
+use futures::TryStreamExt;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use uuid::Uuid;

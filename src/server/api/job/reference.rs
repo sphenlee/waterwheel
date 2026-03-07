@@ -1,5 +1,4 @@
-use crate::server::api::{AppResult, error::AppError};
-use crate::server::api::types::Job;
+use crate::server::api::{AppResult, error::AppError, types::Job};
 use axum::http::StatusCode;
 use chrono::Duration;
 use once_cell::sync::Lazy;
@@ -86,7 +85,10 @@ static REFERENCE_PATTERN: Lazy<Regex> = Lazy::new(|| {
 
 pub fn parse_reference(reference: &str) -> AppResult<Reference> {
     let captures = REFERENCE_PATTERN.captures(reference).ok_or_else(|| {
-        AppError::http((StatusCode::BAD_REQUEST, format!("invalid reference '{reference}'")))
+        AppError::http((
+            StatusCode::BAD_REQUEST,
+            format!("invalid reference '{reference}'"),
+        ))
     })?;
 
     let mut proj = captures
