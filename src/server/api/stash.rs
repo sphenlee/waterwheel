@@ -35,7 +35,7 @@ impl FromRequestParts<App> for JwtSubject {
         let authz = parts
             .headers
             .typed_get::<Authorization<Bearer>>()
-            .ok_or_else(|| StatusCode::UNAUTHORIZED)?;
+            .ok_or(StatusCode::UNAUTHORIZED)?;
 
         let keys = &app.jwt_keys;
 

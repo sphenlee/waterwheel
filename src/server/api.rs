@@ -47,9 +47,9 @@ impl Deref for App {
     }
 }
 
-impl Into<App> for AppInner {
-    fn into(self) -> App {
-        App(Arc::new(self))
+impl From<AppInner> for App {
+    fn from(val: AppInner) -> Self {
+        App(Arc::new(val))
     }
 }
 

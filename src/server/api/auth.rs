@@ -3,8 +3,7 @@ use crate::{
     server::api::{App, AppResult, error::AppError, job::get_job_project_id},
 };
 use axum::{
-    http::{HeaderMap, StatusCode},
-    response::IntoResponse,
+    http::{HeaderMap, StatusCode}
 };
 use axum_extra::headers::{Authorization, HeaderMapExt, authorization::Bearer};
 use serde::{Deserialize, Serialize};
@@ -175,7 +174,7 @@ impl Check<'_> {
         if authorize(&self.app.0.config, principal, self.action, object, http).await? {
             Ok(())
         } else {
-            Err(AppError::Http(StatusCode::FORBIDDEN.into_response()))
+            Err(AppError::http(StatusCode::FORBIDDEN))
         }
     }
 }
