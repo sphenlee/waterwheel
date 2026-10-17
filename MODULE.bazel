@@ -64,7 +64,7 @@ oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
 # )
 oci.pull(
     name = "ubuntu",
-    digest = "sha256:72297848456d5d37d1262630108ab308d3e9ec7ed1c3286a32fe09856619a782",
+    digest = "sha256:68ee22004a9109b44973313b02ff7b1de250f1de0f5ecb628d73f579aaff33ac",
     image = "ubuntu:24.04",
     platforms = ["linux/amd64"],
 )
